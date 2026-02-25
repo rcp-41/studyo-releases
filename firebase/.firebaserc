@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "studyo-live-2026"
+  },
+  "targets": {
+    "studyo-live-2026": {
+      "hosting": {
+        "client": [
+          "studyo-live-2026"
+        ],
+        "panel": [
+          "studyo-creator-panel"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

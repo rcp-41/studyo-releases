@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Studyo Güncelleme</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: transparent;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+
+  .container {
+    width: 380px;
+    background: linear-gradient(145deg, rgba(15,15,25,0.97), rgba(8,8,18,0.99));
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 48px 40px;
+    text-align: center;
+    box-shadow: 
+      0 0 0 1px rgba(255,255,255,0.03),
+      0 25px 60px rgba(0,0,0,0.6),
+      0 0 120px rgba(99,102,241,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Animated gradient border glow */
+  .container::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    border-radius: 25px;
+    background: conic-gradient(from var(--angle, 0deg),
+      transparent 40%, rgba(99,102,241,0.4), rgba(168,85,247,0.4),
+      rgba(99,102,241,0.4), transparent 60%);
+    z-index: -1;
+    animation: rotate-border 4s linear infinite;
+  }
+
+  @property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  @keyframes rotate-border {
+    to { --angle: 360deg; }
+  }
+
+  .logo {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, #818cf8, #a78bfa, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .version {
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 1px;
+    margin-bottom: 36px;
+  }
+
+  /* Circular progress */
+  .progress-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 28px;
+  }
+
+  .progress-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.04);
+    stroke-width: 6;
+  }
+
+  .progress-ring {
+    fill: none;
+    stroke: url(#progressGradient);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: center;
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 0 8px rgba(99,102,241,0.4));
+  }
+
+  .progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+
+  .progress-text .unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .status {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 6px;
+  }
+
+  .sub-status {
+    font-size: 12px;
+    color: rgba(255,255,255,0.25);
+    line-height: 1.5;
+  }
+
+  /* Pulse animation for installing state */
+  .pulse-ring {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(99,102,241,0.3)); }
+    50% { filter: drop-shadow(0 0 20px rgba(99,102,241,0.6)); }
+  }
+
+  /* Checkmark animation */
+  .checkmark {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .checkmark svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .checkmark-path {
+    stroke: #4ade80;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+    animation: draw-check 0.6s ease forwards 0.2s;
+  }
+
+  @keyframes draw-check {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Floating particles */
+  .particles {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 24px;
+  }
+
+  .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(99,102,241,0.3);
+    border-radius: 50%;
+    animation: float-up linear infinite;
+  }
+
+  @keyframes float-up {
+    0% { transform: translateY(100%) scale(0); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 0.5; }
+    100% { transform: translateY(-100%) scale(1); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="particles" id="particles"></div>
+  
+  <div class="logo">STUDYO</div>
+  <div class="version" id="versionText">GÜNCELLEME</div>
+
+  <div class="progress-container">
+    <svg width="120" height="120" viewBox="0 0 120 120">
+      <defs>
+        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#818cf8" />
+          <stop offset="50%" style="stop-color:#a78bfa" />
+          <stop offset="100%" style="stop-color:#c084fc" />
+        </linearGradient>
+      </defs>
+      <circle class="progress-bg" cx="60" cy="60" r="52" />
+      <circle id="progressRing" class="progress-ring" cx="60" cy="60" r="52"
+              stroke-dasharray="326.73" stroke-dashoffset="326.73" />
+    </svg>
+    <div class="progress-text" id="progressText">0<span class="unit">%</span></div>
+    <div class="checkmark" id="checkmark">
+      <svg viewBox="0 0 48 48"><polyline class="checkmark-path" points="14,24 22,32 34,16" /></svg>
+    </div>
+  </div>
+
+  <div class="status" id="statusText">Güncelleme indiriliyor...</div>
+  <div class="sub-status" id="subStatus">Lütfen bekleyin, uygulama güncellenecek</div>
+</div>
+
+<script>
+  // Create floating particles
+  const particleContainer = document.getElementById('particles');
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (3 + Math.random() * 4) + 's';
+    p.style.animationDelay = Math.random() * 3 + 's';
+    p.style.width = (1 + Math.random() * 2) + 'px';
+    p.style.height = p.style.width;
+    particleContainer.appendChild(p);
+  }
+
+  const ring = document.getElementById('progressRing');
+  const textEl = document.getElementById('progressText');
+  const statusEl = document.getElementById('statusText');
+  const subEl = document.getElementById('subStatus');
+  const versionEl = document.getElementById('versionText');
+  const checkEl = document.getElementById('checkmark');
+  const circumference = 2 * Math.PI * 52; // ~326.73
+
+  function setProgress(pct) {
+    const offset = circumference - (pct / 100) * circumference;
+    ring.style.strokeDashoffset = offset;
+    textEl.innerHTML = pct + '<span class="unit">%</span>';
+  }
+
+  function setDownloaded() {
+    setProgress(100);
+    statusEl.textContent = 'Güncelleme hazır';
+    subEl.textContent = 'Yükleniyor...';
+    ring.classList.add('pulse-ring');
+    setTimeout(() => {
+      textEl.style.display = 'none';
+      checkEl.style.display = 'block';
+      statusEl.textContent = 'Yeniden başlatılıyor...';
+      subEl.textContent = '';
+    }, 800);
+  }
+
+  function setVersion(ver) {
+    versionEl.textContent = 'v' + ver;
+  }
+
+  // Listen for messages from main process
+  window.addEventListener('message', (e) => {
+    const { type, data } = e.data;
+    if (type === 'progress') setProgress(data);
+    if (type === 'downloaded') setDownloaded();
+    if (type === 'version') setVersion(data);
+  });
+</script>
+</body>
+</html>

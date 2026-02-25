@@ -1,0 +1,118 @@
+/* Photo Selector — Dark-only theme overrides */
+:root {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 96%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 64%;
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --primary: 47 96% 53%;
+    --primary-foreground: 0 0% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 47 96% 53%;
+    --radius: 0.5rem;
+}
+
+/* Photo grid item */
+.photo-grid-item {
+    @apply relative rounded-lg overflow-hidden cursor-pointer
+           transition-all duration-150 ease-out;
+}
+.photo-grid-item:hover {
+    @apply ring-2 ring-amber-400/50 scale-[1.02];
+}
+.photo-grid-item.selected {
+    @apply ring-2 ring-amber-400;
+}
+.photo-grid-item .favorite-star {
+    @apply transition-colors duration-150;
+}
+.photo-grid-item.is-favorite .favorite-star {
+    @apply text-yellow-400;
+}
+
+/* ── Star animations ──────────────────────────────────────────── */
+
+/* Fly up: star bursts upward when a photo is favorited */
+@keyframes star-fly-up {
+    0%   { transform: scale(1) translateY(0);  opacity: 1; }
+    40%  { transform: scale(1.5) translateY(-6px); opacity: 1; }
+    100% { transform: scale(0.8) translateY(-20px); opacity: 0; }
+}
+
+/* Fall down: star fades down when un-favoriting */
+@keyframes star-fall-down {
+    0%   { transform: scale(1) translateY(0); opacity: 1; }
+    100% { transform: scale(0.6) translateY(12px); opacity: 0; }
+}
+
+/* Pop: quick scale bounce used on click */
+@keyframes star-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+.star-fly-up {
+    animation: star-fly-up 0.4s ease-out forwards;
+}
+.star-fall-down {
+    animation: star-fall-down 0.3s ease-in forwards;
+}
+.star-pop {
+    animation: star-pop 0.25s ease-in-out;
+}
+
+
+/* Zoom container */
+.zoom-container {
+    @apply w-full h-full overflow-hidden relative;
+    cursor: grab;
+}
+.zoom-container.dragging {
+    cursor: grabbing;
+}
+.zoom-container img {
+    image-rendering: auto;
+    will-change: transform;
+}
+
+/* Thumbnail loading placeholder */
+.thumb-placeholder {
+    @apply bg-neutral-800 animate-pulse flex items-center justify-center;
+}
+
+/* Toolbar */
+.ps-toolbar {
+    @apply h-12 flex items-center justify-between px-4
+           bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800
+           sticky top-0 z-30;
+}
+
+/* Status bar */
+.ps-statusbar {
+    @apply h-8 flex items-center gap-6 px-4 text-xs
+           bg-neutral-950 border-t border-neutral-800 text-neutral-400
+           shrink-0;
+}
+
+/* Scrollbar styling */
+.ps-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.ps-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.ps-scrollbar::-webkit-scrollbar-thumb {
+    background: #525252;
+    border-radius: 3px;
+}
+.ps-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #737373;
+}

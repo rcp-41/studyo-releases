@@ -1,0 +1,34 @@
+
+> studyo-client@1.0.16 build
+> vite build
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+(node:39072) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///R:/Studyo/client/postcss.config.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to R:\Studyo\client\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[32m✓[39m 3591 modules transformed.
+[31mx[39m Build failed in 2.93s
+[31merror during build:
+[31msrc/pages/Settings.jsx (13:7): "default" is not exported by "src/services/auditLog.js", imported by "src/pages/Settings.jsx".[31m
+file: [36mR:/Studyo/client/src/pages/Settings.jsx:13:7[31m
+[33m
+11: import toast from 'react-hot-toast';
+12: import { backupApi } from '../services/backup';
+13: import auditLog from '../services/auditLog';
+           ^
+14: 
+15: const settingCategories = [
+[31m
+    at getRollupError (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:17037:16)
+    at Module.traceVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:17449:29)
+    at ModuleScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:15067:39)
+    at FunctionScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at ReturnValueScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at ReturnValueScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)[39m

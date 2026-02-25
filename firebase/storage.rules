@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isStudioMember(studioId) {
+      return isAuthenticated() && request.auth.token.studioId == studioId;
+    }
+    
+    function isStudioAdmin(studioId) {
+      return isStudioMember(studioId) && request.auth.token.role == 'admin';
+    }
+    
+    // ============================================
+    // STUDIO-BASED STORAGE - MULTI-TENANT
+    // ============================================
+    
+    // SECURITY: Max file size 20MB and image content types only
+    function isValidImage() {
+      return request.resource.size < 20 * 1024 * 1024
+          && request.resource.contentType.matches('image/.*');
+    }
+
+    // Selection photos - organized by studioId and archiveId
+    // Path: studios/{studioId}/selections/{archiveId}/{fileName}
+    match /studios/{studioId}/selections/{archiveId}/{allPaths=**} {
+      allow read: if isStudioMember(studioId);
+      allow write: if isStudioMember(studioId) && isValidImage();
+    }
+
+    // Watermarks - organized by studioId
+    // Path: studios/{studioId}/watermarks/{fileName}
+    match /studios/{studioId}/watermarks/{allPaths=**} {
+      allow read: if isStudioMember(studioId);
+      allow write: if isStudioAdmin(studioId) && isValidImage();
+    }
+
+    // Profile photos - organized by studioId
+    // Path: studios/{studioId}/profiles/{userId}/{fileName}
+    match /studios/{studioId}/profiles/{userId}/{allPaths=**} {
+      allow read: if isStudioMember(studioId);
+      allow write: if isStudioMember(studioId) && request.auth.uid == userId && isValidImage();
+    }
+
+    // Temporary uploads - organized by studioId
+    // Path: studios/{studioId}/temp/{userId}/{fileName}
+    match /studios/{studioId}/temp/{userId}/{allPaths=**} {
+      allow read: if isStudioMember(studioId) && request.auth.uid == userId;
+      allow write: if isStudioMember(studioId) && request.auth.uid == userId && isValidImage();
+    }
+    
+    // ============================================
+    // LEGACY PATHS (TO BE MIGRATED)
+    // ============================================
+    
+    // Old selection photos path - DEPRECATED
+    // Path: selections/{archiveId}/{fileName}
+    match /selections/{archiveId}/{allPaths=**} {
+      // DEPRECATED: Use studios/{studioId}/selections instead
+      // Disabled to force migration to new structure
+      allow read, write: if false;
+    }
+    
+    // ============================================
+    // DENY ALL OTHER PATHS
+    // ============================================
+    
+    // Default: deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

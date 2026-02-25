@@ -1,0 +1,216 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'admin';
+    }
+    
+    function isCreator() {
+      return isAuthenticated() && request.auth.token.role == 'creator';
+    }
+    
+    function isStudioMember(studioId) {
+      return isAuthenticated() && request.auth.token.studioId == studioId;
+    }
+    
+    function isStudioAdmin(studioId) {
+      return isStudioMember(studioId) && request.auth.token.role == 'admin';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    // Users can read their own data, admins can manage users in THEIR OWN studio only
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isCreator() || (isAdmin() && resource.data.studioId == request.auth.token.studioId);
+      allow create: if isAdmin();
+      allow update, delete: if isCreator() || (isAdmin() && resource.data.studioId == request.auth.token.studioId);
+    }
+
+    // ============================================
+    // STUDIOS COLLECTION - MULTI-TENANT CORE
+    // ============================================
+    // Only Creator can create studios, studio members can read their own studio
+    match /studios/{studioId} {
+      // Only creator role can create new studios
+      allow create: if isCreator();
+      
+      // Studio members can read their own studio data
+      allow read: if isStudioMember(studioId) || isCreator();
+      
+      // Only studio admins can update their own studio
+      allow update: if isStudioAdmin(studioId) || isCreator();
+      
+      // Only creator can delete studios
+      allow delete: if isCreator();
+      
+      // ============================================
+      // STUDIO SUB-COLLECTIONS - MULTI-TENANT DATA
+      // ============================================
+      
+      // Archives within a studio
+      match /archives/{archiveId} {
+        allow read: if isStudioMember(studioId);
+        allow create: if isStudioMember(studioId);
+        allow update, delete: if isStudioMember(studioId);
+      }
+      
+      // Appointments within a studio
+      match /appointments/{appointmentId} {
+        allow read: if isStudioMember(studioId);
+        allow create: if isStudioMember(studioId);
+        allow update, delete: if isStudioMember(studioId);
+      }
+      
+      // Customers within a studio
+      match /customers/{customerId} {
+        allow read: if isStudioMember(studioId);
+        allow create: if isStudioMember(studioId);
+        allow update, delete: if isStudioMember(studioId);
+      }
+      
+      // Shoots within a studio
+      match /shoots/{shootId} {
+        allow read: if isStudioMember(studioId);
+        allow create: if isStudioMember(studioId);
+        allow update, delete: if isStudioMember(studioId);
+      }
+      
+      // Options (ShootTypes, Locations, Photographers) within a studio
+      match /shootTypes/{docId} {
+        allow read: if isStudioMember(studioId);
+        allow write: if isStudioAdmin(studioId);
+      }
+      
+      match /locations/{docId} {
+        allow read: if isStudioMember(studioId);
+        allow write: if isStudioAdmin(studioId);
+      }
+      
+      match /photographers/{docId} {
+        allow read: if isStudioMember(studioId);
+        allow write: if isStudioAdmin(studioId);
+      }
+      
+      // Integrations (WooCommerce, etc.) - SENSITIVE DATA
+      match /integrations/{integrationType} {
+        // Only studio admins can read/write integrations (contains API keys)
+        allow read, write: if isStudioAdmin(studioId) || isCreator();
+      }
+      
+      // Settings within a studio
+      match /settings/{settingId} {
+        allow read: if isStudioMember(studioId);
+        allow write: if isStudioAdmin(studioId);
+      }
+      
+      // Activity Logs within a studio - Immutable audit trail
+      match /activityLogs/{logId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow create: if isStudioMember(studioId);
+        allow update, delete: if false; // Immutable
+      }
+      
+      // System-managed collections - NO client access (Cloud Functions only)
+      match /system_users/{docId} {
+        allow read, write: if false;
+      }
+      match /paymentIntents/{docId} {
+        allow read, write: if false;
+      }
+      match /counters/{docId} {
+        allow read, write: if false;
+      }
+      match /auditLogs/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow create: if isStudioMember(studioId);
+        allow update, delete: if false; // Immutable
+      }
+
+      // Schools within a studio (Photo Selector)
+      match /schools/{schoolId} {
+        allow read: if isStudioMember(studioId);
+        allow write: if isStudioAdmin(studioId);
+      }
+
+      // Price Lists within a studio (Photo Selector)
+      match /priceLists/{priceListId} {
+        allow read: if isStudioMember(studioId);
+        allow write: if isStudioAdmin(studioId);
+      }
+
+      // Catch-all for any other sub-collections within a studio
+      match /{subcollection}/{docId} {
+        allow read: if isStudioMember(studioId);
+        allow write: if isStudioAdmin(studioId);
+      }
+    }
+
+    // Rate limit collection - NO client access (Cloud Functions only)
+    match /_rateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    // ============================================
+    // LEGACY COLLECTIONS (TO BE MIGRATED)
+    // ============================================
+    // These should be moved under studios/{studioId}/ structure
+    // Temporarily keeping them with strict controls
+    
+    match /archives/{archiveId} {
+      // DEPRECATED: Use studios/{studioId}/archives instead
+      // Keeping for backward compatibility during migration
+      allow read, write: if false; // Disabled - force migration
+    }
+
+    match /appointments/{appointmentId} {
+      // DEPRECATED: Use studios/{studioId}/appointments instead
+      allow read, write: if false; // Disabled - force migration
+    }
+
+    match /shootTypes/{docId} {
+      // DEPRECATED: Use studios/{studioId}/shootTypes instead
+      allow read, write: if false; // Disabled - force migration
+    }
+    
+    match /locations/{docId} {
+      // DEPRECATED: Use studios/{studioId}/locations instead
+      allow read, write: if false; // Disabled - force migration
+    }
+    
+    match /photographers/{docId} {
+      // DEPRECATED: Use studios/{studioId}/photographers instead
+      allow read, write: if false; // Disabled - force migration
+    }
+
+    match /settings/{settingId} {
+      // DEPRECATED: Use studios/{studioId}/settings instead
+      allow read, write: if false; // Disabled - force migration
+    }
+
+    match /activityLogs/{logId} {
+      // DEPRECATED: Use studios/{studioId}/activityLogs instead
+      allow read, write: if false; // Disabled - force migration
+    }
+
+    // ============================================
+    // DENY ALL OTHER COLLECTIONS
+    // ============================================
+    // No catch-all rule - explicitly deny everything else
+    // This forces us to define rules for each new collection
+  }
+}

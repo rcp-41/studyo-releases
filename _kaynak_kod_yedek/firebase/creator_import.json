@@ -1,0 +1,12 @@
+{
+    "users": [
+        {
+            "localId": "creator001",
+            "email": "creator@studyo.app",
+            "emailVerified": true,
+            "displayName": "Creator Admin",
+            "disabled": false,
+            "customAttributes": "{\"role\":\"creator\",\"super_admin\":true}"
+        }
+    ]
+}

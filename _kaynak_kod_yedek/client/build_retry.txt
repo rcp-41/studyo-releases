@@ -1,0 +1,34 @@
+
+> studyo-client@1.0.0 electron:build
+> vite build && electron-builder
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+(node:48312) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///R:/Studyo/client/postcss.config.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to R:\Studyo\client\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[32m✓[39m 2367 modules transformed.
+[31mx[39m Build failed in 2.01s
+[31merror during build:
+[31msrc/pages/Appointments.jsx (3:26): "customersApi" is not exported by "src/services/api.js", imported by "src/pages/Appointments.jsx".[31m
+file: [36mR:/Studyo/client/src/pages/Appointments.jsx:3:26[31m
+[33m
+1: import { useState } from 'react';
+2: import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+3: import { appointmentsApi, customersApi, usersApi } from '../services/api';
+                             ^
+4: import { formatDate, formatDateTime, getStatusLabel, cn } from '../lib/utils';
+5: import {
+[31m
+    at getRollupError (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:17037:16)
+    at Module.traceVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:17449:29)
+    at ModuleScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:15067:39)
+    at FunctionScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at ReturnValueScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at MemberExpression.bind (file:///R:/Studyo/client/node_modules/rollup/dist/es/shared/node-entry.js:7392:49)[39m

@@ -1,0 +1,40 @@
+# Node
+node_modules/
+dist/
+dist-electron*/
+
+# Environment / secrets
+.env
+.env.*
+.env.local
+.env.production
+.env*.local
+
+# Service Account Keys
+*-adminsdk*.json
+gen-lang-client*.json
+serviceAccountKey.json
+
+# Firebase emulator data & cache
+firebase/emulator-data/
+.firebase/
+
+# Build artifacts
+builds/
+*.exe
+
+# Legacy data (contains PII)
+Eski bir db/
+
+# OS / IDE
+*.log
+nul
+.venv/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc

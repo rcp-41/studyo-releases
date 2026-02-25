@@ -1,0 +1,234 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'admin';
+    }
+    
+    function isCreator() {
+      return isAuthenticated() && request.auth.token.role == 'creator';
+    }
+    
+    function isOrgMember(orgId) {
+      return isAuthenticated() && request.auth.token.organizationId == orgId;
+    }
+    
+    function isOrgAdmin(orgId) {
+      return isOrgMember(orgId) && request.auth.token.role == 'org_admin';
+    }
+    
+    function isStudioMember(studioId) {
+      return isAuthenticated() && request.auth.token.studioId == studioId;
+    }
+    
+    function isStudioAdmin(studioId) {
+      return isStudioMember(studioId) && request.auth.token.role == 'admin';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============================================
+    // USERS COLLECTION (root-level, for Creator profiles)
+    // ============================================
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isCreator() || (isAdmin() && resource.data.studioId == request.auth.token.studioId);
+      allow create: if isAdmin();
+      allow update, delete: if isCreator() || (isAdmin() && resource.data.studioId == request.auth.token.studioId);
+    }
+
+    // ============================================
+    // ORGANIZATIONS COLLECTION - MULTI-TENANT ROOT
+    // ============================================
+    match /organizations/{orgId} {
+      // Creator can do anything, org members can read
+      allow read: if isOrgMember(orgId) || isCreator();
+      allow create, delete: if isCreator();
+      allow update: if isOrgAdmin(orgId) || isCreator();
+
+      // ============================================
+      // STUDIOS WITHIN AN ORGANIZATION
+      // ============================================
+      match /studios/{studioId} {
+        allow create: if isCreator();
+        allow read: if isStudioMember(studioId) || isOrgAdmin(orgId) || isCreator();
+        allow update: if isStudioAdmin(studioId) || isOrgAdmin(orgId) || isCreator();
+        allow delete: if isCreator();
+
+        // ============================================
+        // STUDIO SUB-COLLECTIONS
+        // ============================================
+        
+        // Archives within a studio
+        match /archives/{archiveId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioMember(studioId);
+        }
+        
+        // Appointments within a studio
+        match /appointments/{appointmentId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioMember(studioId);
+        }
+        
+        // Customers within a studio
+        match /customers/{customerId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioMember(studioId);
+        }
+        
+        // Shoots within a studio
+        match /shoots/{shootId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioMember(studioId);
+        }
+        
+        // Options (ShootTypes, Locations, Photographers)
+        match /shootTypes/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+        
+        match /locations/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+        
+        match /photographers/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+        
+        // Integrations (WooCommerce, etc.) - SENSITIVE DATA
+        match /integrations/{integrationType} {
+          allow read, write: if isStudioAdmin(studioId) || isOrgAdmin(orgId) || isCreator();
+        }
+        
+        // Settings within a studio
+        match /settings/{settingId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+        
+        // Activity Logs - Immutable audit trail
+        match /activityLogs/{logId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId) || isCreator();
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if false; // Immutable
+        }
+        
+        // Audit Logs - Immutable
+        match /auditLogs/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId) || isCreator();
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if false; // Immutable
+        }
+
+        // Subscription History - Immutable
+        match /subscription_history/{docId} {
+          allow read: if isOrgAdmin(orgId) || isCreator();
+          allow write: if false; // Cloud Functions only
+        }
+
+        // System-managed collections - NO client access (Cloud Functions only)
+        match /system_users/{docId} {
+          allow read, write: if false;
+        }
+        match /paymentIntents/{docId} {
+          allow read, write: if false;
+        }
+        match /counters/{docId} {
+          allow read, write: if false;
+        }
+
+        // Schools within a studio (Photo Selector)
+        match /schools/{schoolId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+
+        // Price Lists within a studio (Photo Selector)
+        match /priceLists/{priceListId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+
+        // Users subcollection within a studio
+        match /users/{userId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId) || isCreator();
+          allow write: if isStudioAdmin(studioId) || isCreator();
+        }
+
+        // Catch-all for any other sub-collections within a studio
+        match /{subcollection}/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+      }
+    }
+
+    // Rate limit collection - NO client access (Cloud Functions only)
+    match /_rateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    // ============================================
+    // LEGACY COLLECTIONS (root-level studios)
+    // ============================================
+    // Data is still at studios/{studioId} until full migration to organizations/ path
+    
+    match /studios/{studioId} {
+      allow read: if isStudioMember(studioId) || isCreator();
+      allow write: if isStudioAdmin(studioId) || isCreator();
+
+      // Legacy studio sub-collections
+      match /{subcollection}/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioMember(studioId) || isCreator();
+      }
+    }
+
+    match /archives/{archiveId} {
+      allow read, write: if false;
+    }
+
+    match /appointments/{appointmentId} {
+      allow read, write: if false;
+    }
+
+    match /shootTypes/{docId} {
+      allow read, write: if false;
+    }
+    
+    match /locations/{docId} {
+      allow read, write: if false;
+    }
+    
+    match /photographers/{docId} {
+      allow read, write: if false;
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if false;
+    }
+
+    match /activityLogs/{logId} {
+      allow read, write: if false;
+    }
+  }
+}
