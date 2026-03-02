@@ -1,6 +1,6 @@
 {
     "name": "studyo-client",
-    "version": "1.0.21",
+    "version": "1.0.23",
     "description": "Studyo Photo Studio Management System - Desktop Client",
     "main": "electron/main.js",
     "scripts": {

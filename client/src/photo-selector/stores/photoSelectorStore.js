@@ -65,7 +65,16 @@ const usePhotoSelectorStore = create(
 
             setOperationMode: (mode) => set({ operationMode: mode }),
 
-            setPhotos: (photos) => set({ photos, photosLoading: false }),
+            setPhotos: (photos) => set({
+                photos,
+                photosLoading: false,
+                // Clear stale data from Zustand persist (previous session) to prevent
+                // flash of incorrect numbered/favorites between setPhotos and restoreFromIni
+                numberedPhotos: [],
+                nextOrderNumber: 1,
+                favorites: new Set(),
+                removedFavorites: new Set(),
+            }),
             setPhotosLoading: (loading) => set({ photosLoading: loading }),
             setThumbnailProgress: (progress) => set({ thumbnailProgress: progress }),
 
@@ -82,7 +91,10 @@ const usePhotoSelectorStore = create(
                 const { photos } = get();
                 set({
                     photos: photos.map(p => {
-                        const thumbName = p.originalName.replace(/\.[^.]+$/, '.jpg');
+                        // Use currentName (disk filename) for thumbnail lookup,
+                        // since thumbnails are generated from actual files on disk
+                        const diskName = p.currentName || p.originalName;
+                        const thumbName = diskName.replace(/\.[^.]+$/, '.jpg');
                         return { ...p, thumbnailPath: `${thumbnailDir}/${thumbName}` };
                     })
                 });

@@ -257,7 +257,7 @@ export default function PhotoSelectorApp() {
                 if (!photo) return null;
 
                 const ext = photo.name?.split('.').pop() || photo.originalName?.split('.').pop() || 'jpg';
-                const paddedNum = String(np.orderNumber).padStart(3, '0');
+                const paddedNum = String(np.orderNumber).padStart(2, '0');
                 const dir = (photo.fullPath || photo.path)?.replace(/[\\/][^\\/]+$/, '') || '';
                 const newName = `${paddedNum}.${ext}`;
                 const newPath = dir ? `${dir}\\${newName}` : newName;
