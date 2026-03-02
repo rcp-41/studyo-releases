@@ -1,6 +1,6 @@
 {
     "name": "studyo-client",
-    "version": "1.0.19",
+    "version": "1.0.20",
     "description": "Studyo Photo Studio Management System - Desktop Client",
     "main": "electron/main.js",
     "scripts": {
@@ -96,7 +96,7 @@
             "target": [
                 "nsis"
             ],
-            "icon": "public/icon.ico"
+            "icon": "public/baseos-icon-256.png"
         },
         "nsis": {
             "oneClick": true,

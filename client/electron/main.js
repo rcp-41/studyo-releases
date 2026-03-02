@@ -71,7 +71,7 @@ function createWindow() {
         minWidth: 1200,
         minHeight: 700,
         title: 'BaseOS — Stüdyo Yönetim',
-        icon: path.join(__dirname, '../public/icon.png'),
+        icon: path.join(__dirname, '../public/baseos-icon.png'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
