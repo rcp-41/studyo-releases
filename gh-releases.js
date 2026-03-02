@@ -1,5 +1,5 @@
 const https = require('https');
-const token = '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';
+const token = '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';
 
 function req(method, path, body) {
     return new Promise((resolve, reject) => {
@@ -29,7 +29,6 @@ function req(method, path, body) {
 }
 
 (async () => {
-    // List all releases
     const { status, data: releases } = await req('GET', '/releases');
     console.log('API Status:', status);
     if (!Array.isArray(releases)) { console.log(JSON.stringify(releases).slice(0, 500)); return; }
@@ -42,4 +41,5 @@ function req(method, path, body) {
             console.log(`  -> Result: ${pub.status}`);
         }
     }
+    console.log('Done!');
 })();
