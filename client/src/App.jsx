@@ -22,7 +22,8 @@ import PixonaiSettings from './pages/PixonaiSettings';
 import BotConversations from './pages/BotConversations';
 import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Loader2 } from 'lucide-react';
+import SplashScreen from './components/SplashScreen';
+import BaseOSLoader from './components/BaseOSLoader';
 
 // Role-based Dashboard Router
 // Admin → Dashboard, Personel → Archives
@@ -43,7 +44,7 @@ function ProtectedRoute() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <BaseOSLoader size={48} />
             </div>
         );
     }
@@ -128,7 +129,7 @@ function LicenseCheck({ children }) {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <BaseOSLoader size={48} />
             </div>
         );
     }
@@ -148,6 +149,12 @@ function LicenseCheck({ children }) {
 
 
 export default function App() {
+    const [showSplash, setShowSplash] = useState(true);
+
+    if (showSplash) {
+        return <SplashScreen onComplete={() => setShowSplash(false)} />;
+    }
+
     return (
         <ErrorBoundary>
             <HashRouter>

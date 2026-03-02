@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { Camera, Eye, EyeOff, Loader2, User, UserCog, RotateCcw, ShieldAlert, X } from 'lucide-react';
+import { Eye, EyeOff, Loader2, User, UserCog, RotateCcw, ShieldAlert, X } from 'lucide-react';
+import BaseOSLoader from '../components/BaseOSLoader';
 import toast from 'react-hot-toast';
 
 export default function Login() {
@@ -145,7 +146,7 @@ export default function Login() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/10 p-4">
                 <div className="text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+                    <BaseOSLoader size={48} className="mx-auto mb-4" />
                     <p className="text-muted-foreground">Yükleniyor...</p>
                 </div>
             </div>
@@ -157,11 +158,9 @@ export default function Login() {
             <div className="w-full max-w-md">
                 {/* Logo & Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-                        <Camera className="w-8 h-8 text-primary" />
-                    </div>
+                    <img src="/baseos-icon.png" alt="BaseOS" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
                     <h1 className="text-3xl font-bold">
-                        {studioConfig.studioName || 'Studyo Yönetim'}
+                        {studioConfig.studioName || 'BaseOS'}
                     </h1>
                     <p className="text-muted-foreground mt-2">
                         Stüdyo Yönetim Sistemi
@@ -258,7 +257,7 @@ export default function Login() {
 
                 {/* Footer */}
                 <p className="text-center text-sm text-muted-foreground mt-6">
-                    © {new Date().getFullYear()} Studyo Yönetim Sistemi
+                    © {new Date().getFullYear()} BaseOS <span className="text-xs opacity-60">by RaiKan</span>
                 </p>
             </div>
 

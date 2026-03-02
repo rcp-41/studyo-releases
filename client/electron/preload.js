@@ -112,10 +112,14 @@ contextBridge.exposeInMainWorld('electron', {
     // Auto-Update
     update: {
         onStatus: (callback) => {
-            ipcRenderer.on('update:status', (_event, status, data) => callback(status, data));
+            const handler = (_event, status, data) => callback(status, data);
+            ipcRenderer.on('update:status', handler);
+            return () => ipcRenderer.removeListener('update:status', handler);
         },
         onProgress: (callback) => {
-            ipcRenderer.on('update:progress', (_event, percent) => callback(percent));
+            const handler = (_event, percent) => callback(percent);
+            ipcRenderer.on('update:progress', handler);
+            return () => ipcRenderer.removeListener('update:progress', handler);
         },
         download: () => ipcRenderer.invoke('update:download'),
         install: () => ipcRenderer.invoke('update:install'),

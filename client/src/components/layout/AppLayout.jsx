@@ -108,7 +108,7 @@ export default function AppLayout({ children }) {
                 <div className="flex items-center justify-between h-14 px-4 border-b border-border">
                     {sidebarOpen && (
                         <div className="flex items-baseline gap-1.5">
-                            <span className="font-bold text-lg text-primary">STUDYO</span>
+                            <span className="font-bold text-lg text-primary">BaseOS</span>
                             {window.versions?.app && <span className="text-[10px] text-muted-foreground">v{window.versions.app}</span>}
                             {!window.versions?.app && <span className="text-[10px] text-muted-foreground">v{__APP_VERSION__}</span>}
                         </div>
@@ -220,7 +220,7 @@ export default function AppLayout({ children }) {
             )}>
                 <div className="flex items-center justify-between h-14 px-4 border-b border-border">
                     <div className="flex items-baseline gap-1.5">
-                        <span className="font-bold text-lg text-primary">STUDYO</span>
+                        <span className="font-bold text-lg text-primary">BaseOS</span>
                         {window.versions?.app && <span className="text-[10px] text-muted-foreground">v{window.versions.app}</span>}
                         {!window.versions?.app && <span className="text-[10px] text-muted-foreground">v{__APP_VERSION__}</span>}
                     </div>
@@ -294,7 +294,7 @@ export default function AppLayout({ children }) {
                         <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-muted rounded-lg lg:hidden">
                             <Menu className="w-5 h-5" />
                         </button>
-                        <span className="font-bold text-primary lg:hidden">STUDYO</span>
+                        <span className="font-bold text-primary lg:hidden">BaseOS</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <NotificationCenter />

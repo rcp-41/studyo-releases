@@ -70,7 +70,7 @@ function createWindow() {
         height: 900,
         minWidth: 1200,
         minHeight: 700,
-        title: 'Studyo Yönetim',
+        title: 'BaseOS — Stüdyo Yönetim',
         icon: path.join(__dirname, '../public/icon.png'),
         webPreferences: {
             nodeIntegration: false,
@@ -133,7 +133,7 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('Studyo Yönetim');
+    tray.setToolTip('BaseOS — Stüdyo Yönetim');
     tray.setContextMenu(contextMenu);
 
     tray.on('double-click', () => {
