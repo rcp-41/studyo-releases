@@ -27,16 +27,18 @@ async function getBotConfig(studioId, organizationId) {
         ? `organizations/${organizationId}/studios/${studioId}`
         : `studios/${studioId}`;
 
-    const [whatsappDoc, voiceDoc, settingsDoc] = await Promise.all([
+    const [whatsappDoc, voiceDoc, settingsDoc, studioInfoDoc] = await Promise.all([
         db.doc(`${basePath}/botConfig/whatsapp`).get(),
         db.doc(`${basePath}/botConfig/voice`).get(),
-        db.doc(`${basePath}/botConfig/settings`).get()
+        db.doc(`${basePath}/botConfig/settings`).get(),
+        db.doc(`${basePath}/botConfig/studioInfo`).get()
     ]);
 
     return {
         whatsapp: whatsappDoc.exists ? whatsappDoc.data() : null,
         voice: voiceDoc.exists ? voiceDoc.data() : null,
-        settings: settingsDoc.exists ? settingsDoc.data() : null
+        settings: settingsDoc.exists ? settingsDoc.data() : null,
+        studioInfo: studioInfoDoc.exists ? studioInfoDoc.data() : null
     };
 }
 
@@ -250,7 +252,7 @@ async function checkRateLimit(studioId, organizationId, limit = 200) {
  * @param {Object} studioData - studio lookup data
  * @returns {string} system prompt
  */
-function buildSystemPrompt(settings, studioData) {
+function buildSystemPrompt(settings, studioData, studioInfo) {
     const services = (settings.services || [])
         .map(s => `- ${s.name}: ${s.price}${s.duration ? ` (${s.duration})` : ''}`)
         .join('\n');
@@ -265,12 +267,71 @@ function buildSystemPrompt(settings, studioData) {
 
     const customPrompt = settings.systemPrompt || '';
 
+    // Build studio info sections from studioInfo config
+    let studioInfoBlock = '';
+    if (studioInfo) {
+        const parts = [];
+
+        if (studioInfo.address) parts.push(`ADRES: ${studioInfo.address}`);
+        if (studioInfo.directions) parts.push(`YOL TARİFİ: ${studioInfo.directions}`);
+        if (studioInfo.mapsUrl) parts.push(`HARİTA: ${studioInfo.mapsUrl}`);
+        if (studioInfo.phone) parts.push(`TELEFON: ${studioInfo.phone}`);
+        if (studioInfo.email) parts.push(`E-POSTA: ${studioInfo.email}`);
+        if (studioInfo.instagram) parts.push(`INSTAGRAM: ${studioInfo.instagram}`);
+        if (studioInfo.website) parts.push(`WEB: ${studioInfo.website}`);
+        if (studioInfo.about) parts.push(`STÜDYO HAKKINDA:\n${studioInfo.about}`);
+        if (studioInfo.specialties) parts.push(`UZMANLIK ALANLARI: ${studioInfo.specialties}`);
+
+        // Appointment settings
+        if (studioInfo.appointmentDuration || studioInfo.breakBetween || studioInfo.maxDailyAppointments) {
+            const appts = [];
+            if (studioInfo.appointmentDuration) appts.push(`Seans süresi: ${studioInfo.appointmentDuration} dk`);
+            if (studioInfo.breakBetween) appts.push(`Seanslar arası mola: ${studioInfo.breakBetween} dk`);
+            if (studioInfo.maxDailyAppointments) appts.push(`Günlük max randevu: ${studioInfo.maxDailyAppointments}`);
+            parts.push(`RANDEVU AYARLARI:\n${appts.join('\n')}`);
+        }
+
+        // Payment info
+        if (studioInfo.iban || studioInfo.bankName || studioInfo.depositAmount) {
+            const pay = [];
+            if (studioInfo.bankName) pay.push(`Banka: ${studioInfo.bankName}`);
+            if (studioInfo.iban) pay.push(`IBAN: ${studioInfo.iban}`);
+            if (studioInfo.accountHolder) pay.push(`Hesap Sahibi: ${studioInfo.accountHolder}`);
+            if (studioInfo.depositAmount) pay.push(`Kapora: ${studioInfo.depositAmount}`);
+            if (studioInfo.paymentNotes) pay.push(`Not: ${studioInfo.paymentNotes}`);
+            parts.push(`ÖDEME BİLGİLERİ:\n${pay.join('\n')}`);
+        }
+
+        // FAQ
+        if (studioInfo.faq && studioInfo.faq.length > 0) {
+            const faqText = studioInfo.faq.map(f => `S: ${f.question}\nC: ${f.answer}`).join('\n\n');
+            parts.push(`SIK SORULAN SORULAR:\n${faqText}`);
+        }
+
+        // Campaigns
+        if (studioInfo.campaigns && studioInfo.campaigns.length > 0) {
+            const activeCampaigns = studioInfo.campaigns
+                .filter(c => c.active !== false)
+                .map(c => `- ${c.name}${c.details ? ': ' + c.details : ''}`)
+                .join('\n');
+            if (activeCampaigns) parts.push(`AKTİF KAMPANYALAR:\n${activeCampaigns}`);
+        }
+
+        // Restrictions
+        if (studioInfo.restrictions) parts.push(`KISITLAMALAR (bunları ASLA yapma):\n${studioInfo.restrictions}`);
+
+        if (parts.length > 0) {
+            studioInfoBlock = '\n\n' + parts.join('\n\n');
+        }
+    }
+
     return `Sen bir fotoğraf stüdyosunun WhatsApp ve telefon asistanısın.
 
 STÜDYO BİLGİLERİ:
 - Stüdyo Adı: ${studioData.name || 'Fotoğraf Stüdyosu'}
 - Sahibi: ${studioData.owner || ''}
 - Çalışma Saatleri: ${settings.workingHours?.start || '09:00'} - ${settings.workingHours?.end || '19:00'}
+${studioInfoBlock}
 
 HİZMETLER VE FİYATLAR:
 ${services || '- Bilgi mevcut değil'}
@@ -600,7 +661,7 @@ async function processMessage(studioId, organizationId, phone, text, channel) {
     } catch (_) { /* best effort */ }
 
     // 9. Build system prompt
-    const systemPrompt = buildSystemPrompt(settings, studioData) + historyContext;
+    const systemPrompt = buildSystemPrompt(settings, studioData, config.studioInfo) + historyContext;
 
     // 10. Load conversation history
     const conversationHistory = await loadConversationHistory(dbHandler, phone);

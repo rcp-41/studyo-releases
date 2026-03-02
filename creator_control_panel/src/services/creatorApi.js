@@ -271,6 +271,17 @@ export const creatorApi = {
         }
     },
 
+    // Update studio info for bot (address, contact, FAQ, campaigns, etc.)
+    updateBotStudioInfo: async (studioId, organizationId, studioInfo) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-updateStudioInfo');
+            const result = await func({ studioId, organizationId, studioInfo });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update Bot Studio Info');
+        }
+    },
+
     // Update WhatsApp bot config
     updateBotWhatsApp: async (studioId, organizationId, config) => {
         try {

@@ -67,6 +67,26 @@ exports.updateSettings = onCall({ enforceAppCheck: false }, async (request) => {
 });
 
 /**
+ * Update studio info (address, contact, FAQ, campaigns, payment, restrictions)
+ * Creator only
+ */
+exports.updateStudioInfo = onCall({ enforceAppCheck: false }, async (request) => {
+    requireCreator(request);
+
+    const { studioId, organizationId, studioInfo } = request.data || {};
+    if (!studioId || !studioInfo) throw new HttpsError('invalid-argument', 'studioId and studioInfo required');
+
+    const path = getBotConfigPath(studioId, organizationId);
+    await db.doc(`${path}/studioInfo`).set({
+        ...studioInfo,
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: request.auth.uid
+    }, { merge: true });
+
+    return { success: true };
+});
+
+/**
  * Update WhatsApp bot config (token, phone number, etc.)
  * Creator only
  */
