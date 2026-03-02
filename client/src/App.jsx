@@ -22,7 +22,7 @@ import PixonaiSettings from './pages/PixonaiSettings';
 import BotConversations from './pages/BotConversations';
 import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
-import SplashScreen from './components/SplashScreen';
+
 import BaseOSLoader from './components/BaseOSLoader';
 
 // Role-based Dashboard Router
@@ -149,11 +149,6 @@ function LicenseCheck({ children }) {
 
 
 export default function App() {
-    const [showSplash, setShowSplash] = useState(true);
-
-    if (showSplash) {
-        return <SplashScreen onComplete={() => setShowSplash(false)} />;
-    }
 
     return (
         <ErrorBoundary>

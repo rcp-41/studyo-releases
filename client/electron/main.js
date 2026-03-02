@@ -79,7 +79,8 @@ function createWindow() {
         },
         frame: true,
         autoHideMenuBar: true,
-        backgroundColor: '#0f172a' // Dark background
+        backgroundColor: '#0f172a',
+        show: false, // Hidden initially — splash shows first
     });
 
     // Load URL based on environment
@@ -232,10 +233,89 @@ app.whenReady().then(() => {
         // Update Photo Selector IPC with actual mainWindow reference
         registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, ALLOWED_BASE_PATHS);
 
-        // ===== AUTO-UPDATE (Premium Splash) =====
+        // ===== FRAMELESS SPLASH WINDOW (plays intro video like Photoshop) =====
+        let splashWindow = null;
         let updateSplash = null;
         let pendingVersion = '';
+        let videoEnded = false;
+        let updatePending = false;
 
+        // Create the frameless splash window
+        splashWindow = new BrowserWindow({
+            width: 500,
+            height: 500,
+            frame: false,
+            transparent: true,
+            resizable: false,
+            alwaysOnTop: true,
+            skipTaskbar: true,
+            center: true,
+            hasShadow: false,
+            webPreferences: {
+                contextIsolation: true,
+                nodeIntegration: false,
+            }
+        });
+        splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+        splashWindow.on('closed', () => { splashWindow = null; });
+
+        // Once splash HTML loads, set the video source
+        splashWindow.webContents.once('did-finish-load', () => {
+            const videoPath = path.join(__dirname, '../public/splash-intro.mp4').replace(/\\/g, '/');
+            splashWindow.webContents.executeJavaScript(
+                `window.postMessage({ type: 'videoSrc', data: 'file:///${videoPath}' }, '*')`
+            ).catch(() => { });
+        });
+
+        // Poll for video-ended event from splash
+        const splashPollInterval = setInterval(() => {
+            if (!splashWindow || splashWindow.isDestroyed()) {
+                clearInterval(splashPollInterval);
+                return;
+            }
+            splashWindow.webContents.executeJavaScript(
+                `document.getElementById('introVideo')?.ended`
+            ).then(ended => {
+                if (ended && !videoEnded) {
+                    videoEnded = true;
+                    clearInterval(splashPollInterval);
+                    // If no update is being downloaded, close splash and show main
+                    if (!updatePending) {
+                        closeSplashShowMain();
+                    }
+                }
+            }).catch(() => { });
+        }, 300);
+
+        // Fallback: if video somehow doesn't end, close splash after 15s
+        setTimeout(() => {
+            if (!videoEnded && !updatePending) {
+                videoEnded = true;
+                clearInterval(splashPollInterval);
+                closeSplashShowMain();
+            }
+        }, 15000);
+
+        function closeSplashShowMain() {
+            if (splashWindow && !splashWindow.isDestroyed()) {
+                splashWindow.close();
+                splashWindow = null;
+            }
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.show();
+                mainWindow.focus();
+            }
+        }
+
+        function sendToSplashWindow(type, data) {
+            if (splashWindow && !splashWindow.isDestroyed()) {
+                splashWindow.webContents.executeJavaScript(
+                    `window.postMessage(${JSON.stringify({ type, data })}, '*')`
+                ).catch(() => { });
+            }
+        }
+
+        // ===== AUTO-UPDATE =====
         autoUpdater.autoDownload = true;
         autoUpdater.autoInstallOnAppQuit = true;
         autoUpdater.logger = {
@@ -266,7 +346,7 @@ app.whenReady().then(() => {
             return updateSplash;
         }
 
-        function sendToSplash(type, data) {
+        function sendToUpdateSplash(type, data) {
             if (updateSplash && !updateSplash.isDestroyed()) {
                 updateSplash.webContents.executeJavaScript(
                     `window.postMessage(${JSON.stringify({ type, data })}, '*')`
@@ -282,32 +362,52 @@ app.whenReady().then(() => {
         autoUpdater.on('update-available', (info) => {
             console.log('[AutoUpdater] Update available:', info.version);
             pendingVersion = info.version;
+            updatePending = true;
             if (mainWindow) mainWindow.webContents.send('update:status', 'available', { version: info.version });
+            // Show progress in splash window
+            sendToSplashWindow('update-available', info.version);
         });
 
         autoUpdater.on('update-not-available', () => {
             console.log('[AutoUpdater] Up to date.');
             if (mainWindow) mainWindow.webContents.send('update:status', 'up-to-date');
+            // If video already ended, show main window
+            if (videoEnded && !updatePending) {
+                closeSplashShowMain();
+            }
         });
 
         autoUpdater.on('download-progress', (progress) => {
             const pct = Math.round(progress.percent);
             if (mainWindow) mainWindow.webContents.send('update:progress', pct);
-            sendToSplash('progress', pct);
+            sendToSplashWindow('progress', pct);
+            sendToUpdateSplash('progress', pct);
         });
 
         autoUpdater.on('update-downloaded', (info) => {
             console.log('[AutoUpdater] Downloaded:', info.version);
             pendingVersion = info.version;
             if (mainWindow) mainWindow.webContents.send('update:status', 'downloaded', { version: info.version });
-            sendToSplash('downloaded');
+            sendToSplashWindow('downloaded');
+            sendToUpdateSplash('downloaded');
+            // Auto-install: close splash and restart
+            setTimeout(() => {
+                autoUpdater.quitAndInstall(true, true);
+            }, 2000);
         });
 
         autoUpdater.on('error', (err) => {
             console.error('[AutoUpdater] Error:', err.message);
             if (mainWindow) mainWindow.webContents.send('update:status', 'error', { message: err.message });
-            // Close splash on error
+            updatePending = false;
+            // If video ended, show main window
+            if (videoEnded) closeSplashShowMain();
             if (updateSplash && !updateSplash.isDestroyed()) updateSplash.close();
+        });
+
+        // Start update check during splash
+        autoUpdater.checkForUpdates().catch(err => {
+            console.error('[AutoUpdater] Check failed:', err.message);
         });
 
         // IPC: frontend requests download
@@ -320,8 +420,8 @@ app.whenReady().then(() => {
             // Show splash, hide main window
             const splash = createUpdateSplash();
             splash.webContents.once('did-finish-load', () => {
-                sendToSplash('version', pendingVersion);
-                sendToSplash('downloaded');
+                sendToUpdateSplash('version', pendingVersion);
+                sendToUpdateSplash('downloaded');
 
                 // Hide main window
                 if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();

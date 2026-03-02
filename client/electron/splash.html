@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+            -webkit-app-region: drag;
+        }
+
+        .splash-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            -webkit-app-region: no-drag;
+        }
+
+        /* Update bar overlay at bottom */
+        .update-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            display: none;
+            z-index: 10;
+        }
+
+        .update-overlay.visible {
+            display: block;
+        }
+
+        .update-label {
+            font-size: 11px;
+            color: rgba(200, 210, 220, 0.8);
+            margin-bottom: 8px;
+            font-family: 'Segoe UI', sans-serif;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .update-bar-bg {
+            width: 220px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .update-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #06b6d4);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        .update-pct {
+            font-size: 10px;
+            color: rgba(56, 189, 248, 0.9);
+            margin-top: 5px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="splash-container">
+        <video id="introVideo" autoplay muted playsinline></video>
+        <div class="update-overlay" id="updateOverlay">
+            <div class="update-label" id="updateLabel">Güncelleme indiriliyor...</div>
+            <div class="update-bar-bg">
+                <div class="update-bar-fill" id="updateBar"></div>
+            </div>
+            <div class="update-pct" id="updatePct">0%</div>
+        </div>
+    </div>
+    <script>
+        const video = document.getElementById('introVideo');
+        const overlay = document.getElementById('updateOverlay');
+        const bar = document.getElementById('updateBar');
+        const pct = document.getElementById('updatePct');
+        const label = document.getElementById('updateLabel');
+
+        // Video source is set via postMessage from main process
+        window.addEventListener('message', (e) => {
+            const msg = e.data;
+            if (!msg || !msg.type) return;
+
+            if (msg.type === 'videoSrc') {
+                video.src = msg.data;
+            }
+            if (msg.type === 'update-available') {
+                overlay.classList.add('visible');
+                label.textContent = `Güncelleme indiriliyor — v${msg.data || ''}`;
+            }
+            if (msg.type === 'progress') {
+                overlay.classList.add('visible');
+                bar.style.width = msg.data + '%';
+                pct.textContent = msg.data + '%';
+            }
+            if (msg.type === 'downloaded') {
+                label.textContent = 'Güncelleme yükleniyor...';
+                bar.style.width = '100%';
+                pct.textContent = '100%';
+            }
+        });
+
+        video.addEventListener('ended', () => {
+            // Notify main process that video has ended
+            window.postMessage({ type: 'video-ended' }, '*');
+        });
+
+        // Also listen for IPC-forwarded messages
+        window.addEventListener('message', (e) => {
+            if (e.data?.type === 'video-ended') {
+                // Main process picks this up via executeJavaScript polling
+            }
+        });
+    </script>
+</body>
+
+</html>
