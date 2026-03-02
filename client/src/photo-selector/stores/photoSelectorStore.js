@@ -159,11 +159,26 @@ const usePhotoSelectorStore = create(
             },
 
             updateNumberOptions: (photoId, options, optionDetails) => {
-                const { numberedPhotos } = get();
+                const { numberedPhotos, undoStack } = get();
+                const existing = numberedPhotos.find(np => np.photoId === photoId);
+                if (!existing) return;
+
                 set({
                     numberedPhotos: numberedPhotos.map(np =>
                         np.photoId === photoId ? { ...np, options, optionDetails } : np
                     ),
+                    undoStack: [...undoStack, {
+                        type: 'updateNumberOptions',
+                        payload: {
+                            photoId,
+                            oldOptions: existing.options,
+                            oldDetails: existing.optionDetails,
+                            newOptions: options,
+                            newDetails: optionDetails
+                        },
+                        timestamp: Date.now()
+                    }],
+                    redoStack: [],
                     isDirty: true,
                 });
             },
@@ -238,6 +253,15 @@ const usePhotoSelectorStore = create(
                         nextOrderNumber: get().nextOrderNumber - 1,
                         undoStack: newUndo, redoStack: newRedo, isDirty: true,
                     });
+                } else if (action.type === 'updateNumberOptions') {
+                    set({
+                        numberedPhotos: numberedPhotos.map(np =>
+                            np.photoId === action.payload.photoId
+                                ? { ...np, options: action.payload.oldOptions, optionDetails: action.payload.oldDetails }
+                                : np
+                        ),
+                        undoStack: newUndo, redoStack: newRedo, isDirty: true,
+                    });
                 }
             },
 
@@ -274,6 +298,15 @@ const usePhotoSelectorStore = create(
                         nextOrderNumber: nextOrderNumber + 1,
                         undoStack: newUndo, redoStack: newRedo, isDirty: true,
                     });
+                } else if (action.type === 'updateNumberOptions') {
+                    set({
+                        numberedPhotos: numberedPhotos.map(np =>
+                            np.photoId === action.payload.photoId
+                                ? { ...np, options: action.payload.newOptions, optionDetails: action.payload.newDetails }
+                                : np
+                        ),
+                        undoStack: newUndo, redoStack: newRedo, isDirty: true,
+                    });
                 }
             },
 
@@ -286,7 +319,23 @@ const usePhotoSelectorStore = create(
                 const { favorites, removedFavorites, numberedPhotos, nextOrderNumber, photoNameMap } = iniResult;
 
                 const { photos } = get();
+
+                // Create a reverse map to match physical renamed files back to their original IDs
+                const reverseMap = {};
+                if (photoNameMap) {
+                    Object.entries(photoNameMap).forEach(([orig, curr]) => {
+                        reverseMap[curr] = orig;
+                    });
+                }
+
                 const updatedPhotos = photos.map(p => {
+                    // If the file on disk was renamed (e.g. 001.JPG), reconnect it to its original ID
+                    if (reverseMap[p.originalName]) {
+                        const realOrig = reverseMap[p.originalName];
+                        return { ...p, id: realOrig, originalName: realOrig, currentName: p.originalName };
+                    }
+
+                    // Otherwise apply forward mapping if any
                     const mappedName = photoNameMap?.[p.originalName];
                     return mappedName ? { ...p, currentName: mappedName } : p;
                 });
@@ -309,8 +358,17 @@ const usePhotoSelectorStore = create(
                     case 'unfavorited':
                         return photos.filter(p => removedFavorites.has(p.id));
                     case 'numbered': {
-                        const numberedIds = new Set(numberedPhotos.map(np => np.photoId));
-                        return photos.filter(p => numberedIds.has(p.id));
+                        const numberedMap = new Map();
+                        numberedPhotos.forEach(np => {
+                            if (!np.isCancelled) numberedMap.set(String(np.photoId), np.orderNumber);
+                        });
+                        return photos
+                            .filter(p => numberedMap.has(String(p.id)) || numberedMap.has(p.originalName))
+                            .sort((a, b) => {
+                                const oA = numberedMap.get(String(a.id)) ?? numberedMap.get(a.originalName);
+                                const oB = numberedMap.get(String(b.id)) ?? numberedMap.get(b.originalName);
+                                return oA - oB;
+                            });
                     }
                     default:
                         return photos;

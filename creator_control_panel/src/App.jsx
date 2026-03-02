@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
-import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle } from 'lucide-react';
+import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle, Bot } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 
@@ -10,6 +10,7 @@ import Studios from './pages/Studios';
 import Migration from './pages/Migration';
 import Login from './pages/Login';
 import ErrorLogs from './pages/ErrorLogs';
+import BotConversations from './pages/BotConversations';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -52,6 +53,10 @@ function Sidebar({ onLogout }) {
                 <NavLink to="/error-logs" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <AlertTriangle />
                     Hata Logları
+                </NavLink>
+                <NavLink to="/bot-conversations" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Bot />
+                    Bot Konuşmalar
                 </NavLink>
                 <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Settings />
@@ -138,6 +143,7 @@ export default function App() {
                                 <Route path="/studios" element={<ProtectedRoute user={user}><Studios /></ProtectedRoute>} />
                                 <Route path="/migration" element={<ProtectedRoute user={user}><Migration /></ProtectedRoute>} />
                                 <Route path="/error-logs" element={<ProtectedRoute user={user}><ErrorLogs /></ProtectedRoute>} />
+                                <Route path="/bot-conversations" element={<ProtectedRoute user={user}><BotConversations /></ProtectedRoute>} />
                                 <Route path="/settings" element={<ProtectedRoute user={user}><div><h1>Ayarlar</h1></div></ProtectedRoute>} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Routes>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '../services/api';
+import { dashboardApi, botApi } from '../services/api';
 import { formatCurrency, formatDateTime, getStatusLabel, getShootTypeLabel } from '../lib/utils';
 import {
     Users,
@@ -16,7 +16,10 @@ import {
     CreditCard,
     ArrowRightLeft,
     UserX,
-    ShoppingCart
+    ShoppingCart,
+    Bot,
+    MessageSquare,
+    Phone
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -38,6 +41,78 @@ import {
 } from 'recharts';
 import { cn } from '../lib/utils';
 import { SkeletonList } from '../components/Skeleton';
+
+// Bot Status Alert Widget for Studio Admin Dashboard
+function BotStatusAlert() {
+    const { data: botStatus } = useQuery({
+        queryKey: ['bot', 'status'],
+        queryFn: async () => {
+            try {
+                const res = await botApi.getStatus();
+                return res?.data || res || null;
+            } catch { return null; }
+        },
+        retry: false,
+        staleTime: 120_000
+    });
+
+    if (!botStatus) return null;
+
+    const waEnabled = botStatus?.whatsapp?.enabled;
+    const voiceEnabled = botStatus?.voice?.enabled;
+    if (!waEnabled && !voiceEnabled) return null;
+
+    return (
+        <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-purple-500" />
+                    AI Bot Durumu
+                </h2>
+                <Link
+                    to="/bot-conversations"
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                    Konuşmalar <ChevronRight className="w-4 h-4" />
+                </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                {/* WhatsApp Channel */}
+                <div className={`p-3 rounded-lg flex items-center gap-3 ${waEnabled ? 'bg-green-500/5' : 'bg-muted/50'}`}>
+                    <div className={`p-2 rounded-lg ${waEnabled ? 'bg-green-500/10' : 'bg-muted'}`}>
+                        <MessageSquare className={`w-5 h-5 ${waEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div>
+                        <p className="font-medium text-sm">WhatsApp</p>
+                        <p className="text-xs text-muted-foreground">
+                            {waEnabled ? '✅ Aktif' : '❌ Pasif'}
+                            {botStatus?.whatsapp?.messageCount ? ` · ${botStatus.whatsapp.messageCount} mesaj` : ''}
+                        </p>
+                    </div>
+                </div>
+                {/* Voice Channel */}
+                <div className={`p-3 rounded-lg flex items-center gap-3 ${voiceEnabled ? 'bg-purple-500/5' : 'bg-muted/50'}`}>
+                    <div className={`p-2 rounded-lg ${voiceEnabled ? 'bg-purple-500/10' : 'bg-muted'}`}>
+                        <Phone className={`w-5 h-5 ${voiceEnabled ? 'text-purple-500' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div>
+                        <p className="font-medium text-sm">Sesli Bot</p>
+                        <p className="text-xs text-muted-foreground">
+                            {voiceEnabled ? '✅ Aktif' : '❌ Pasif'}
+                            {botStatus?.voice?.callCount ? ` · ${botStatus.voice.callCount} arama` : ''}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {botStatus?.stats && (
+                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Bugün: {botStatus.stats.todayMessages || 0} mesaj</span>
+                    <span>{botStatus.stats.todayAppointments || 0} randevu · {botStatus.stats.todayComplaints || 0} şikayet</span>
+                </div>
+            )}
+        </div>
+    );
+}
 
 // Summary Card Component
 function SummaryCard({ title, value, subtitle, icon: Icon, trend, color }) {
@@ -480,6 +555,9 @@ export default function Dashboard() {
                 <WeeklyAppointmentsChart summary={summary} />
                 <PersonnelSection summary={summary} />
             </div>
+
+            {/* Row 3.5: Bot Status Alert (only shown if bot is configured) */}
+            <BotStatusAlert />
 
             {/* Row 4: Shoot Types + Today's Schedule + Pending */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

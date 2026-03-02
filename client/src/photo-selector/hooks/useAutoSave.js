@@ -25,6 +25,19 @@ export default function useAutoSave() {
                 folderPath: state.archiveInfo.folderPath,
                 data: iniData,
             });
+
+            const notes = state.numberedPhotos
+                .filter(np => !np.isCancelled && (np.optionDetails?.not || np.optionDetails?.description))
+                .map(np => ({ orderNumber: np.orderNumber, text: np.optionDetails.not || np.optionDetails.description }));
+
+            if (notes.length > 0 && window.electron?.photoSelector?.createNotes) {
+                await window.electron.photoSelector.createNotes({
+                    folderPath: state.archiveInfo.folderPath,
+                    archiveNo: state.archiveInfo.archiveNo || 'Not',
+                    notes
+                });
+            }
+
             if (result?.success) {
                 markSaved();
             } else if (result && !result.success) {

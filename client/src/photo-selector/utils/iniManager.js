@@ -68,6 +68,29 @@ export function serializeToIni(state) {
         iniData.RemovedFromFavorites[photoId] = `removed_at:${new Date().toISOString()}`;
     });
 
+    if (numberedPhotos && numberedPhotos.length > 0) {
+        iniData.NumberedPhotos = {};
+        const activeNumbered = numberedPhotos.filter(np => !np.isCancelled).sort((a, b) => a.orderNumber - b.orderNumber);
+
+        activeNumbered.forEach(np => {
+            const photo = photos.find(p => p.id === np.photoId);
+            const name = photo?.currentName || photo?.originalName || np.photoId;
+            let val = name;
+
+            const options = np.options?.join(', ');
+            if (options) {
+                val += ` | Secenekler: ${options}`;
+            } else if (np.optionDetails?._packageName) {
+                val += ` | Paket: ${np.optionDetails._packageName}`;
+            }
+
+            const note = np.optionDetails?.not || np.optionDetails?.description;
+            if (note) val += ` | Not: ${note}`;
+
+            iniData.NumberedPhotos[String(np.orderNumber)] = val;
+        });
+    }
+
     return iniData;
 }
 

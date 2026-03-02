@@ -243,5 +243,119 @@ export const creatorApi = {
         } catch (error) {
             handleApiError(error, 'Reject Device');
         }
+    },
+
+    // ============================================
+    // BOT MANAGEMENT
+    // ============================================
+
+    // Get bot configuration
+    getBotConfig: async (studioId, organizationId) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-getConfig');
+            const result = await func({ studioId, organizationId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Bot Config');
+        }
+    },
+
+    // Update bot general settings
+    updateBotSettings: async (studioId, organizationId, settings) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-updateSettings');
+            const result = await func({ studioId, organizationId, settings });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update Bot Settings');
+        }
+    },
+
+    // Update WhatsApp bot config
+    updateBotWhatsApp: async (studioId, organizationId, config) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-updateWhatsApp');
+            const result = await func({ studioId, organizationId, config });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update Bot WhatsApp');
+        }
+    },
+
+    // Update Voice bot config
+    updateBotVoice: async (studioId, organizationId, config) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-updateVoice');
+            const result = await func({ studioId, organizationId, config });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update Bot Voice');
+        }
+    },
+
+    // Toggle bot channel
+    toggleBot: async (studioId, organizationId, channel, enabled) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-toggle');
+            const result = await func({ studioId, organizationId, channel, enabled });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Toggle Bot');
+        }
+    },
+
+    // Get bot status
+    getBotStatus: async (studioId, organizationId) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-getBotStatus');
+            const result = await func({ studioId, organizationId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Bot Status');
+        }
+    },
+
+    // Get bot conversations
+    getBotConversations: async (studioId, organizationId, channel, limit) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-getConversations');
+            const result = await func({ studioId, organizationId, channel, limit });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Bot Conversations');
+        }
+    },
+
+    // Get conversation messages
+    getBotMessages: async (studioId, organizationId, phone, limit) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-getMessages');
+            const result = await func({ studioId, organizationId, phone, limit });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Bot Messages');
+        }
+    },
+
+    // Get bot statistics  
+    getBotStats: async (studioId, organizationId) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-getStats');
+            const result = await func({ studioId, organizationId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Bot Stats');
+        }
+    },
+
+    // Remove bot from studio
+    removeBot: async (studioId, organizationId, channel) => {
+        try {
+            const func = httpsCallable(functions, 'botConfig-remove');
+            const result = await func({ studioId, organizationId, channel });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Remove Bot');
+        }
     }
 };

@@ -8,6 +8,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { creatorApi } from '../services/creatorApi';
+import BotConfigModal from '../components/BotConfigModal';
 
 // SECURITY: Generate random license key using crypto.getRandomValues
 function generateLicenseKey() {
@@ -55,6 +56,9 @@ export default function Studios() {
     // Device Management
     const [deviceList, setDeviceList] = useState([]);
     const [deviceLoading, setDeviceLoading] = useState(false);
+
+    // Bot Config Modal
+    const [showBotModal, setShowBotModal] = useState(null);
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -431,6 +435,10 @@ export default function Studios() {
                                                     <div className="studio-actions">
                                                         <button className="btn btn-secondary btn-sm" title="Düzenle" onClick={() => openEditModal(studio)}>
                                                             <Edit size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="AI Bot Ayarları" onClick={() => setShowBotModal(studio)}
+                                                            style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.3)' }}>
+                                                            🤖
                                                         </button>
                                                         <button className="btn btn-secondary btn-sm" title="Cihazlar" onClick={() => openDeviceModal(studio)}>
                                                             <Monitor size={14} />
@@ -911,6 +919,15 @@ export default function Studios() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Bot Config Modal */}
+            {showBotModal && (
+                <BotConfigModal
+                    studio={showBotModal}
+                    onClose={() => setShowBotModal(null)}
+                    onRefresh={loadData}
+                />
             )}
         </div>
     );

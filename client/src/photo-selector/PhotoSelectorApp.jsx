@@ -13,6 +13,7 @@ import usePhotoLoader from './hooks/usePhotoLoader';
 import { archivesApi, settingsApi } from '../services/api';
 import toast from 'react-hot-toast';
 import { Loader2, FolderOpen, Copy, AlertTriangle } from 'lucide-react';
+import useAuthStore from '../store/authStore';
 
 export default function PhotoSelectorApp() {
     const [startupComplete, setStartupComplete] = useState(false);
@@ -36,6 +37,8 @@ export default function PhotoSelectorApp() {
     const { performSave } = useAutoSave();
     useKeyboardNav({ onOpenSelection: () => setSelectionOpen(true) });
     const { loadPhotos } = usePhotoLoader();
+
+    const authLoading = useAuthStore(s => s.loading);
 
     // Check if opened with URL params (from main app)
     useEffect(() => {
@@ -335,6 +338,15 @@ export default function PhotoSelectorApp() {
     };
 
     // ==================== RENDERING ====================
+
+    if (authLoading) {
+        return (
+            <div className="h-screen flex flex-col items-center justify-center bg-neutral-900">
+                <Loader2 className="w-10 h-10 animate-spin text-amber-400 mb-4" />
+                <p className="text-neutral-400 text-sm">Oturum kontrol ediliyor...</p>
+            </div>
+        );
+    }
 
     // Startup screen
     if (!startupComplete) {

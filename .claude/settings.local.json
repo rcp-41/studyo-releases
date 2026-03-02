@@ -24,7 +24,8 @@
       "Bash(curl:*)",
       "Bash(NODE_ENV=development npx electron:*)",
       "Bash(grep:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(xargs:*)"
     ]
   }
 }

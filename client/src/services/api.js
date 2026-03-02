@@ -269,3 +269,10 @@ export const pixonaiApi = {
     saveConfig: (data) => callFunction('pixonai-saveConfig', data),
     deleteConfig: (id) => callFunction('pixonai-deleteConfig', { id }),
 };
+
+// Bot Service (read-only for studio admins)
+export const botApi = {
+    getStatus: () => callFunction('botConfig-getBotStatus', {}),
+    getConversations: (channel, limit) => callFunction('botConfig-getConversations', { channel, limit }),
+    getMessages: (phone, limit) => callFunction('botConfig-getMessages', { phone, limit }),
+};

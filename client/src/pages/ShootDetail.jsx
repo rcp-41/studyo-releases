@@ -62,7 +62,7 @@ function PhotographerSelector({ currentPhotographer, onSelect }) {
 }
 
 // ==================== PHOTO GALLERY ====================
-function PhotoGallery({ archiveNumber }) {
+function PhotoGallery({ archiveNumber, photoSelectionData }) {
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [lightbox, setLightbox] = useState(null);
@@ -133,15 +133,28 @@ function PhotoGallery({ archiveNumber }) {
 
             {photos.length > 0 ? (
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                    {photos.map((photo, i) => (
-                        <div
-                            key={i}
-                            className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                            onClick={() => setLightbox(photo)}
-                        >
-                            <img src={photo.thumbnail || photo.path} alt="" className="w-full h-full object-cover" />
-                        </div>
-                    ))}
+                    {photos.map((photo, i) => {
+                        const fileName = photo.name || photo.path?.split(/[/\\]/).pop();
+                        const selectedInfo = photoSelectionData?.selectedPhotos?.find(
+                            sp => String(sp.photoId) === fileName || String(sp.photoId) === String(i)
+                        );
+                        const isNumbered = selectedInfo && !selectedInfo.isCancelled;
+
+                        return (
+                            <div
+                                key={i}
+                                className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all ${isNumbered ? 'ring-2 ring-amber-400' : 'hover:ring-2 hover:ring-primary'}`}
+                                onClick={() => setLightbox(photo)}
+                            >
+                                <img src={photo.thumbnail || photo.path} alt="" className="w-full h-full object-cover" />
+                                {isNumbered && (
+                                    <div className="absolute top-1.5 right-1.5 bg-amber-500 text-black font-bold text-xs w-6 h-6 flex items-center justify-center rounded-full shadow border-2 border-neutral-900 shadow-black/50">
+                                        {selectedInfo.orderNumber}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             ) : (
                 <p className="text-center py-6 text-muted-foreground text-sm">
@@ -405,7 +418,7 @@ export default function ShootDetail() {
                     </div>
 
                     {/* Photo Gallery */}
-                    <PhotoGallery archiveNumber={shoot.archiveNumber || shoot.shootCode} />
+                    <PhotoGallery archiveNumber={shoot.archiveNumber || shoot.shootCode} photoSelectionData={shoot.photoSelectionData} />
                 </div>
 
                 {/* Payment Card */}

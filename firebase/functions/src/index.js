@@ -55,6 +55,9 @@ exports.reports = require('./reports');
 exports.scheduler = require('./scheduler');
 exports.pixonai = require('./pixonai');
 exports.logs = require('./logs');
+exports.whatsappBot = require('./whatsapp-bot');
+exports.voiceBot = require('./voice-bot');
+exports.botConfig = require('./bot-config');
 
 // Export AppCheck flag for modules that need it
 exports.APPCHECK_ENABLED = APPCHECK_ENABLED;

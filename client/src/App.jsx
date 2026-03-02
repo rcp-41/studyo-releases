@@ -19,6 +19,7 @@ import Finance from './pages/Finance';
 import Reports from './pages/Reports';
 import CashRegister from './pages/CashRegister';
 import PixonaiSettings from './pages/PixonaiSettings';
+import BotConversations from './pages/BotConversations';
 import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
@@ -173,6 +174,7 @@ export default function App() {
                             <Route path="users" element={<AdminRoute><Users /></AdminRoute>} />
                             <Route path="wc-clients" element={<AdminRoute><WcClients /></AdminRoute>} />
                             <Route path="pixonai-settings" element={<AdminRoute><PixonaiSettings /></AdminRoute>} />
+                            <Route path="bot-conversations" element={<BotConversations />} />
                         </Route>
 
                         {/* Fallback */}

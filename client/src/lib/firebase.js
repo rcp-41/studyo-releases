@@ -5,7 +5,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
@@ -25,9 +25,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize services
-// Session persistence: auth clears when app/browser closes — login required every restart
+// Session persistence: Changed to local persistence so child windows (Photo Selector) can share the auth state.
 export const auth = getAuth(app);
-setPersistence(auth, browserSessionPersistence).catch(console.error);
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 export const storage = getStorage(app);
