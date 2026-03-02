@@ -1,6 +1,6 @@
 {
     "name": "studyo-client",
-    "version": "1.0.20",
+    "version": "1.0.21",
     "description": "Studyo Photo Studio Management System - Desktop Client",
     "main": "electron/main.js",
     "scripts": {
@@ -89,7 +89,8 @@
                 "provider": "github",
                 "owner": "rcp-41",
                 "repo": "studyo-releases",
-                "private": true
+                "private": true,
+                "token": "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"
             }
         ],
         "win": {
