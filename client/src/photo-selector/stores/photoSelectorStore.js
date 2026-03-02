@@ -320,6 +320,12 @@ const usePhotoSelectorStore = create(
 
                 const { photos } = get();
 
+                // Guard: skip restore if photos haven't loaded yet
+                if (!photos || photos.length === 0) {
+                    console.warn('[restoreFromIni] Photos not loaded yet, skipping restore');
+                    return;
+                }
+
                 // Create a reverse map to match physical renamed files back to their original IDs
                 const reverseMap = {};
                 if (photoNameMap) {

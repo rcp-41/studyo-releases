@@ -690,14 +690,16 @@ function parseIni(content) {
 
         // Key=Value pair (value can contain '=' characters)
         const eqIndex = trimmed.indexOf('=');
-        if (eqIndex > 0) {
+        if (eqIndex >= 0) {
             const key = trimmed.substring(0, eqIndex).trim();
             const value = trimmed.substring(eqIndex + 1).trim();
 
-            if (!key) continue; // Skip lines with empty keys
+            // Skip lines with empty keys only at top-level;
+            // inside sections, filenames could start with '='
+            if (!key && !currentSection) continue;
 
             if (currentSection) {
-                result[currentSection][key] = value;
+                result[currentSection][key || trimmed] = value;
             } else {
                 // Top-level key (before any section header)
                 result[key] = value;

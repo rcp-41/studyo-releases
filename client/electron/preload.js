@@ -59,6 +59,9 @@ contextBridge.exposeInMainWorld('electron', {
         onBeforeClose: (callback) => {
             ipcRenderer.on('photo-selector:before-close', () => callback());
         },
+        removeBeforeClose: () => {
+            ipcRenderer.removeAllListeners('photo-selector:before-close');
+        },
         generateThumbnails: (params) => ipcRenderer.invoke('photos:generateThumbnails', params),
         onThumbnailProgress: (callback) => {
             ipcRenderer.on('photos:thumbnail-progress', (_event, data) => callback(data));

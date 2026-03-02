@@ -42,9 +42,11 @@ export function serializeToIni(state) {
     photos.forEach(photo => {
         if (!photo?.originalName) return; // Skip malformed photo entries
 
-        const isFav = favSet.has(photo.id);
-        const isRemoved = removedSet.has(photo.id);
-        const numbered = numberedMap.get(photo.id);
+        // Use both photo.id and photo.originalName for lookups (they may differ after rename)
+        const photoKey = photo.id || photo.originalName;
+        const isFav = favSet.has(photoKey) || favSet.has(photo.originalName);
+        const isRemoved = removedSet.has(photoKey) || removedSet.has(photo.originalName);
+        const numbered = numberedMap.get(photoKey) || numberedMap.get(photo.originalName);
 
         const status = isRemoved ? 'unfavorited' : (isFav ? 'favorite' : 'none');
         const orderNum = numbered ? numbered.orderNumber : 0;
@@ -60,20 +62,26 @@ export function serializeToIni(state) {
         }
 
         // Format: currentName|status|orderNum|options|cancelled|optionDetailsJSON
+        // Key is always originalName for consistency during deserialization
         iniData.Photos[photo.originalName] =
             `${photo.currentName || photo.originalName}|${status}|${orderNum}|${opts}|${cancelled}|${optDetailsStr}`;
     });
 
+    // RemovedFromFavorites section is for audit trail only;
+    // restore uses the status field in [Photos] section
     removedSet.forEach(photoId => {
         iniData.RemovedFromFavorites[photoId] = `removed_at:${new Date().toISOString()}`;
     });
 
+    // [NumberedPhotos] section: human-readable summary of numbered photo order.
+    // This is NOT used during deserialization (data comes from [Photos] pipe fields).
+    // It's kept for manual inspection and debugging.
     if (numberedPhotos && numberedPhotos.length > 0) {
         iniData.NumberedPhotos = {};
         const activeNumbered = numberedPhotos.filter(np => !np.isCancelled).sort((a, b) => a.orderNumber - b.orderNumber);
 
         activeNumbered.forEach(np => {
-            const photo = photos.find(p => p.id === np.photoId);
+            const photo = photos.find(p => (p.id === np.photoId) || (p.originalName === np.photoId));
             const name = photo?.currentName || photo?.originalName || np.photoId;
             let val = name;
 
@@ -131,6 +139,7 @@ export function deserializeFromIni(iniData) {
 
         result.photoNameMap[originalName] = currentName;
 
+        // Use originalName as the key — this matches photo.id after restoreFromIni remapping
         if (status === 'favorite') result.favorites.add(originalName);
         if (status === 'unfavorited') result.removedFavorites.add(originalName);
 
