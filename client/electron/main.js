@@ -261,7 +261,7 @@ app.whenReady().then(() => {
 
         // Once splash HTML loads, set the video source
         splashWindow.webContents.once('did-finish-load', () => {
-            const videoPath = path.join(__dirname, '../public/splash-intro.mp4').replace(/\\/g, '/');
+            const videoPath = path.join(__dirname, 'splash-intro.mp4').replace(/\\/g, '/');
             splashWindow.webContents.executeJavaScript(
                 `window.postMessage({ type: 'videoSrc', data: 'file:///${videoPath}' }, '*')`
             ).catch(() => { });
