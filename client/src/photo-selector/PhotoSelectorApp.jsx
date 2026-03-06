@@ -4,13 +4,14 @@ import GridView from './components/GridView';
 import SingleView from './components/SingleView';
 import CompareView from './components/CompareView';
 import SelectionPanel from './components/SelectionPanel';
+import PackageSidebar from './components/PackageSidebar';
 import Toolbar from './components/Toolbar';
 import FaceRecognition from './components/FaceRecognition';
 import StartupScreen from './components/StartupScreen';
 import useAutoSave from './hooks/useAutoSave';
 import useKeyboardNav from './hooks/useKeyboardNav';
 import usePhotoLoader from './hooks/usePhotoLoader';
-import { archivesApi, settingsApi } from '../services/api';
+import { archivesApi, settingsApi, pixonaiApi } from '../services/api';
 import toast from 'react-hot-toast';
 import { Loader2, FolderOpen, Copy, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../store/authStore';
@@ -33,6 +34,9 @@ export default function PhotoSelectorApp() {
     const operationMode = usePhotoSelectorStore(s => s.operationMode);
     const initFromConfig = usePhotoSelectorStore(s => s.initFromConfig);
     const isDirty = usePhotoSelectorStore(s => s.isDirty);
+    const setPixonaiConfig = usePhotoSelectorStore(s => s.setPixonaiConfig);
+    const shootCategoryType = usePhotoSelectorStore(s => s.shootCategoryType);
+    const filterMode = usePhotoSelectorStore(s => s.filterMode);
 
     const { performSave } = useAutoSave();
     useKeyboardNav({ onOpenSelection: () => setSelectionOpen(true) });
@@ -61,6 +65,20 @@ export default function PhotoSelectorApp() {
             loadPhotos(folderPath).finally(() => setInitializing(false));
         }
     }, []);
+
+    // Load pixonai config when archiveInfo changes (shoot category known)
+    useEffect(() => {
+        const archiveInfo = usePhotoSelectorStore.getState().archiveInfo;
+        if (!archiveInfo?.shootCategory || !startupComplete) return;
+
+        pixonaiApi.getConfig(archiveInfo.shootCategory).then(result => {
+            if (result?.config) {
+                setPixonaiConfig(result.config);
+            }
+        }).catch(err => {
+            console.warn('Pixonai config not found:', err);
+        });
+    }, [startupComplete]);
 
     // ==================== MODE 1 — Arşiv Kaydı Aç ====================
     const handleMode1 = async ({ sourcePath, shootType, shootCategory, customerName }) => {
@@ -196,7 +214,7 @@ export default function PhotoSelectorApp() {
     };
 
     // ==================== MODE 3 — Klasör Seç ====================
-    const handleMode3 = async (folderPath) => {
+    const handleMode3 = async (folderPath, pixonaiConfigObj) => {
         setStartupComplete(true);
         setInitializing(true);
 
@@ -204,7 +222,15 @@ export default function PhotoSelectorApp() {
             initFromConfig({
                 folderPath: folderPath,
                 operationMode: 'folder_only',
+                shootCategory: pixonaiConfigObj?.shootCategoryId || '',
+                shootCategoryType: pixonaiConfigObj?.type || 'none',
             });
+
+            // If a pixonai config was selected, set it in the store
+            if (pixonaiConfigObj) {
+                setPixonaiConfig(pixonaiConfigObj);
+            }
+
             await loadPhotos(folderPath);
         } catch (err) {
             console.error('Mode 3 error:', err);
@@ -259,7 +285,20 @@ export default function PhotoSelectorApp() {
                 const ext = photo.name?.split('.').pop() || photo.originalName?.split('.').pop() || 'jpg';
                 const paddedNum = String(np.orderNumber).padStart(2, '0');
                 const dir = (photo.fullPath || photo.path)?.replace(/[\\/][^\\/]+$/, '') || '';
-                const newName = `${paddedNum}.${ext}`;
+
+                // Build gift shortcodes
+                const giftCodes = [];
+                if (state.activePackage?.gifts) {
+                    state.activePackage.gifts.forEach(gift => {
+                        const assigned = state.giftAssignments[gift.abbr] || [];
+                        if (assigned.includes(np.photoId)) {
+                            giftCodes.push(gift.abbr);
+                        }
+                    });
+                }
+
+                const giftSuffix = giftCodes.length ? ' - ' + giftCodes.join(' - ') : '';
+                const newName = `${paddedNum}${giftSuffix}.${ext}`;
                 const newPath = dir ? `${dir}\\${newName}` : newName;
 
                 if (photo.originalName === newName || photo.currentName === newName) return null;
@@ -298,6 +337,12 @@ export default function PhotoSelectorApp() {
                     favoriteCount: state.favorites.size,
                     selectedCount: state.numberedPhotos.filter(np => !np.isCancelled).length,
                     totalPrice: state.totalPrice,
+                    giftAssignments: state.giftAssignments || {},
+                    activePackage: state.activePackage ? {
+                        id: state.activePackage.id,
+                        name: state.activePackage.name,
+                        price: state.activePackage.price,
+                    } : null,
                 };
 
                 // Build abbreviation summary for açıklama 1
@@ -403,10 +448,17 @@ export default function PhotoSelectorApp() {
                 onBack={handleBack}
             />
 
-            <main className="flex-1 overflow-hidden">
-                {currentView === 'grid' && <GridView />}
-                {currentView === 'single' && <SingleView />}
-                {currentView === 'compare' && <CompareView />}
+            <main className="flex-1 overflow-hidden flex">
+                <div className="flex-1 overflow-hidden">
+                    {currentView === 'grid' && <GridView />}
+                    {currentView === 'single' && <SingleView />}
+                    {currentView === 'compare' && <CompareView />}
+                </div>
+
+                {/* Show sidebar in favorites or numbered mode */}
+                {(filterMode === 'favorites' || filterMode === 'numbered') && (
+                    <PackageSidebar onSaveNumbering={handleSaveAndClose} />
+                )}
             </main>
 
             {/* Status bar */}

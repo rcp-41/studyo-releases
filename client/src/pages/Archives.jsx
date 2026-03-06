@@ -898,7 +898,23 @@ export default function Archives() {
     });
 
     const archives_raw = allArchives;
-    const basePath = settings?.general?.archive_base_path;
+    const settingsBasePath = settings?.general?.archive_base_path;
+
+    // Resolve archive base path: Firestore settings > license config studio path
+    const [licenseBasePath, setLicenseBasePath] = useState(null);
+    useEffect(() => {
+        if (!settingsBasePath && window.electron?.getLicenseConfig) {
+            window.electron.getLicenseConfig().then(config => {
+                if (config?.studios?.length > 0 && config.studios[0].path) {
+                    setLicenseBasePath(config.studios[0].path);
+                } else if (config?.archiveBasePath) {
+                    setLicenseBasePath(config.archiveBasePath);
+                }
+            }).catch(() => { });
+        }
+    }, [settingsBasePath]);
+
+    const basePath = settingsBasePath || licenseBasePath;
 
     // Client-side filtering
     const archives = archives_raw.filter(arc => {
@@ -1093,6 +1109,10 @@ export default function Archives() {
                                                             e.stopPropagation();
                                                             const folderPath = arc.folderPath || (basePath ? `${basePath}\\${arc.archiveNumber || arc.id}` : null);
                                                             if (folderPath && window.electron?.openFolder) {
+                                                                // Ensure base path is registered as allowed before opening
+                                                                if (basePath && window.electron?.addAllowedPath) {
+                                                                    await window.electron.addAllowedPath(basePath);
+                                                                }
                                                                 const result = await window.electron.openFolder(folderPath);
                                                                 if (!result.success) {
                                                                     toast.error(result.error || 'Klasör açılamadı');

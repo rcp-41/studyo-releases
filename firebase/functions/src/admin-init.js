@@ -979,7 +979,7 @@ exports.registerHwid = onCall({ enforceAppCheck: false }, async (request) => {
  * Creates a pending device record for creator to approve
  */
 exports.requestHwidApproval = onCall({ enforceAppCheck: false }, async (request) => {
-    const { organizationId, studioId, licenseKey, hwid, macAddress, hostname, ipAddress, deviceInfo } = request.data || {};
+    const { organizationId, studioId, licenseKey, hwid, macAddress, hostname, ipAddress, localIp, publicIp, deviceInfo } = request.data || {};
 
     if (!organizationId || !studioId || !licenseKey || !hwid) {
         throw new HttpsError('invalid-argument', 'organizationId, studioId, licenseKey and hwid are required');
@@ -1013,7 +1013,9 @@ exports.requestHwidApproval = onCall({ enforceAppCheck: false }, async (request)
             const deviceDoc = existingApproved.docs[0];
             await deviceDoc.ref.update({
                 lastActiveAt: admin.firestore.FieldValue.serverTimestamp(),
-                ipAddress: ipAddress || null
+                ipAddress: ipAddress || null,
+                localIp: localIp || null,
+                publicIp: publicIp || null
             });
             return { success: true, status: 'approved', message: 'Device already approved' };
         }
@@ -1035,6 +1037,8 @@ exports.requestHwidApproval = onCall({ enforceAppCheck: false }, async (request)
             hostname: hostname || 'Bilinmeyen',
             macAddress: macAddress || null,
             ipAddress: ipAddress || null,
+            localIp: localIp || null,
+            publicIp: publicIp || null,
             status: 'pending',
             requestedAt: admin.firestore.FieldValue.serverTimestamp(),
             approvedAt: null,

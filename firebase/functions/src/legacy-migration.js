@@ -33,7 +33,7 @@ exports.migrateLegacyBatch = onCall({
         throw new HttpsError('permission-denied', 'Only Creator can run migrations');
     }
 
-    const { studioId, dataType, records, options = {} } = request.data || {};
+    const { studioId, dataType, records, organizationId, options = {} } = request.data || {};
 
     if (!studioId) {
         throw new HttpsError('invalid-argument', 'studioId is required');
@@ -45,13 +45,38 @@ exports.migrateLegacyBatch = onCall({
         throw new HttpsError('invalid-argument', 'records array is required and must not be empty');
     }
 
-    // Verify studio exists
-    const studioDoc = await db.collection('studios').doc(studioId).get();
-    if (!studioDoc.exists) {
+    // Verify studio exists — check multi-tenant path first, then legacy root
+    let studioRef = null;
+    if (organizationId) {
+        const orgStudioRef = db.collection('organizations').doc(organizationId)
+            .collection('studios').doc(studioId);
+        const orgStudioDoc = await orgStudioRef.get();
+        if (orgStudioDoc.exists) {
+            studioRef = orgStudioRef;
+        }
+    }
+    if (!studioRef) {
+        // Fallback: search all organizations for this studioId
+        const orgsSnap = await db.collection('organizations').get();
+        for (const orgDoc of orgsSnap.docs) {
+            const sDoc = await orgDoc.ref.collection('studios').doc(studioId).get();
+            if (sDoc.exists) {
+                studioRef = sDoc.ref;
+                break;
+            }
+        }
+    }
+    if (!studioRef) {
+        // Final fallback: legacy root-level studios collection
+        const legacyDoc = await db.collection('studios').doc(studioId).get();
+        if (legacyDoc.exists) {
+            studioRef = db.collection('studios').doc(studioId);
+        }
+    }
+    if (!studioRef) {
         throw new HttpsError('not-found', `Studio ${studioId} not found`);
     }
 
-    const studioRef = db.collection('studios').doc(studioId);
     const now = admin.firestore.Timestamp.now();
 
     try {

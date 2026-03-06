@@ -30,6 +30,12 @@ const usePhotoSelectorStore = create(
             numberedPhotos: [],
             nextOrderNumber: 1,
 
+            // ============ PIXONAI / PACKAGES ============
+            pixonaiConfig: null,       // active pixonai config from Firestore
+            activePackage: null,       // matched package based on fav count
+            giftAssignments: {},       // { giftAbbr: [photoId1, photoId2, ...] }
+            shootCategoryType: null,   // 'yearly' | 'set' | 'portrait' | 'none'
+
             // ============ PRICING ============
             priceList: null,
             priceBreakdown: [],
@@ -61,6 +67,10 @@ const usePhotoSelectorStore = create(
                 nextOrderNumber: 1,
                 priceBreakdown: [],
                 totalPrice: 0,
+                pixonaiConfig: null,
+                activePackage: null,
+                giftAssignments: {},
+                shootCategoryType: config.shootCategoryType || null,
             }),
 
             setOperationMode: (mode) => set({ operationMode: mode }),
@@ -233,6 +243,62 @@ const usePhotoSelectorStore = create(
             // --- Pricing ---
             setPriceList: (priceList) => set({ priceList }),
             updatePricing: (breakdown, total) => set({ priceBreakdown: breakdown, totalPrice: total }),
+
+            // --- Pixonai / Package Gifts ---
+            setPixonaiConfig: (config) => set({ pixonaiConfig: config }),
+
+            setActivePackage: (pkg) => set({
+                activePackage: pkg,
+                giftAssignments: {},  // reset assignments when package changes
+            }),
+
+            /**
+             * Assign a gift to a photo.
+             * Respects maxSelections: if the limit is reached, the oldest assignment
+             * is removed to make room for the new one.
+             */
+            assignGift: (photoId, giftAbbr) => {
+                const { giftAssignments, activePackage } = get();
+                if (!activePackage) return;
+
+                const gift = activePackage.gifts?.find(g => g.abbr === giftAbbr);
+                if (!gift) return;
+
+                const current = [...(giftAssignments[giftAbbr] || [])];
+
+                // If photo already has this gift, do nothing
+                if (current.includes(photoId)) return;
+
+                // Enforce maxSelections: remove oldest if limit reached
+                if (current.length >= gift.maxSelections) {
+                    current.shift(); // remove oldest
+                }
+                current.push(photoId);
+
+                set({
+                    giftAssignments: { ...giftAssignments, [giftAbbr]: current },
+                    isDirty: true,
+                });
+            },
+
+            removeGift: (photoId, giftAbbr) => {
+                const { giftAssignments } = get();
+                const current = (giftAssignments[giftAbbr] || []).filter(id => id !== photoId);
+                set({
+                    giftAssignments: { ...giftAssignments, [giftAbbr]: current },
+                    isDirty: true,
+                });
+            },
+
+            clearGifts: () => set({ giftAssignments: {} }),
+
+            getGiftsForPhoto: (photoId) => {
+                const { giftAssignments, activePackage } = get();
+                if (!activePackage) return [];
+                return (activePackage.gifts || []).filter(
+                    g => (giftAssignments[g.abbr] || []).includes(photoId)
+                );
+            },
 
             // --- Undo/Redo ---
             undo: () => {
@@ -408,6 +474,8 @@ const usePhotoSelectorStore = create(
                 nextOrderNumber: state.nextOrderNumber,
                 filterMode: state.filterMode,
                 gridColumns: state.gridColumns,
+                giftAssignments: state.giftAssignments,
+                shootCategoryType: state.shootCategoryType,
             }),
             onRehydrateStorage: () => (state) => {
                 if (state) {

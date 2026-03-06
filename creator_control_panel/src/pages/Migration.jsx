@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, Database, CheckCircle, AlertCircle, X, Play, FileCode2, Users, Camera, MapPin, Package, CreditCard, Calendar, Loader2 } from 'lucide-react';
 import { db, functions } from '../lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, collectionGroup } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import { creatorApi } from '../services/creatorApi';
 
 // ─── SQL PARSER (adapted from migrate-to-firestore.js) ───────────────────────
 
@@ -388,12 +389,29 @@ export default function Migration() {
 
     async function loadStudios() {
         try {
-            const snapshot = await getDocs(collection(db, 'studios'));
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                name: doc.data().info?.name || doc.id
-            }));
-            setStudios(data);
+            const result = await creatorApi.getStudiosWithStats();
+            if (result?.studios) {
+                // Group studios by organization for optgroup display
+                const grouped = {};
+                for (const studio of result.studios) {
+                    const orgName = studio.organizationName || 'Bağımsız';
+                    const orgId = studio.organizationId || 'legacy';
+                    if (!grouped[orgId]) {
+                        grouped[orgId] = { name: orgName, studios: [] };
+                    }
+                    grouped[orgId].studios.push({
+                        id: studio.id,
+                        organizationId: orgId,
+                        name: studio.info?.name || studio.name || studio.id
+                    });
+                }
+                setStudios(result.studios.map(s => ({
+                    id: s.id,
+                    organizationId: s.organizationId || 'legacy',
+                    organizationName: s.organizationName || 'Bağımsız',
+                    name: s.info?.name || s.name || s.id
+                })));
+            }
         } catch (error) {
             console.error('Load studios error:', error);
         }
@@ -505,6 +523,27 @@ export default function Migration() {
             const personnel = parsePersonnel(allTuples.tblPersonel);
             addLog(`  👤 ${personnel.length} personel bulundu`, 'success');
 
+            // Customer analysis: count unique phone numbers across all sources
+            const uniquePhones = new Set();
+            let archivePhoneCount = 0;
+            let appointmentPhoneCount = 0;
+            for (const a of archives) {
+                const phone = (a.phone || '').trim();
+                if (phone) {
+                    if (!uniquePhones.has(phone)) archivePhoneCount++;
+                    uniquePhones.add(phone);
+                }
+            }
+            for (const appt of appointments) {
+                const phone = (appt.phone || '').trim();
+                if (phone && !uniquePhones.has(phone)) {
+                    uniquePhones.add(phone);
+                    appointmentPhoneCount++;
+                }
+            }
+            addLog(`  📱 ${uniquePhones.size} farklı telefon numarası bulundu → ${uniquePhones.size} müşteri kaydı oluşturulacak`, 'success');
+            addLog(`     ↳ ${archivePhoneCount} arşivden, ${appointmentPhoneCount} randevudan (yeni)`, 'info');
+
             const totalMs = (performance.now() - t0).toFixed(0);
 
             // Calculate financial summary
@@ -528,11 +567,14 @@ export default function Migration() {
                     totalRevenue,
                     totalCollected,
                     cashPayments,
-                    cardPayments
+                    cardPayments,
+                    uniqueCustomers: uniquePhones.size,
+                    archivePhoneCount,
+                    appointmentPhoneCount
                 }
             });
 
-            addLog(`\n✅ Ayrıştırma tamamlandı! ${archives.length + payments.length + appointments.length} ana kayıt, ${totalMs}ms`, 'success');
+            addLog(`\n✅ Ayrıştırma tamamlandı! ${archives.length + payments.length + appointments.length} ana kayıt, ${uniquePhones.size} müşteri, ${totalMs}ms`, 'success');
         } catch (error) {
             console.error('Parse error:', error);
             addLog(`❌ Ayrıştırma hatası: ${error.message}`, 'error');
@@ -558,9 +600,36 @@ export default function Migration() {
 
         setMigrating(true);
         const migrateFn = httpsCallable(functions, 'legacyMigration-migrateLegacyBatch');
+        const selectedOrganizationId = studios.find(s => s.id === selectedStudio)?.organizationId || null;
 
-        // Count archives that have phone or email for customer creation
-        const archivesWithContact = parsedData.archives.filter(a => (a.phone || '').trim() || (a.email || '').trim());
+        // Build customer records from ALL sources with phone numbers
+        const customerSourceRecords = [];
+        const seenPhones = new Set();
+
+        // Source 1: Archives with phone
+        for (const a of parsedData.archives) {
+            const phone = (a.phone || '').trim();
+            if (phone && !seenPhones.has(phone)) {
+                seenPhones.add(phone);
+                customerSourceRecords.push(a);
+            }
+        }
+
+        // Source 2: Appointments with phone (not already seen)
+        for (const appt of parsedData.appointments) {
+            const phone = (appt.phone || '').trim();
+            if (phone && !seenPhones.has(phone)) {
+                seenPhones.add(phone);
+                customerSourceRecords.push({
+                    fullName: appt.customerName || 'İsimsiz',
+                    phone: phone,
+                    email: null,
+                    archiveNumber: 0,
+                    totalAmount: appt.totalAmount || 0
+                });
+            }
+        }
+
         const progress = {
             shootTypes: { total: parsedData.shootTypes.length, done: 0, status: 'pending' },
             locations: { total: parsedData.locations.length, done: 0, status: 'pending' },
@@ -568,7 +637,7 @@ export default function Migration() {
             packages: { total: parsedData.packages.length, done: 0, status: 'pending' },
             personnel: { total: parsedData.personnel.length, done: 0, status: 'pending' },
             archives: { total: parsedData.archives.length, done: 0, status: 'pending' },
-            customers: { total: archivesWithContact.length, done: 0, status: 'pending' },
+            customers: { total: customerSourceRecords.length, done: 0, status: 'pending' },
             payments: { total: parsedData.payments.length, done: 0, status: 'pending' },
             appointments: { total: parsedData.appointments.length, done: 0, status: 'pending' },
         };
@@ -596,6 +665,7 @@ export default function Migration() {
                 try {
                     const result = await migrateFn({
                         studioId: selectedStudio,
+                        organizationId: selectedOrganizationId,
                         dataType,
                         records: chunk
                     });
@@ -633,7 +703,7 @@ export default function Migration() {
             await migrateCollection('packages', parsedData.packages, 'Paketler');
             await migrateCollection('personnel', parsedData.personnel, 'Personel');
             await migrateCollection('archives', parsedData.archives, 'Arşiv Kayıtları');
-            await migrateCollection('customers', parsedData.archives, 'Müşteri Kayıtları');
+            await migrateCollection('customers', customerSourceRecords, 'Müşteri Kayıtları');
             await migrateCollection('payments', parsedData.payments, 'Ödemeler');
             await migrateCollection('appointments', parsedData.appointments, 'Randevular');
 
@@ -651,6 +721,7 @@ export default function Migration() {
 
         setMigrating(true);
         const migrateFn = httpsCallable(functions, 'legacyMigration-migrateLegacyBatch');
+        const selectedOrganizationId = studios.find(s => s.id === selectedStudio)?.organizationId || null;
         const CHUNK_SIZE = 100; // Smaller chunks since each doc requires a query
 
         // Filter only archives that have at least one ID to update
@@ -668,6 +739,7 @@ export default function Migration() {
             try {
                 const result = await migrateFn({
                     studioId: selectedStudio,
+                    organizationId: selectedOrganizationId,
                     dataType: 'updateArchives',
                     records: chunk
                 });
@@ -728,11 +800,25 @@ export default function Migration() {
                             disabled={migrating}
                         >
                             <option value="">Stüdyo seçin...</option>
-                            {studios.map(studio => (
-                                <option key={studio.id} value={studio.id}>
-                                    {studio.name}
-                                </option>
-                            ))}
+                            {(() => {
+                                // Group studios by organization for optgroup
+                                const groups = {};
+                                studios.forEach(s => {
+                                    const orgKey = s.organizationId || 'legacy';
+                                    const orgName = s.organizationName || 'Bağımsız';
+                                    if (!groups[orgKey]) groups[orgKey] = { name: orgName, items: [] };
+                                    groups[orgKey].items.push(s);
+                                });
+                                return Object.entries(groups).map(([orgId, group]) => (
+                                    <optgroup key={orgId} label={`🏢 ${group.name}`}>
+                                        {group.items.map(studio => (
+                                            <option key={studio.id} value={studio.id}>
+                                                {studio.name}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                ));
+                            })()}
                         </select>
                         {selectedStudio && (
                             <p style={{ marginTop: '8px', fontSize: '12px', color: 'var(--accent-primary)' }}>

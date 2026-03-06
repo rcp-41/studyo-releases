@@ -403,7 +403,32 @@ function Mode2Panel({ onStart, onBack }) {
 // ===================== MODE 3 - Klasör Seç =====================
 function Mode3Panel({ onStart, onBack }) {
     const [dragActive, setDragActive] = useState(false);
+    const [selectedFolder, setSelectedFolder] = useState(null);
+    const [pixonaiConfigs, setPixonaiConfigs] = useState([]);
+    const [loadingConfigs, setLoadingConfigs] = useState(false);
     const dropRef = useRef(null);
+
+    // Load Pixonai configs when a folder is selected
+    useEffect(() => {
+        if (!selectedFolder) return;
+        setLoadingConfigs(true);
+        import('../../services/api').then(({ pixonaiApi }) => {
+            pixonaiApi.getConfigs().then(result => {
+                setPixonaiConfigs(result?.configs || []);
+            }).catch(() => {
+                setPixonaiConfigs([]);
+            }).finally(() => setLoadingConfigs(false));
+        });
+    }, [selectedFolder]);
+
+    const handleFolderSelected = useCallback((folderPath) => {
+        setSelectedFolder(folderPath);
+    }, []);
+
+    const handleShootTypeSelect = (config) => {
+        // config is null for 'paketsiz' mode
+        onStart(selectedFolder, config);
+    };
 
     const handleDrag = useCallback((e) => {
         e.preventDefault();
@@ -432,52 +457,119 @@ function Mode3Panel({ onStart, onBack }) {
             const filePath = files[0].path;
             if (filePath) {
                 const folderPath = filePath.replace(/[\\/][^\\/]+$/, '');
-                onStart(folderPath);
+                handleFolderSelected(folderPath);
             }
         }
-    }, [onStart]);
+    }, [handleFolderSelected]);
 
     const handleSelectFolder = async () => {
         const selected = await window.electron?.photoSelector?.selectFolder();
-        if (selected) onStart(selected);
+        if (selected) handleFolderSelected(selected);
     };
 
     return (
         <div className="h-full flex flex-col items-center justify-center p-8">
             <div className="w-full max-w-lg space-y-6">
-                <button onClick={onBack} className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
-                    ← Geri
+                <button
+                    onClick={() => selectedFolder ? setSelectedFolder(null) : onBack()}
+                    className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                    ← {selectedFolder ? 'Klasör Değiştir' : 'Geri'}
                 </button>
 
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                     <FolderOpen className="w-5 h-5 text-green-400" />
-                    Klasör Seç
+                    {selectedFolder ? 'Çekim Türü Seç' : 'Klasör Seç'}
                 </h2>
 
-                <p className="text-sm text-neutral-400">
-                    Arşivden bağımsız olarak bir klasördeki fotoğrafları inceleyin ve numaralandırın.
-                </p>
+                {!selectedFolder ? (
+                    <>
+                        <p className="text-sm text-neutral-400">
+                            Arşivden bağımsız olarak bir klasördeki fotoğrafları inceleyin ve numaralandırın.
+                        </p>
 
-                {/* Drag & Drop Zone */}
-                <div
-                    ref={dropRef}
-                    onDragEnter={handleDragIn}
-                    onDragLeave={handleDragOut}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                    onClick={handleSelectFolder}
-                    className={`border-2 border-dashed rounded-xl p-16 text-center transition-all cursor-pointer
-                        ${dragActive
-                            ? 'border-green-400 bg-green-400/10'
-                            : 'border-neutral-700 hover:border-neutral-500 bg-neutral-800/50'
-                        }`}
-                >
-                    <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-500" />
-                    <p className="text-neutral-300 font-medium">
-                        Fotoğraf klasörünü buraya sürükleyin
-                    </p>
-                    <p className="text-xs text-neutral-600 mt-2">veya tıklayarak seçin</p>
-                </div>
+                        {/* Drag & Drop Zone */}
+                        <div
+                            ref={dropRef}
+                            onDragEnter={handleDragIn}
+                            onDragLeave={handleDragOut}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                            onClick={handleSelectFolder}
+                            className={`border-2 border-dashed rounded-xl p-16 text-center transition-all cursor-pointer
+                                ${dragActive
+                                    ? 'border-green-400 bg-green-400/10'
+                                    : 'border-neutral-700 hover:border-neutral-500 bg-neutral-800/50'
+                                }`}
+                        >
+                            <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-500" />
+                            <p className="text-neutral-300 font-medium">
+                                Fotoğraf klasörünü buraya sürükleyin
+                            </p>
+                            <p className="text-xs text-neutral-600 mt-2">veya tıklayarak seçin</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <p className="text-sm text-neutral-400">
+                            <span className="text-neutral-300 font-mono text-xs">{selectedFolder}</span>
+                        </p>
+                        <p className="text-sm text-neutral-400 mt-1">
+                            Numaralandırma türünü seçin:
+                        </p>
+
+                        {loadingConfigs ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {/* Paketsiz option */}
+                                <button
+                                    onClick={() => handleShootTypeSelect(null)}
+                                    className="w-full flex items-center gap-3 p-4 rounded-xl
+                                             bg-neutral-800 hover:bg-neutral-750 border border-neutral-700
+                                             hover:border-neutral-600 transition-all text-left"
+                                >
+                                    <div className="w-10 h-10 rounded-lg bg-neutral-700 flex items-center justify-center shrink-0">
+                                        <span className="text-lg">🔢</span>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-sm text-neutral-200">Paketsiz (Sadece Numaralandır)</p>
+                                        <p className="text-xs text-neutral-500">01, 02, 03... şeklinde basit numaralandırma</p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-neutral-600 ml-auto" />
+                                </button>
+
+                                {/* Pixonai configs */}
+                                {pixonaiConfigs.map(config => (
+                                    <button
+                                        key={config.id}
+                                        onClick={() => handleShootTypeSelect(config)}
+                                        className="w-full flex items-center gap-3 p-4 rounded-xl
+                                                 bg-neutral-800 hover:bg-neutral-750 border border-neutral-700
+                                                 hover:border-amber-500/50 transition-all text-left"
+                                    >
+                                        <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30
+                                                      flex items-center justify-center shrink-0">
+                                            <Camera className="w-5 h-5 text-amber-400" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-sm text-neutral-200">{config.shootCategoryLabel}</p>
+                                            <p className="text-xs text-neutral-500">
+                                                {config.packages?.length || 0} paket ·{' '}
+                                                {config.type === 'yearly' ? 'Yıllık' :
+                                                    config.type === 'set' ? 'Set' :
+                                                        config.type === 'portrait' ? 'Vesikalık/Biyometrik' : config.type}
+                                            </p>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-neutral-600 ml-auto" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );

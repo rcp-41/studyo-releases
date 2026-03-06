@@ -9,6 +9,11 @@ export default function PhotoCard({
     onClick,
     onDoubleClick,
     onToggleFavorite,
+    onContextMenu,
+    nextNumber,
+    onAssignNumber,
+    onRemoveNumber,
+    showOverlay = true,
 }) {
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(false);
@@ -24,11 +29,18 @@ export default function PhotoCard({
         ? `file:///${photo.thumbnailPath.replace(/\\/g, '/')}`
         : null;
 
+    const handleContextMenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextMenu?.(e, photo.id);
+    };
+
     return (
         <div
             className={`photo-grid-item group ${isSelected ? 'selected' : ''} ${isFavorite ? 'is-favorite' : ''}`}
             onClick={onClick}
             onDoubleClick={onDoubleClick}
+            onContextMenu={handleContextMenu}
         >
             {/* Image */}
             <div className="aspect-square bg-neutral-800 relative">
@@ -66,7 +78,7 @@ export default function PhotoCard({
                     e.stopPropagation();
                     onToggleFavorite(e);
                 }}
-                className={`absolute top-1.5 right-1.5 p-1 rounded-full transition-all
+                className={`absolute top-1.5 right-1.5 p-1 rounded-full transition-all z-[15]
                     ${isFavorite
                         ? 'bg-yellow-400/20 text-yellow-400'
                         : 'bg-black/40 text-neutral-400 opacity-0 group-hover:opacity-100'
@@ -75,19 +87,40 @@ export default function PhotoCard({
                 <Star className={`w-4 h-4 favorite-star ${isFavorite ? 'fill-yellow-400' : ''}`} />
             </button>
 
-            {/* Order number badge */}
+            {/* Order number badge (top-left) */}
             {orderNumber && (
-                <div className="absolute top-1.5 left-1.5 bg-amber-500 text-neutral-900
-                                text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
-                    {orderNumber}
+                <div className="ps-number-badge">
+                    {String(orderNumber).padStart(2, '0')}
                 </div>
             )}
 
-            {/* File name */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent
-                            px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <p className="text-[10px] text-neutral-300 truncate">{photo.currentName}</p>
-            </div>
+            {/* Gradient overlay with filename + number button */}
+            {showOverlay && (
+                <div className="ps-photo-overlay">
+                    <span className="ps-photo-name">{photo.currentName}</span>
+                    {orderNumber ? (
+                        <button
+                            className="ps-number-btn remove"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRemoveNumber?.(photo.id);
+                            }}
+                        >
+                            Kaldır
+                        </button>
+                    ) : (
+                        <button
+                            className="ps-number-btn assign"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onAssignNumber?.(photo.id);
+                            }}
+                        >
+                            Numara ({String(nextNumber || 1).padStart(2, '0')})
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Selection ring */}
             {isSelected && (

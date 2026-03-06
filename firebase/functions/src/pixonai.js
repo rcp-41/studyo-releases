@@ -82,7 +82,7 @@ exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const data = request.data || {};
-    const { id, shootCategoryId, shootCategoryLabel, options, packages } = data;
+    const { id, shootCategoryId, shootCategoryLabel, options, packages, type } = data;
 
     if (!shootCategoryId || !shootCategoryLabel) {
         throw new HttpsError('invalid-argument', 'shootCategoryId and shootCategoryLabel are required');
@@ -94,6 +94,7 @@ exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
         const configData = {
             shootCategoryId,
             shootCategoryLabel,
+            type: type || 'custom', // yearly, set, portrait, custom
             options: (options || []).map((opt, idx) => ({
                 id: opt.id || `opt_${idx}`,
                 name: opt.name || '',
@@ -109,7 +110,14 @@ exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
                 name: pkg.name || '',
                 abbr: pkg.abbr || '',
                 price: Number(pkg.price) || 0,
+                photoCount: Number(pkg.photoCount) || 0,
                 description: pkg.description || '',
+                gifts: (pkg.gifts || []).map(g => ({
+                    name: g.name || '',
+                    abbr: g.abbr || '',
+                    quantity: Number(g.quantity) || 1,
+                    maxSelections: Number(g.maxSelections) || 1,
+                })),
             })),
             updatedAt: FieldValue.serverTimestamp(),
         };

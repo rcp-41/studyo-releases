@@ -1,19 +1,33 @@
 /**
- * Dosya adlandırma kuralları
- * Format: [ArşivNo] - [SıraNo] - [Seçenekler...]
- * Örnek: 109744 - 01 - Yıllık - 2 Çoğaltma - 20x30 - Çerçeve
+ * Dosya adlandırma kuralları (Revamped)
+ * 
+ * New format: [SıraNo] - [HediyeKısaKodları]
+ * Örnek: 01 - y - 4vs - 20x30ç.jpg
+ * 
+ * Legacy format (still supported): [ArşivNo] - [SıraNo] - [Seçenekler...]
  */
 
 /**
- * Seçenek sıralaması (sabit):
- * 1. Tür
- * 2. Kullanılacak Yer / Ek Ölçü
- * 3. Adet / Çoğaltma
- * 4. Hediye (sadece yıllık)
- * 5. Çerçeve / Fotoblok / Kanvas Tablo
- * 6. Not
+ * Build filename using gift shortcodes
+ * @param {number} orderNumber - Order number (1, 2, 3...)
+ * @param {string[]} giftCodes - Array of gift abbreviation codes ['y', '4vs', '20x30ç']
+ * @param {string} originalExt - File extension including dot (.jpg, .JPG)
+ * @returns {string} Formatted filename
  */
+export function buildFileNameFromGifts(orderNumber, giftCodes = [], originalExt = '.jpg') {
+    const paddedNum = String(orderNumber).padStart(2, '0');
 
+    if (giftCodes.length === 0) {
+        return `${paddedNum}${originalExt}`;
+    }
+
+    return `${paddedNum} - ${giftCodes.join(' - ')}${originalExt}`;
+}
+
+/**
+ * Legacy filename builder (kept for backward compatibility)
+ * Format: [ArşivNo] - [SıraNo] - [Seçenekler...]
+ */
 export function buildFileName(archiveNo, orderNumber, optionDetails = {}, originalExt = '.jpg') {
     const parts = [];
 

@@ -4,7 +4,8 @@ import { pixonaiApi, optionsApi } from '../services/api';
 import { cn } from '../lib/utils';
 import {
     Camera, Plus, Trash2, Edit3, Save, X, Package, GripVertical,
-    ChevronDown, ChevronUp, Settings2, List, Hash, CheckSquare, Type
+    ChevronDown, ChevronUp, Settings2, List, Hash, CheckSquare, Type,
+    Gift, Copy, Tag
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,6 +15,72 @@ const OPTION_TYPES = [
     { value: 'number', label: 'Sayı Girişi', icon: Hash },
     { value: 'checkbox', label: 'Checkbox (Evet/Hayır)', icon: CheckSquare },
 ];
+
+// Config type definitions
+const CONFIG_TYPES = [
+    { value: 'yearly', label: 'Yıllık', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    { value: 'set', label: 'Set', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    { value: 'portrait', label: 'Vesikalık/Biyometrik', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+    { value: 'custom', label: 'Özel', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+];
+
+// ========== GIFT ROW ==========
+function GiftRow({ gift, index, onChange, onRemove }) {
+    return (
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-neutral-900/50 rounded-lg border border-neutral-700/50">
+            <Gift className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+            <span className="text-[10px] text-neutral-500 w-4">{index + 1}.</span>
+
+            <input
+                type="text"
+                value={gift.name}
+                onChange={e => onChange({ ...gift, name: e.target.value })}
+                placeholder="Hediye adı"
+                className="flex-1 px-2 py-0.5 text-xs bg-neutral-800 border border-neutral-700
+                           rounded focus:border-green-500 outline-none"
+            />
+
+            <input
+                type="text"
+                value={gift.abbr}
+                onChange={e => onChange({ ...gift, abbr: e.target.value })}
+                placeholder="Kısa"
+                className="w-14 px-1.5 py-0.5 text-xs bg-neutral-800 border border-neutral-700
+                           rounded focus:border-green-500 outline-none text-center font-mono"
+            />
+
+            <div className="flex items-center gap-1">
+                <label className="text-[10px] text-neutral-500">Adet:</label>
+                <input
+                    type="number"
+                    value={gift.quantity}
+                    onChange={e => onChange({ ...gift, quantity: Number(e.target.value) || 1 })}
+                    min="1"
+                    className="w-10 px-1 py-0.5 text-xs bg-neutral-800 border border-neutral-700
+                               rounded focus:border-green-500 outline-none text-center"
+                />
+            </div>
+
+            <div className="flex items-center gap-1">
+                <label className="text-[10px] text-neutral-500">Maks:</label>
+                <input
+                    type="number"
+                    value={gift.maxSelections}
+                    onChange={e => onChange({ ...gift, maxSelections: Number(e.target.value) || 0 })}
+                    min="0"
+                    className="w-10 px-1 py-0.5 text-xs bg-neutral-800 border border-neutral-700
+                               rounded focus:border-green-500 outline-none text-center"
+                    title="0 = sınırsız"
+                />
+            </div>
+
+            <button onClick={onRemove}
+                className="p-0.5 hover:bg-red-900/50 rounded transition-colors text-red-400/50 hover:text-red-400">
+                <X className="w-3.5 h-3.5" />
+            </button>
+        </div>
+    );
+}
 
 // ========== OPTION ROW ==========
 function OptionRow({ option, index, onChange, onRemove }) {
@@ -131,11 +198,37 @@ function OptionRow({ option, index, onChange, onRemove }) {
     );
 }
 
-// ========== PACKAGE ROW ==========
+// ========== PACKAGE ROW (with Gifts) ==========
 function PackageRow({ pkg, index, onChange, onRemove }) {
+    const [expanded, setExpanded] = useState(false);
+
+    const addGift = () => {
+        const gifts = [...(pkg.gifts || []), {
+            id: `gift_${Date.now()}`,
+            name: '',
+            abbr: '',
+            quantity: 1,
+            maxSelections: 0,
+        }];
+        onChange({ ...pkg, gifts });
+    };
+
+    const updateGift = (idx, updated) => {
+        const gifts = (pkg.gifts || []).map((g, i) => i === idx ? updated : g);
+        onChange({ ...pkg, gifts });
+    };
+
+    const removeGift = (idx) => {
+        const gifts = (pkg.gifts || []).filter((_, i) => i !== idx);
+        onChange({ ...pkg, gifts });
+    };
+
+    const giftCount = (pkg.gifts || []).length;
+
     return (
-        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg px-3 py-2 space-y-2">
-            <div className="flex items-center gap-2">
+        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+            {/* Header row */}
+            <div className="flex items-center gap-2 px-3 py-2">
                 <Package className="w-4 h-4 text-amber-400 flex-shrink-0" />
                 <span className="text-xs text-neutral-400 w-5">{index + 1}.</span>
 
@@ -157,6 +250,21 @@ function PackageRow({ pkg, index, onChange, onRemove }) {
                                rounded focus:border-blue-500 outline-none text-center font-mono"
                 />
 
+                {/* Photo count */}
+                <div className="flex items-center gap-1">
+                    <Hash className="w-3.5 h-3.5 text-neutral-500" />
+                    <input
+                        type="number"
+                        value={pkg.photoCount || ''}
+                        onChange={e => onChange({ ...pkg, photoCount: Number(e.target.value) || 0 })}
+                        placeholder="Foto"
+                        min="0"
+                        className="w-12 px-1.5 py-1 text-sm bg-neutral-900 border border-neutral-700 
+                                   rounded focus:border-blue-500 outline-none text-center"
+                        title="Foto sayısı"
+                    />
+                </div>
+
                 <input
                     type="number"
                     value={pkg.price}
@@ -167,20 +275,83 @@ function PackageRow({ pkg, index, onChange, onRemove }) {
                 />
                 <span className="text-xs text-neutral-500">₺</span>
 
+                <button onClick={() => setExpanded(!expanded)}
+                    className={cn(
+                        "p-1 rounded transition-colors flex items-center gap-0.5",
+                        expanded ? "bg-green-500/20 text-green-400" : "hover:bg-neutral-700"
+                    )}>
+                    <Gift className="w-3.5 h-3.5" />
+                    {giftCount > 0 && <span className="text-[10px]">{giftCount}</span>}
+                    {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+
                 <button onClick={onRemove}
                     className="p-1 hover:bg-red-900/50 rounded transition-colors text-red-400">
                     <Trash2 className="w-4 h-4" />
                 </button>
             </div>
 
-            <input
-                type="text"
-                value={pkg.description}
-                onChange={e => onChange({ ...pkg, description: e.target.value })}
-                placeholder="Paket açıklaması (örn: 3 poz 15x21 + 1 adet 6'lı vesikalık)"
-                className="w-full px-2 py-1 text-sm bg-neutral-900 border border-neutral-700 
-                           rounded focus:border-blue-500 outline-none text-neutral-300"
-            />
+            {/* Description row */}
+            <div className="px-3 pb-2">
+                <input
+                    type="text"
+                    value={pkg.description}
+                    onChange={e => onChange({ ...pkg, description: e.target.value })}
+                    placeholder="Paket açıklaması (örn: 3 poz 15x21 + 1 adet 6'lı vesikalık)"
+                    className="w-full px-2 py-1 text-sm bg-neutral-900 border border-neutral-700 
+                               rounded focus:border-blue-500 outline-none text-neutral-300"
+                />
+            </div>
+
+            {/* Gifts section (expandable) */}
+            {expanded && (
+                <div className="px-3 pb-3 pt-1 border-t border-neutral-700/50">
+                    <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-medium text-green-400 flex items-center gap-1">
+                            <Gift className="w-3.5 h-3.5" />
+                            Hediyeler
+                        </h4>
+                        <button onClick={addGift}
+                            className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-green-600/30 
+                                       hover:bg-green-600/50 text-green-300 rounded transition-colors">
+                            <Plus className="w-3 h-3" /> Hediye Ekle
+                        </button>
+                    </div>
+
+                    {giftCount === 0 ? (
+                        <p className="text-[10px] text-neutral-500 italic text-center py-2">
+                            Hediye eklenmedi — sağ tık menüsünde gösterilecek hediyeler
+                        </p>
+                    ) : (
+                        <div className="space-y-1.5">
+                            {/* Column headers */}
+                            <div className="flex items-center gap-2 px-2 text-[9px] text-neutral-500 uppercase tracking-wider">
+                                <span className="w-3.5" />
+                                <span className="w-4" />
+                                <span className="flex-1">İsim</span>
+                                <span className="w-14 text-center">Kısa Kod</span>
+                                <span className="w-16 text-center">Adet</span>
+                                <span className="w-16 text-center">Maks Seçim</span>
+                                <span className="w-3.5" />
+                            </div>
+                            {(pkg.gifts || []).map((gift, idx) => (
+                                <GiftRow
+                                    key={gift.id || idx}
+                                    gift={gift}
+                                    index={idx}
+                                    onChange={u => updateGift(idx, u)}
+                                    onRemove={() => removeGift(idx)}
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Gift info */}
+                    <p className="text-[9px] text-neutral-600 mt-2">
+                        💡 Maks Seçim = 0 ise sınırsız seçilebilir. Kısa kod dosya adına eklenir.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
@@ -192,6 +363,7 @@ function ConfigEditModal({ config, shootTypes, onSave, onClose, saving }) {
     const [form, setForm] = useState({
         shootCategoryId: config?.shootCategoryId || '',
         shootCategoryLabel: config?.shootCategoryLabel || '',
+        type: config?.type || 'yearly',
         options: config?.options || [],
         packages: config?.packages || [],
     });
@@ -244,7 +416,9 @@ function ConfigEditModal({ config, shootTypes, onSave, onClose, saving }) {
                 name: '',
                 abbr: '',
                 price: 0,
+                photoCount: 0,
                 description: '',
+                gifts: [],
             }]
         }));
     };
@@ -298,27 +472,51 @@ function ConfigEditModal({ config, shootTypes, onSave, onClose, saving }) {
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-                    {/* Category Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-300 mb-1">Çekim Türü</label>
-                        {isNew ? (
+                    {/* Category + Type row */}
+                    <div className="grid grid-cols-2 gap-3">
+                        {/* Category Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-300 mb-1">Çekim Türü</label>
+                            {isNew ? (
+                                <select
+                                    value={form.shootCategoryId}
+                                    onChange={e => handleCategoryChange(e.target.value)}
+                                    className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 
+                                               rounded-lg focus:border-blue-500 outline-none"
+                                >
+                                    <option value="">Seçiniz...</option>
+                                    {shootTypes?.map(st => (
+                                        <option key={st.id} value={st.name}>{st.name}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div className="px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 
+                                                rounded-lg text-neutral-300">
+                                    {form.shootCategoryLabel}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Type Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-300 mb-1">Yapılandırma Türü</label>
                             <select
-                                value={form.shootCategoryId}
-                                onChange={e => handleCategoryChange(e.target.value)}
+                                value={form.type}
+                                onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                                 className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 
                                            rounded-lg focus:border-blue-500 outline-none"
                             >
-                                <option value="">Seçiniz...</option>
-                                {shootTypes?.map(st => (
-                                    <option key={st.id} value={st.name}>{st.name}</option>
+                                {CONFIG_TYPES.map(ct => (
+                                    <option key={ct.value} value={ct.value}>{ct.label}</option>
                                 ))}
                             </select>
-                        ) : (
-                            <div className="px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 
-                                            rounded-lg text-neutral-300">
-                                {form.shootCategoryLabel}
-                            </div>
-                        )}
+                            <p className="text-[10px] text-neutral-500 mt-0.5">
+                                {form.type === 'yearly' && 'Yıllık: Favori sayısına göre paket eşleştirme + hediye sistemi'}
+                                {form.type === 'set' && 'Set: Baro, Mezuniyet seti — her fotoğrafa hediye atama'}
+                                {form.type === 'portrait' && 'Vesikalık/Biyometrik: Tüm fotoğraflara sınırsız hediye seçimi'}
+                                {form.type === 'custom' && 'Özel: Serbest yapılandırma'}
+                            </p>
+                        </div>
                     </div>
 
                     {/* Options Section */}
@@ -371,6 +569,9 @@ function ConfigEditModal({ config, shootTypes, onSave, onClose, saving }) {
                             <h3 className="text-sm font-medium text-neutral-300 flex items-center gap-1.5">
                                 <Package className="w-4 h-4 text-amber-400" />
                                 Paketler
+                                <span className="text-[10px] text-neutral-500 font-normal ml-1">
+                                    (fotoğraf sayısı + hediyeler)
+                                </span>
                             </h3>
                             <button onClick={addPackage}
                                 className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-600 
@@ -466,6 +667,22 @@ export default function PixonaiSettings() {
         }
     });
 
+    // Get type badge
+    const getTypeBadge = (type) => {
+        const ct = CONFIG_TYPES.find(c => c.value === type);
+        if (!ct) return null;
+        return (
+            <span className={`px-1.5 py-0.5 text-[10px] rounded border ${ct.color}`}>
+                {ct.label}
+            </span>
+        );
+    };
+
+    // Count total gifts across packages
+    const getTotalGifts = (config) => {
+        return (config.packages || []).reduce((acc, pkg) => acc + (pkg.gifts?.length || 0), 0);
+    };
+
     return (
         <div className="space-y-6">
             {/* Page Header */}
@@ -476,7 +693,7 @@ export default function PixonaiSettings() {
                         Pixonai Ayarları
                     </h1>
                     <p className="text-sm text-neutral-400 mt-1">
-                        Her çekim türü için fotoğraf seçim seçeneklerini ve paketlerini yapılandırın
+                        Her çekim türü için fotoğraf seçim seçeneklerini, paketlerini ve hediyelerini yapılandırın
                     </p>
                 </div>
                 <button
@@ -514,25 +731,27 @@ export default function PixonaiSettings() {
 
                             {/* Info */}
                             <div className="flex-1 min-w-0">
-                                <h3 className="text-sm font-semibold text-white">
-                                    {config.shootCategoryLabel}
-                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-semibold text-white">
+                                        {config.shootCategoryLabel}
+                                    </h3>
+                                    {getTypeBadge(config.type)}
+                                </div>
                                 <p className="text-xs text-neutral-400 mt-0.5">
-                                    {config.options?.length || 0} seçenek · {config.packages?.length || 0} paket
+                                    {config.options?.length || 0} seçenek · {config.packages?.length || 0} paket · {getTotalGifts(config)} hediye
                                 </p>
-                                {/* Abbreviation preview */}
-                                {(config.options?.length > 0 || config.packages?.length > 0) && (
+                                {/* Preview badges */}
+                                {(config.packages?.length > 0) && (
                                     <div className="flex flex-wrap gap-1 mt-1.5">
-                                        {config.options?.slice(0, 5).map(opt => (
-                                            <span key={opt.id} className="px-1.5 py-0.5 text-[10px] bg-neutral-700 
-                                                                          rounded text-neutral-300 font-mono">
-                                                {opt.abbr || opt.name}
-                                            </span>
-                                        ))}
-                                        {config.packages?.slice(0, 3).map(pkg => (
+                                        {config.packages?.map(pkg => (
                                             <span key={pkg.id} className="px-1.5 py-0.5 text-[10px] bg-amber-900/50 
-                                                                          rounded text-amber-300 font-mono">
-                                                {pkg.abbr || pkg.name}
+                                                                          rounded text-amber-300 font-mono flex items-center gap-0.5">
+                                                <Package className="w-2.5 h-2.5" />
+                                                {pkg.name}
+                                                {pkg.photoCount > 0 && <span className="text-amber-500">({pkg.photoCount})</span>}
+                                                {(pkg.gifts?.length || 0) > 0 && (
+                                                    <span className="text-green-400 ml-0.5">+{pkg.gifts.length}🎁</span>
+                                                )}
                                             </span>
                                         ))}
                                     </div>

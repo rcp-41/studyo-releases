@@ -137,6 +137,8 @@ export default function Setup() {
                 macAddress: sysInfo.macAddress,
                 hostname: sysInfo.hostname,
                 ipAddress: sysInfo.ipAddress,
+                localIp: sysInfo.localIp || null,
+                publicIp: sysInfo.publicIp || null,
                 deviceInfo: sysInfo.deviceInfo
             });
 

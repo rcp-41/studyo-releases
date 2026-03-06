@@ -384,16 +384,22 @@ app.whenReady().then(() => {
             sendToUpdateSplash('progress', pct);
         });
 
+        let isInstallingUpdate = false; // Guard against multiple quitAndInstall calls
+
         autoUpdater.on('update-downloaded', (info) => {
             console.log('[AutoUpdater] Downloaded:', info.version);
             pendingVersion = info.version;
             if (mainWindow) mainWindow.webContents.send('update:status', 'downloaded', { version: info.version });
             sendToSplashWindow('downloaded');
             sendToUpdateSplash('downloaded');
-            // Auto-install: close splash and restart
-            setTimeout(() => {
-                autoUpdater.quitAndInstall(true, true);
-            }, 2000);
+            // Auto-install during splash only (first launch), not when app is already running
+            if (!isInstallingUpdate) {
+                isInstallingUpdate = true;
+                setTimeout(() => {
+                    app.isQuitting = true;
+                    autoUpdater.quitAndInstall(true, true);
+                }, 2000);
+            }
         });
 
         autoUpdater.on('error', (err) => {
@@ -405,7 +411,7 @@ app.whenReady().then(() => {
             if (updateSplash && !updateSplash.isDestroyed()) updateSplash.close();
         });
 
-        // Start update check during splash
+        // Start update check during splash (single initial check)
         autoUpdater.checkForUpdates().catch(err => {
             console.error('[AutoUpdater] Check failed:', err.message);
         });
@@ -417,6 +423,8 @@ app.whenReady().then(() => {
 
         // IPC: frontend requests install & restart with splash
         ipcMain.handle('update:install', () => {
+            if (isInstallingUpdate) return; // Prevent duplicate install
+            isInstallingUpdate = true;
             // Show splash, hide main window
             const splash = createUpdateSplash();
             splash.webContents.once('did-finish-load', () => {
@@ -428,6 +436,7 @@ app.whenReady().then(() => {
 
                 // Wait for checkmark animation, then install
                 setTimeout(() => {
+                    app.isQuitting = true;
                     autoUpdater.quitAndInstall(true, true);
                 }, 2500);
             });
@@ -438,18 +447,13 @@ app.whenReady().then(() => {
             return autoUpdater.checkForUpdates();
         });
 
-        // Check on startup (after 5 seconds)
-        setTimeout(() => {
-            autoUpdater.checkForUpdates().catch(err => {
-                console.error('[AutoUpdater] Initial check failed:', err.message);
-            });
-        }, 5000);
-
-        // Check every 5 minutes
+        // Check every 5 minutes (no duplicate 5-second check needed — splash already triggers one)
         setInterval(() => {
-            autoUpdater.checkForUpdates().catch(err => {
-                console.error('[AutoUpdater] Periodic check failed:', err.message);
-            });
+            if (!isInstallingUpdate) {
+                autoUpdater.checkForUpdates().catch(err => {
+                    console.error('[AutoUpdater] Periodic check failed:', err.message);
+                });
+            }
         }, 5 * 60 * 1000);
         // ===== END AUTO-UPDATE =====
 
@@ -599,11 +603,42 @@ ipcMain.handle('folder:create', async (event, folderPath) => {
     }
 });
 
-// SECURITY: Path validation on folder:open
+// SECURITY: Path validation on folder:open (with dynamic config re-read)
 ipcMain.handle('folder:open', async (event, folderPath) => {
     try {
         if (!isPathAllowed(folderPath)) {
-            return { success: false, error: 'Path not allowed' };
+            // Re-read license config in case studio paths were added/changed after startup
+            try {
+                const licenseConfig = loadLicenseConfig();
+                if (licenseConfig) {
+                    if (Array.isArray(licenseConfig?.studios)) {
+                        licenseConfig.studios.forEach(studio => {
+                            if (studio.path) {
+                                const resolved = path.resolve(studio.path);
+                                if (!ALLOWED_BASE_PATHS.includes(resolved)) {
+                                    ALLOWED_BASE_PATHS.push(resolved);
+                                    console.log('[folder:open] Dynamically added studio path:', resolved);
+                                }
+                            }
+                        });
+                    }
+                    if (licenseConfig?.archiveBasePath) {
+                        const resolved = path.resolve(licenseConfig.archiveBasePath);
+                        if (!ALLOWED_BASE_PATHS.includes(resolved)) {
+                            ALLOWED_BASE_PATHS.push(resolved);
+                            console.log('[folder:open] Dynamically added archiveBasePath:', resolved);
+                        }
+                    }
+                }
+            } catch (configErr) {
+                console.error('[folder:open] License config re-read error:', configErr);
+            }
+
+            // Check again after dynamic update
+            if (!isPathAllowed(folderPath)) {
+                console.error('[folder:open] Path not allowed:', folderPath, 'Allowed:', ALLOWED_BASE_PATHS);
+                return { success: false, error: 'Path not allowed' };
+            }
         }
         if (fs.existsSync(folderPath)) {
             await shell.openPath(folderPath);
@@ -813,16 +848,16 @@ ipcMain.handle('app:getSystemInfo', async () => {
         // Get hostname
         const hostname = os.hostname();
 
-        // Get primary network interface MAC and IP
+        // Get primary network interface MAC and local IP
         let macAddress = null;
-        let ipAddress = null;
+        let localIp = null;
         const interfaces = os.networkInterfaces();
         for (const [name, addrs] of Object.entries(interfaces)) {
             // Skip loopback and virtual interfaces
             if (name.toLowerCase().includes('loopback') || name === 'lo') continue;
             for (const addr of addrs) {
                 if (addr.family === 'IPv4' && !addr.internal) {
-                    if (!ipAddress) ipAddress = addr.address;
+                    if (!localIp) localIp = addr.address;
                     if (!macAddress && addr.mac && addr.mac !== '00:00:00:00:00:00') {
                         macAddress = addr.mac;
                     }
@@ -830,11 +865,34 @@ ipcMain.handle('app:getSystemInfo', async () => {
             }
         }
 
+        // Get public/network IP via external service
+        let publicIp = null;
+        try {
+            const https = require('https');
+            publicIp = await new Promise((resolve, reject) => {
+                const req = https.get('https://api.ipify.org?format=json', { timeout: 5000 }, (res) => {
+                    let data = '';
+                    res.on('data', chunk => data += chunk);
+                    res.on('end', () => {
+                        try {
+                            resolve(JSON.parse(data).ip);
+                        } catch { resolve(null); }
+                    });
+                });
+                req.on('error', () => resolve(null));
+                req.on('timeout', () => { req.destroy(); resolve(null); });
+            });
+        } catch {
+            publicIp = null;
+        }
+
         return {
             hwid,
             hostname,
             macAddress,
-            ipAddress,
+            ipAddress: publicIp || localIp, // Primary: public IP for display
+            localIp,
+            publicIp,
             deviceInfo: {
                 platform: os.platform(),
                 arch: os.arch(),
@@ -848,6 +906,8 @@ ipcMain.handle('app:getSystemInfo', async () => {
             hostname: os.hostname(),
             macAddress: null,
             ipAddress: null,
+            localIp: null,
+            publicIp: null,
             deviceInfo: { platform: os.platform(), arch: os.arch(), osVersion: os.release() },
             error: error.message
         };

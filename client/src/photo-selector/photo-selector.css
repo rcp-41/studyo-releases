@@ -20,18 +20,21 @@
 
 /* Photo grid item */
 .photo-grid-item {
-    @apply relative rounded-lg overflow-hidden cursor-pointer
-           transition-all duration-150 ease-out;
+    @apply relative rounded-lg overflow-hidden cursor-pointer transition-all duration-150 ease-out;
 }
+
 .photo-grid-item:hover {
     @apply ring-2 ring-amber-400/50 scale-[1.02];
 }
+
 .photo-grid-item.selected {
     @apply ring-2 ring-amber-400;
 }
+
 .photo-grid-item .favorite-star {
     @apply transition-colors duration-150;
 }
+
 .photo-grid-item.is-favorite .favorite-star {
     @apply text-yellow-400;
 }
@@ -40,30 +43,58 @@
 
 /* Fly up: star bursts upward when a photo is favorited */
 @keyframes star-fly-up {
-    0%   { transform: scale(1) translateY(0);  opacity: 1; }
-    40%  { transform: scale(1.5) translateY(-6px); opacity: 1; }
-    100% { transform: scale(0.8) translateY(-20px); opacity: 0; }
+    0% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    40% {
+        transform: scale(1.5) translateY(-6px);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.8) translateY(-20px);
+        opacity: 0;
+    }
 }
 
 /* Fall down: star fades down when un-favoriting */
 @keyframes star-fall-down {
-    0%   { transform: scale(1) translateY(0); opacity: 1; }
-    100% { transform: scale(0.6) translateY(12px); opacity: 0; }
+    0% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.6) translateY(12px);
+        opacity: 0;
+    }
 }
 
 /* Pop: quick scale bounce used on click */
 @keyframes star-pop {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(1.4); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .star-fly-up {
     animation: star-fly-up 0.4s ease-out forwards;
 }
+
 .star-fall-down {
     animation: star-fall-down 0.3s ease-in forwards;
 }
+
 .star-pop {
     animation: star-pop 0.25s ease-in-out;
 }
@@ -74,9 +105,11 @@
     @apply w-full h-full overflow-hidden relative;
     cursor: grab;
 }
+
 .zoom-container.dragging {
     cursor: grabbing;
 }
+
 .zoom-container img {
     image-rendering: auto;
     will-change: transform;
@@ -89,16 +122,12 @@
 
 /* Toolbar */
 .ps-toolbar {
-    @apply h-12 flex items-center justify-between px-4
-           bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800
-           sticky top-0 z-30;
+    @apply h-12 flex items-center justify-between px-4 bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800 sticky top-0 z-30;
 }
 
 /* Status bar */
 .ps-statusbar {
-    @apply h-8 flex items-center gap-6 px-4 text-xs
-           bg-neutral-950 border-t border-neutral-800 text-neutral-400
-           shrink-0;
+    @apply h-8 flex items-center gap-6 px-4 text-xs bg-neutral-950 border-t border-neutral-800 text-neutral-400 shrink-0;
 }
 
 /* Scrollbar styling */
@@ -106,13 +135,324 @@
     width: 6px;
     height: 6px;
 }
+
 .ps-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
+
 .ps-scrollbar::-webkit-scrollbar-thumb {
     background: #525252;
     border-radius: 3px;
 }
+
 .ps-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #737373;
+}
+
+/* ── Package Sidebar ──────────────────────────────────────────── */
+.ps-sidebar {
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    background: #171717;
+    border-left: 1px solid #262626;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.ps-sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #262626;
+}
+
+.ps-sidebar-section {
+    padding: 12px 16px;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.ps-sidebar-pkg-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f59e0b10, #f59e0b05);
+    border: 1px solid #f59e0b30;
+    color: #f59e0b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.ps-sidebar-price {
+    margin-left: auto;
+    font-size: 12px;
+    color: #a3a3a3;
+}
+
+.ps-sidebar-gifts {
+    margin-top: 10px;
+}
+
+.ps-sidebar-gift-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.ps-sidebar-gift-row:hover {
+    background: #262626;
+}
+
+.ps-sidebar-gift-row.complete {
+    opacity: 0.6;
+}
+
+.ps-sidebar-gift-check {
+    font-size: 11px;
+    color: #525252;
+    width: 16px;
+    text-align: center;
+}
+
+.ps-sidebar-gift-check.checked {
+    color: #22c55e;
+}
+
+.ps-sidebar-gift-code {
+    font-size: 10px;
+    color: #737373;
+    font-family: monospace;
+}
+
+.ps-sidebar-numbered-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    background: #1a1a1a;
+}
+
+.ps-sidebar-numbered-name {
+    font-size: 12px;
+    color: #d4d4d4;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-sidebar-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #262626;
+}
+
+.ps-sidebar-save-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    background: #f59e0b;
+    color: #171717;
+    font-weight: 600;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.ps-sidebar-save-btn:hover {
+    background: #fbbf24;
+}
+
+/* ── Context Menu ─────────────────────────────────────────────── */
+.ps-context-menu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 220px;
+    max-width: 300px;
+    padding: 6px;
+    border-radius: 12px;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    animation: ctxFadeIn 0.1s ease-out;
+}
+
+@keyframes ctxFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.ps-context-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #d4d4d4;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+}
+
+.ps-context-item:hover {
+    background: #262626;
+}
+
+.ps-context-item.active {
+    color: #f59e0b;
+}
+
+.ps-context-item.disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+
+.ps-context-separator {
+    height: 1px;
+    background: #333;
+    margin: 4px 6px;
+}
+
+.ps-context-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 10px;
+    color: #737373;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ps-context-check {
+    font-size: 11px;
+    color: #525252;
+    width: 14px;
+    text-align: center;
+}
+
+.ps-context-check.checked {
+    color: #22c55e;
+}
+
+.ps-context-gift-code {
+    font-size: 10px;
+    color: #737373;
+    font-family: monospace;
+}
+
+/* ── Photo Number Badge ───────────────────────────────────────── */
+.ps-number-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 10;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: #f59e0b;
+    color: #171717;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    animation: badgePop 0.2s ease-out;
+}
+
+@keyframes badgePop {
+    0% {
+        transform: scale(0);
+    }
+
+    70% {
+        transform: scale(1.15);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ── Photo Gradient Overlay (bottom bar) ──────────────────────── */
+.ps-photo-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px 10px 8px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.ps-photo-overlay>* {
+    pointer-events: auto;
+}
+
+.ps-photo-name {
+    font-size: 11px;
+    color: #e0e0e0;
+    max-width: 50%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-number-btn {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ps-number-btn.assign {
+    background: #22c55e;
+    color: #fff;
+}
+
+.ps-number-btn.assign:hover {
+    background: #16a34a;
+}
+
+.ps-number-btn.remove {
+    background: #ef444440;
+    color: #ef4444;
+    border: 1px solid #ef444450;
+}
+
+.ps-number-btn.remove:hover {
+    background: #ef444460;
 }
