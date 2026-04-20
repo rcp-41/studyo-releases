@@ -125,17 +125,17 @@
                     "order": "ASCENDING"
                 }
             ]
-        },
-        {
-            "collectionGroup": "studios",
-            "queryScope": "COLLECTION_GROUP",
-            "fields": [
-                {
-                    "fieldPath": "license.license_key",
-                    "order": "ASCENDING"
-                }
-            ]
         }
     ],
-    "fieldOverrides": []
+    "fieldOverrides": [
+        {
+            "collectionGroup": "studios",
+            "fieldPath": "license.license_key",
+            "indexes": [
+                { "order": "ASCENDING", "queryScope": "COLLECTION" },
+                { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" },
+                { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" }
+            ]
+        }
+    ]
 }
