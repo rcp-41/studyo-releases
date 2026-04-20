@@ -181,7 +181,10 @@ exports.status = onRequest({ cors: true }, async (req, res) => {
  * Build full Cloud Function URL
  */
 function buildFunctionUrl(functionName) {
-    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'studyo-live-2026';
+    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+    if (!projectId) {
+        throw new Error('GCLOUD_PROJECT env variable is required');
+    }
     const region = process.env.FUNCTION_REGION || 'us-central1';
     return `https://${region}-${projectId}.cloudfunctions.net/${functionName}`;
 }

@@ -12,7 +12,7 @@ import useAutoSave from './hooks/useAutoSave';
 import useKeyboardNav from './hooks/useKeyboardNav';
 import usePhotoLoader from './hooks/usePhotoLoader';
 import { archivesApi, settingsApi, pixonaiApi } from '../services/api';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Loader2, FolderOpen, Copy, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
@@ -36,6 +36,7 @@ export default function PhotoSelectorApp() {
     const isDirty = usePhotoSelectorStore(s => s.isDirty);
     const setPixonaiConfig = usePhotoSelectorStore(s => s.setPixonaiConfig);
     const shootCategoryType = usePhotoSelectorStore(s => s.shootCategoryType);
+    const pixonaiConfig = usePhotoSelectorStore(s => s.pixonaiConfig);
     const filterMode = usePhotoSelectorStore(s => s.filterMode);
 
     const { performSave } = useAutoSave();
@@ -63,22 +64,26 @@ export default function PhotoSelectorApp() {
             setStartupComplete(true);
             setInitializing(true);
             loadPhotos(folderPath).finally(() => setInitializing(false));
+            loadPixonaiConfig(config.shootCategory);
         }
     }, []);
 
-    // Load pixonai config when archiveInfo changes (shoot category known)
-    useEffect(() => {
-        const archiveInfo = usePhotoSelectorStore.getState().archiveInfo;
-        if (!archiveInfo?.shootCategory || !startupComplete) return;
-
-        pixonaiApi.getConfig(archiveInfo.shootCategory).then(result => {
+    // Helper: load pixonai config for a given shoot category
+    const loadPixonaiConfig = async (shootCategory) => {
+        if (!shootCategory) return;
+        try {
+            console.log('[Pixonai] Loading config for shootCategory:', shootCategory);
+            const result = await pixonaiApi.getConfig(shootCategory);
+            console.log('[Pixonai] getConfig result:', result);
             if (result?.config) {
                 setPixonaiConfig(result.config);
+            } else {
+                console.warn('[Pixonai] No config found for:', shootCategory);
             }
-        }).catch(err => {
-            console.warn('Pixonai config not found:', err);
-        });
-    }, [startupComplete]);
+        } catch (err) {
+            console.warn('[Pixonai] getConfig error:', err);
+        }
+    };
 
     // ==================== MODE 1 — Arşiv Kaydı Aç ====================
     const handleMode1 = async ({ sourcePath, shootType, shootCategory, customerName }) => {
@@ -159,6 +164,9 @@ export default function PhotoSelectorApp() {
                 operationMode: 'archive_new',
             });
 
+            // Load pixonai config for this shoot category
+            loadPixonaiConfig(shootCategory);
+
             await loadPhotos(destPath);
         } catch (err) {
             console.error('Mode 1 error:', err);
@@ -202,6 +210,9 @@ export default function PhotoSelectorApp() {
                 customerName: archive.fullName || '',
                 operationMode: 'archive_existing',
             });
+
+            // Load pixonai config for this shoot category
+            loadPixonaiConfig(shootCategory);
 
             await loadPhotos(folderPath);
         } catch (err) {
@@ -269,13 +280,109 @@ export default function PhotoSelectorApp() {
         doBack();
     };
 
+    // ==================== Save Numbering (no close) ====================
+    const handleSaveNumbering = async () => {
+        await performSave();
+
+        const state = usePhotoSelectorStore.getState();
+
+        // Build rename mapping
+        const renameMapping = {};
+        const renameOps = state.numberedPhotos
+            .filter(np => !np.isCancelled && np.orderNumber)
+            .map(np => {
+                const photo = state.photos.find(p => p.id === np.photoId);
+                if (!photo) return null;
+
+                const ext = photo.name?.split('.').pop() || photo.originalName?.split('.').pop() || 'jpg';
+                const paddedNum = String(np.orderNumber).padStart(2, '0');
+                const dir = (photo.fullPath || photo.path)?.replace(/[\\/][^\\/]+$/, '') || '';
+
+                // Collect gift codes assigned to this photo
+                const suffixCodes = [];
+                if (state.giftAssignments) {
+                    Object.entries(state.giftAssignments).forEach(([abbr, photoIds]) => {
+                        if (photoIds.includes(np.photoId)) {
+                            suffixCodes.push(abbr);
+                        }
+                    });
+                }
+
+                // Collect option codes assigned to this photo
+                if (state.optionAssignments) {
+                    Object.entries(state.optionAssignments).forEach(([abbr, photoIds]) => {
+                        if (photoIds.includes(np.photoId) && !suffixCodes.includes(abbr)) {
+                            suffixCodes.push(abbr);
+                        }
+                    });
+                }
+
+                const suffix = suffixCodes.length ? ' - ' + suffixCodes.join(' - ') : '';
+                const newName = `${paddedNum}${suffix}.${ext}`;
+                const newPath = dir ? `${dir}\\${newName}` : newName;
+
+                if (photo.currentName === newName && photo.originalName === newName) return null;
+
+                renameMapping[np.photoId] = { newName, newPath };
+                return { oldPath: photo.fullPath || photo.path, newPath };
+            })
+            .filter(Boolean);
+
+        if (renameOps.length > 0 && window.electron?.photoSelector?.batchRename) {
+            try {
+                const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
+                if (!renameResult.success) {
+                    toast.error('Yeniden adlandırma hatası: ' + (renameResult.error || 'Bilinmeyen hata'));
+                } else {
+                    // Update BOTH originalName and currentName so INI keys match disk filenames
+                    const updatedPhotos = state.photos.map(p => {
+                        const mapping = renameMapping[p.id];
+                        if (mapping) {
+                            return {
+                                ...p,
+                                originalName: mapping.newName,
+                                currentName: mapping.newName,
+                                name: mapping.newName,
+                                fullPath: mapping.newPath,
+                            };
+                        }
+                        return p;
+                    });
+                    usePhotoSelectorStore.setState({ photos: updatedPhotos, isDirty: true });
+                    // Re-save INI with updated originalNames so it matches files on disk
+                    await performSave();
+                    toast.success('Numaralandırma kaydedildi');
+                }
+            } catch (err) {
+                toast.error('Yeniden adlandırma başarısız: ' + err.message);
+            }
+        } else {
+            toast.success('Kaydedildi');
+        }
+
+        // Save note text file if there's a note
+        if (state.noteText?.trim() && window.electron?.photoSelector?.writeFile) {
+            try {
+                const firstPhoto = state.photos[0];
+                const dir = (firstPhoto?.fullPath || firstPhoto?.path)?.replace(/[\\/][^\\/]+$/, '') || '';
+                if (dir) {
+                    const notePath = `${dir}\\not.txt`;
+                    await window.electron.photoSelector.writeFile({ path: notePath, content: state.noteText.trim() });
+                }
+            } catch (err) {
+                console.error('Note save error:', err);
+            }
+        }
+    };
+
     // ==================== Save & Close ====================
     const handleSaveAndClose = async () => {
         await performSave();
 
         const state = usePhotoSelectorStore.getState();
 
-        // Batch rename numbered photos
+        // Build rename mapping: photoId -> { newName, newPath }
+        const renameMapping = {};
         const renameOps = state.numberedPhotos
             .filter(np => !np.isCancelled && np.orderNumber)
             .map(np => {
@@ -303,6 +410,7 @@ export default function PhotoSelectorApp() {
 
                 if (photo.originalName === newName || photo.currentName === newName) return null;
 
+                renameMapping[np.photoId] = { newName, newPath };
                 return { oldPath: photo.fullPath || photo.path, newPath };
             })
             .filter(Boolean);
@@ -312,9 +420,36 @@ export default function PhotoSelectorApp() {
                 const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
                 if (!renameResult.success) {
                     toast.error('Yeniden adlandırma hatası: ' + (renameResult.error || 'Bilinmeyen hata'));
+                } else {
+                    // Update photos in store with new currentName/fullPath so INI re-save is accurate
+                    const updatedPhotos = state.photos.map(p => {
+                        const mapping = renameMapping[p.id];
+                        if (mapping) {
+                            return { ...p, currentName: mapping.newName, fullPath: mapping.newPath };
+                        }
+                        return p;
+                    });
+                    usePhotoSelectorStore.setState({ photos: updatedPhotos, isDirty: true });
+
+                    // Re-save INI with updated file names so next load matches correctly
+                    await performSave();
                 }
             } catch (err) {
                 toast.error('Yeniden adlandırma başarısız: ' + err.message);
+            }
+        }
+
+        // Save note text file if there's a note
+        if (state.noteText?.trim() && window.electron?.photoSelector?.writeFile) {
+            try {
+                const firstPhoto = state.photos[0];
+                const dir = (firstPhoto?.fullPath || firstPhoto?.path)?.replace(/[\\/][^\\/]+$/, '') || '';
+                if (dir) {
+                    const notePath = `${dir}\\not.txt`;
+                    await window.electron.photoSelector.writeFile({ path: notePath, content: state.noteText.trim() });
+                }
+            } catch (err) {
+                console.error('Note save error:', err);
             }
         }
 
@@ -350,11 +485,30 @@ export default function PhotoSelectorApp() {
                     .filter(np => !np.isCancelled)
                     .map(np => {
                         const summary = np.optionDetails?._summary;
-                        if (summary) return `#${np.number}: ${summary}`;
+                        if (summary) return `#${np.number || np.orderNumber}: ${summary}`;
                         return null;
                     })
                     .filter(Boolean);
                 const description1 = summaryParts.join(', ');
+
+                // Fetch existing archive to append to notes safely
+                let newNotes = undefined;
+                try {
+                    const { doc, getDoc } = await import('firebase/firestore');
+                    const { db } = await import('../lib/firebase');
+                    const archiveSnap = await getDoc(doc(db, 'archives', state.archiveInfo.archiveId));
+                    const currentNotes = archiveSnap.exists() ? (archiveSnap.data().notes || '') : '';
+                    
+                    const giftSummary = state.activePackage?.gifts?.map(g => {
+                        const count = (state.giftAssignments[g.abbr] || []).length;
+                        return count > 0 ? `${count}x ${g.name}` : null;
+                    }).filter(Boolean).join(', ') || '';
+
+                    const selectionSummary = `\n\n--- PIXONAI SEÇİM (${new Date().toLocaleDateString('tr-TR')}) ---\nSeçilen Paket: ${state.activePackage?.name || 'Yok'}\nTutar: ${state.totalPrice} TL${giftSummary ? '\nHediyeler: ' + giftSummary : ''}\nDetaylar: ${description1}`;
+                    newNotes = currentNotes ? currentNotes + selectionSummary : selectionSummary.trim();
+                } catch (err) {
+                    console.warn('Could not append to notes:', err);
+                }
 
                 await archivesApi.update(state.archiveInfo.archiveId, {
                     photoSelectionData,
@@ -362,6 +516,7 @@ export default function PhotoSelectorApp() {
                     autoPrice: state.totalPrice,
                     workflowStatus: 'selection_complete',
                     ...(description1 ? { description1 } : {}),
+                    ...(newNotes !== undefined ? { notes: newNotes } : {}),
                 });
 
                 toast.success('Arşiv kaydı güncellendi');
@@ -444,6 +599,7 @@ export default function PhotoSelectorApp() {
             <Toolbar
                 onOpenSelection={() => setSelectionOpen(true)}
                 onSaveAndClose={handleSaveAndClose}
+                onSaveNumbering={handleSaveNumbering}
                 onOpenFaceRecognition={() => setFaceRecognitionOpen(true)}
                 onBack={handleBack}
             />
@@ -455,9 +611,9 @@ export default function PhotoSelectorApp() {
                     {currentView === 'compare' && <CompareView />}
                 </div>
 
-                {/* Show sidebar in favorites or numbered mode */}
-                {(filterMode === 'favorites' || filterMode === 'numbered') && (
-                    <PackageSidebar onSaveNumbering={handleSaveAndClose} />
+                {/* Show sidebar when there's a pixonai config, shoot category, or numbered photos */}
+                {(pixonaiConfig || (shootCategoryType && shootCategoryType !== 'none') || numberedPhotos.length > 0) && (
+                    <PackageSidebar onSaveNumbering={handleSaveNumbering} />
                 )}
             </main>
 

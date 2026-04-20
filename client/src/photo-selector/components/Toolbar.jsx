@@ -11,7 +11,7 @@ const FILTER_LABELS = {
     numbered: 'Numaralı',
 };
 
-export default function Toolbar({ onOpenSelection, onSaveAndClose, onBack }) {
+export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumbering, onBack }) {
     const currentView = usePhotoSelectorStore(s => s.currentView);
     const setView = usePhotoSelectorStore(s => s.setView);
     const filterMode = usePhotoSelectorStore(s => s.filterMode);
@@ -153,18 +153,9 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onBack }) {
                     title="Yinele (Ctrl+Y)"
                 />
 
-                <div className="w-px h-6 bg-neutral-700 mx-2" />
 
                 <button
-                    onClick={onOpenSelection}
-                    className="px-3 py-1.5 text-xs bg-neutral-800 text-neutral-300
-                               hover:bg-neutral-700 rounded-lg transition-colors border border-neutral-700"
-                >
-                    Numaralandır
-                </button>
-
-                <button
-                    onClick={onSaveAndClose}
+                    onClick={onSaveNumbering || onSaveAndClose}
                     className="px-3 py-1.5 text-xs bg-amber-500 text-neutral-900
                                hover:bg-amber-400 rounded-lg transition-colors font-medium
                                flex items-center gap-1.5"

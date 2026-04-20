@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { KeyRound, Loader2, CheckCircle2, Clock, XCircle, Monitor } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export default function Setup() {
     const [serialKey, setSerialKey] = useState('');

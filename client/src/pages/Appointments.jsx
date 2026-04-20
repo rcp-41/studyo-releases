@@ -8,7 +8,7 @@ import {
     X, Loader2, Check, XCircle, Edit, ArrowRightLeft,
     CalendarDays, CalendarRange, CalendarCheck, Archive
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
     format, startOfMonth, endOfMonth, eachDayOfInterval,
     isSameDay, addMonths, subMonths, addDays, subDays,
@@ -16,6 +16,8 @@ import {
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import PhoneInput from '../components/PhoneInput';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { SkeletonTable } from '../components/Skeleton';
 
 const appointmentTypes = [
     { value: 'consultation', label: 'Görüşme' },
@@ -667,6 +669,9 @@ export default function Appointments() {
     // Postpone
     const [postponeTarget, setPostponeTarget] = useState(null);
 
+    // Delete confirmation
+    const [confirmDelete, setConfirmDelete] = useState(null);
+
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -758,9 +763,7 @@ export default function Appointments() {
                 setShowMoveModal(true);
                 break;
             case 'delete':
-                if (confirm('Bu randevuyu silmek istediğinize emin misiniz?')) {
-                    deleteMutation.mutate(apt.id);
-                }
+                setConfirmDelete(apt);
                 break;
             case 'postpone':
                 setPostponeTarget(apt);
@@ -835,7 +838,7 @@ export default function Appointments() {
 
             {/* View Content */}
             {isLoading ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+                <SkeletonTable rows={8} columns={5} />
             ) : viewMode === 'month' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <MonthView
@@ -946,6 +949,24 @@ export default function Appointments() {
                 isOpen={showMoveModal}
                 onClose={() => { setShowMoveModal(false); setMoveAppointment(null); }}
                 appointment={moveAppointment}
+            />
+
+            {/* Delete Confirmation */}
+            <ConfirmDialog
+                open={!!confirmDelete}
+                onOpenChange={(o) => !o && setConfirmDelete(null)}
+                title="Randevuyu sil"
+                description="Bu randevu silinecek. Emin misiniz?"
+                destructive
+                confirmText="Sil"
+                cancelText="Vazgeç"
+                onConfirm={() => {
+                    if (!confirmDelete) return;
+                    deleteMutation.mutate(confirmDelete.id, {
+                        onSettled: () => setConfirmDelete(null)
+                    });
+                }}
+                loading={deleteMutation.isPending}
             />
 
             {/* Postpone Modal */}

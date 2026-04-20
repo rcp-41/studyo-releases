@@ -1,18 +1,22 @@
 /**
- * PhotoContextMenu — Right-click context menu for gift assignment and numbering
- * Shows dynamic options based on active package gifts
+ * PhotoContextMenu — Right-click context menu for gift assignment, option assignment, and numbering
+ * Shows dynamic options based on active package gifts and pixonai config options
  */
 import { useEffect, useRef } from 'react';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
-import { Gift, Hash, Minus, Star, Copy } from 'lucide-react';
+import { Gift, Hash, Minus, Star, Copy, Settings2 } from 'lucide-react';
 
 export default function PhotoContextMenu({ x, y, photoId, onClose }) {
     const menuRef = useRef(null);
     const activePackage = usePhotoSelectorStore(s => s.activePackage);
+    const pixonaiConfig = usePhotoSelectorStore(s => s.pixonaiConfig);
     const giftAssignments = usePhotoSelectorStore(s => s.giftAssignments);
+    const optionAssignments = usePhotoSelectorStore(s => s.optionAssignments);
     const numberedPhotos = usePhotoSelectorStore(s => s.numberedPhotos);
     const assignGift = usePhotoSelectorStore(s => s.assignGift);
     const removeGift = usePhotoSelectorStore(s => s.removeGift);
+    const assignOption = usePhotoSelectorStore(s => s.assignOption);
+    const removeOption = usePhotoSelectorStore(s => s.removeOption);
     const assignNumber = usePhotoSelectorStore(s => s.assignNumber);
     const removeNumber = usePhotoSelectorStore(s => s.removeNumber);
     const nextOrderNumber = usePhotoSelectorStore(s => s.nextOrderNumber);
@@ -80,7 +84,18 @@ export default function PhotoContextMenu({ x, y, photoId, onClose }) {
         onClose();
     };
 
+    const handleOptionToggle = (optionAbbr) => {
+        const assigned = optionAssignments[optionAbbr] || [];
+        if (assigned.includes(photoId)) {
+            removeOption(photoId, optionAbbr);
+        } else {
+            assignOption(photoId, optionAbbr);
+        }
+        onClose();
+    };
+
     const isPacketless = shootCategoryType === 'none' || !shootCategoryType;
+    const configOptions = pixonaiConfig?.options || [];
 
     return (
         <div
@@ -127,7 +142,8 @@ export default function PhotoContextMenu({ x, y, photoId, onClose }) {
                     {activePackage.gifts.map(gift => {
                         const assigned = giftAssignments[gift.abbr] || [];
                         const isAssigned = assigned.includes(photoId);
-                        const isFull = assigned.length >= gift.maxSelections && !isAssigned;
+                        const maxSel = gift.maxSelections || 0;
+                        const isFull = maxSel > 0 && assigned.length >= maxSel && !isAssigned;
 
                         return (
                             <button
@@ -142,7 +158,41 @@ export default function PhotoContextMenu({ x, y, photoId, onClose }) {
                                 <span className="flex-1">{gift.name}</span>
                                 <span className="ps-context-gift-code">[{gift.abbr}]</span>
                                 <span className="text-[10px] text-neutral-500 ml-1">
-                                    {assigned.length}/{gift.maxSelections}
+                                    {assigned.length}{maxSel > 0 ? `/${maxSel}` : ''}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </>
+            )}
+
+            {/* Pixonai Options */}
+            {configOptions.length > 0 && (
+                <>
+                    <div className="ps-context-separator" />
+                    <div className="ps-context-label">
+                        <Settings2 className="w-3 h-3" /> Seçenekler
+                    </div>
+                    {configOptions.map(option => {
+                        const assigned = optionAssignments[option.abbr] || [];
+                        const isAssigned = assigned.includes(photoId);
+                        const maxSel = option.maxSelections || 0;
+                        const isFull = maxSel > 0 && assigned.length >= maxSel && !isAssigned;
+
+                        return (
+                            <button
+                                key={option.abbr}
+                                className={`ps-context-item ${isAssigned ? 'active' : ''} ${isFull ? 'disabled' : ''}`}
+                                onClick={() => handleOptionToggle(option.abbr)}
+                                disabled={isFull}
+                            >
+                                <span className={`ps-context-check ${isAssigned ? 'checked' : ''}`}>
+                                    {isAssigned ? '✓' : '○'}
+                                </span>
+                                <span className="flex-1">{option.name}</span>
+                                <span className="ps-context-gift-code">[{option.abbr}]</span>
+                                <span className="text-[10px] text-neutral-500 ml-1">
+                                    {assigned.length}{maxSel > 0 ? `/${maxSel}` : ''}
                                 </span>
                             </button>
                         );

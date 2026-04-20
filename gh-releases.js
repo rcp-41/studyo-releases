@@ -1,5 +1,9 @@
 const https = require('https');
-const token = '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';
+const token = process.env.GH_TOKEN;
+if (!token) {
+    console.error('Missing GH_TOKEN environment variable');
+    process.exit(1);
+}
 
 function req(method, path, body) {
     return new Promise((resolve, reject) => {

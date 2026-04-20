@@ -82,7 +82,7 @@ exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const data = request.data || {};
-    const { id, shootCategoryId, shootCategoryLabel, options, packages, type } = data;
+    const { id, shootCategoryId, shootCategoryLabel, options, packages, type, schoolId, className } = data;
 
     if (!shootCategoryId || !shootCategoryLabel) {
         throw new HttpsError('invalid-argument', 'shootCategoryId and shootCategoryLabel are required');
@@ -95,6 +95,8 @@ exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
             shootCategoryId,
             shootCategoryLabel,
             type: type || 'custom', // yearly, set, portrait, custom
+            schoolId: schoolId || '',
+            className: className || '',
             options: (options || []).map((opt, idx) => ({
                 id: opt.id || `opt_${idx}`,
                 name: opt.name || '',
@@ -104,6 +106,7 @@ exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
                 values: opt.values || [],
                 min: opt.min ?? 0,
                 max: opt.max ?? 50,
+                maxSelections: Number(opt.maxSelections) || 0,
             })),
             packages: (packages || []).map((pkg, idx) => ({
                 id: pkg.id || `pkg_${idx}`,

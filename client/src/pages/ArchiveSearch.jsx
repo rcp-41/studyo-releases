@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import { SkeletonTable } from '../components/Skeleton';
 
 // Workflow statuses (shared with Archives.jsx)
 const WORKFLOW_STATUSES = {
@@ -363,7 +364,7 @@ export default function ArchiveSearch() {
 
             {/* Results */}
             {isLoading ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+                <SkeletonTable rows={10} columns={7} />
             ) : viewMode === 'list' ? (
                 /* List View */
                 <div className="bg-card border border-border rounded-xl overflow-hidden">

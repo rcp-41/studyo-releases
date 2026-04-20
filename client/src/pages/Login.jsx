@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { Eye, EyeOff, Loader2, User, UserCog, RotateCcw, ShieldAlert, X } from 'lucide-react';
+import { Loader2, User, UserCog, RotateCcw, ShieldAlert, X } from 'lucide-react';
 import BaseOSLoader from '../components/BaseOSLoader';
-import toast from 'react-hot-toast';
+import PasswordInput from '../components/PasswordInput';
+import { toast } from 'sonner';
 
 export default function Login() {
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
 
     // Studio Mode State
     const [studioConfig, setStudioConfig] = useState(null);
@@ -19,7 +19,6 @@ export default function Login() {
     const [showResetModal, setShowResetModal] = useState(false);
     const [resetPassword, setResetPassword] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
-    const [showResetPassword, setShowResetPassword] = useState(false);
 
     const { login, loading } = useAuthStore();
     const user = useAuthStore((state) => state.user);
@@ -40,8 +39,14 @@ export default function Login() {
                 if (window.electron && window.electron.getLicenseConfig) {
                     config = await window.electron.getLicenseConfig();
                 } else {
-                    const stored = localStorage.getItem('studyo_license');
-                    if (stored) config = JSON.parse(stored);
+                    try {
+                        const stored = localStorage.getItem('studyo_license');
+                        config = stored ? JSON.parse(stored) : null;
+                    } catch (parseErr) {
+                        console.error('[License] Failed to parse stored config:', parseErr);
+                        localStorage.removeItem('studyo_license');
+                        config = null;
+                    }
                 }
 
                 if (config && config.studioId) {
@@ -99,8 +104,14 @@ export default function Login() {
         setResetLoading(true);
 
         try {
-            // SECURITY: Use environment variable for admin email
-            const superAdminEmail = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'recepkizilkan@gmail.com';
+            // SECURITY: Super admin email must come from env; no hardcoded fallback
+            const superAdminEmail = import.meta.env.VITE_SUPER_ADMIN_EMAIL;
+            if (!superAdminEmail) {
+                console.warn('[Login] VITE_SUPER_ADMIN_EMAIL is not configured; studio reset is disabled.');
+                toast.error('Super Admin yapılandırılmamış. Yönetici ile iletişime geçin.');
+                setResetLoading(false);
+                return;
+            }
             await signInWithEmailAndPassword(auth, superAdminEmail, resetPassword);
 
             // Credentials verified — clear the license
@@ -201,25 +212,14 @@ export default function Login() {
                             <label className="block text-sm font-medium mb-2">
                                 Şifre
                             </label>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3 pr-12 rounded-lg bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                                    placeholder="••••••••"
-                                    autoComplete="current-password"
-                                    autoFocus
-                                    disabled={loading}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                            </div>
+                            <PasswordInput
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                autoComplete="current-password"
+                                autoFocus
+                                disabled={loading}
+                            />
                         </div>
 
                         {/* Submit Button */}
@@ -304,26 +304,15 @@ export default function Login() {
                             <p className="text-xs text-muted-foreground mb-2">
                                 Super Admin hesabının şifresi
                             </p>
-                            <div className="relative">
-                                <input
-                                    type={showResetPassword ? 'text' : 'password'}
-                                    value={resetPassword}
-                                    onChange={(e) => setResetPassword(e.target.value)}
-                                    className="w-full px-4 py-3 pr-12 rounded-lg bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                                    placeholder="••••••••"
-                                    disabled={resetLoading}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleResetStudio();
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowResetPassword(!showResetPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                >
-                                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
+                            <PasswordInput
+                                value={resetPassword}
+                                onChange={(e) => setResetPassword(e.target.value)}
+                                placeholder="••••••••"
+                                disabled={resetLoading}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleResetStudio();
+                                }}
+                            />
                         </div>
 
                         {/* Action Buttons */}

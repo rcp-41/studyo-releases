@@ -8,7 +8,7 @@ import {
     MessageCircle, Globe, HardDrive, Folder, SlidersHorizontal, UserCircle, Archive, ExternalLink
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import WooCommerceModal from '../components/WooCommerceModal';
 import PhoneInput from '../components/PhoneInput';
 import { SkeletonTable } from '../components/Skeleton';
@@ -600,7 +600,7 @@ function AppointmentSidebar({ onTransferToArchive }) {
 
             <div className="flex-1 overflow-y-auto">
                 {isLoading ? (
-                    <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
+                    <div className="p-3"><SkeletonTable rows={6} columns={2} /></div>
                 ) : (
                     <div className="divide-y divide-border">
                         {Object.entries(slots).map(([slot, appointment]) => (
@@ -982,7 +982,15 @@ export default function Archives() {
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {isLoading ? (
-                                    <tr><td colSpan={7} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr>
+                                    Array.from({ length: 6 }).map((_, i) => (
+                                        <tr key={`sk-${i}`}>
+                                            {Array.from({ length: 7 }).map((_, c) => (
+                                                <td key={c} className="px-3 py-3 border-r border-border last:border-r-0">
+                                                    <div className="h-4 bg-muted/60 rounded animate-pulse" style={{ width: c === 0 ? '3rem' : c === 6 ? '5rem' : '100%' }} />
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
                                 ) : archives.length === 0 ? (
                                     <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">

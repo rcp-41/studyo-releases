@@ -3,6 +3,34 @@ import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import PhotoCard from './PhotoCard';
 import PhotoContextMenu from './PhotoContextMenu';
 import { ImageOff } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    rectSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+function SortablePhotoCard({ id, ...props }) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : 1,
+        position: 'relative',
+    };
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            <PhotoCard {...props} />
+        </div>
+    );
+}
 
 export default function GridView() {
     const photos = usePhotoSelectorStore(s => s.getFilteredPhotos());
@@ -17,6 +45,7 @@ export default function GridView() {
     const removeNumber = usePhotoSelectorStore(s => s.removeNumber);
     const nextOrderNumber = usePhotoSelectorStore(s => s.nextOrderNumber);
     const filterMode = usePhotoSelectorStore(s => s.filterMode);
+    const reorderFavorites = usePhotoSelectorStore(s => s.reorderFavorites);
 
     const gridRef = useRef(null);
 
@@ -58,8 +87,26 @@ export default function GridView() {
         removeNumber(photoId);
     }, [removeNumber]);
 
-    // Show overlay in favorites or numbered filter mode
-    const showOverlay = filterMode === 'favorites' || filterMode === 'numbered';
+    const shootCategoryType = usePhotoSelectorStore(s => s.shootCategoryType);
+
+    // Show overlay in favorites/numbered mode, or when any shoot category is active
+    const showOverlay = filterMode === 'favorites' || filterMode === 'numbered' || (shootCategoryType && shootCategoryType !== 'none');
+
+    // Drag-and-drop mechanics
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    );
+
+    const handleDragEnd = useCallback((event) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = photos.findIndex(p => p.id === active.id);
+            const newIndex = photos.findIndex(p => p.id === over.id);
+            if (oldIndex !== -1 && newIndex !== -1) {
+                reorderFavorites(oldIndex, newIndex);
+            }
+        }
+    }, [photos, reorderFavorites]);
 
     if (photos.length === 0) {
         return (
@@ -70,36 +117,58 @@ export default function GridView() {
         );
     }
 
+    const renderGridItems = () => photos.map((photo, index) => {
+        const props = {
+            photo,
+            isFavorite: favorites.has(photo.id),
+            orderNumber: numberedMap[photo.id] || null,
+            isSelected: index === selectedIndex,
+            onClick: () => handlePhotoClick(index),
+            onDoubleClick: () => handlePhotoDoubleClick(index),
+            onToggleFavorite: () => handleToggleFavorite(photo.id),
+            onContextMenu: handleContextMenu,
+            nextNumber: nextOrderNumber,
+            onAssignNumber: handleAssignNumber,
+            onRemoveNumber: handleRemoveNumber,
+            showOverlay,
+        };
+        
+        if (filterMode === 'favorites') {
+            return <SortablePhotoCard key={photo.id} id={photo.id} {...props} />;
+        }
+        return <PhotoCard key={photo.id} {...props} />;
+    });
+
+    const gridContent = (
+        <div
+            className="grid gap-2"
+            style={{
+                gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
+            }}
+        >
+            {filterMode === 'favorites' ? (
+                <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
+                    {renderGridItems()}
+                </SortableContext>
+            ) : (
+                renderGridItems()
+            )}
+        </div>
+    );
+
     return (
         <>
             <div
                 ref={gridRef}
                 className="h-full overflow-y-auto ps-scrollbar p-4"
             >
-                <div
-                    className="grid gap-2"
-                    style={{
-                        gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
-                    }}
-                >
-                    {photos.map((photo, index) => (
-                        <PhotoCard
-                            key={photo.id}
-                            photo={photo}
-                            isFavorite={favorites.has(photo.id)}
-                            orderNumber={numberedMap[photo.id] || null}
-                            isSelected={index === selectedIndex}
-                            onClick={() => handlePhotoClick(index)}
-                            onDoubleClick={() => handlePhotoDoubleClick(index)}
-                            onToggleFavorite={() => handleToggleFavorite(photo.id)}
-                            onContextMenu={handleContextMenu}
-                            nextNumber={nextOrderNumber}
-                            onAssignNumber={handleAssignNumber}
-                            onRemoveNumber={handleRemoveNumber}
-                            showOverlay={showOverlay}
-                        />
-                    ))}
-                </div>
+                {filterMode === 'favorites' ? (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        {gridContent}
+                    </DndContext>
+                ) : (
+                    gridContent
+                )}
             </div>
 
             {/* Context Menu */}

@@ -10,8 +10,9 @@ import {
     Upload, Globe, MessageCircle, ShoppingCart, Package,
     FolderOpen, AlertCircle, FolderInput, Image
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import ConfirmDialog from './ConfirmDialog';
 
 // Safe date formatter that handles Firestore Timestamps and invalid dates
 const safeFormatDate = (dateValue, formatStr = 'dd MMM yyyy') => {
@@ -54,6 +55,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
     const [password, setPassword] = useState('');
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percent: 0 });
+    const [confirmReset, setConfirmReset] = useState(false);
 
     // BUG FIX: Changed from useState to useRef for file input reference
     // useState causes re-render issues with file inputs
@@ -236,9 +238,11 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
         setUploadProgress({ current: 0, total: 0, percent: 0 });
     };
 
-    const handleReset = async () => {
-        if (!confirm('Seçim linki, ürünler ve yüklenen fotoğraflar silinecek. Emin misiniz?')) return;
+    const handleReset = () => {
+        setConfirmReset(true);
+    };
 
+    const performReset = async () => {
         setLoading(true);
         try {
             await woocommerceApi.reset(archive.id);
@@ -248,6 +252,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
             toast.error('Sıfırlama başarısız');
         }
         setLoading(false);
+        setConfirmReset(false);
     };
 
     const copyLink = () => {
@@ -693,6 +698,19 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                     )}
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={confirmReset}
+                onOpenChange={(o) => !o && !loading && setConfirmReset(false)}
+                title="Seçim linkini sıfırla"
+                description="Seçim linki, ürünler ve yüklenen fotoğraflar silinecek. Bu işlem geri alınamaz."
+                destructive
+                requireText="SİL"
+                confirmText="Sıfırla"
+                cancelText="Vazgeç"
+                onConfirm={performReset}
+                loading={loading}
+            />
         </div>
     );
 }

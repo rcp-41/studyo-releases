@@ -7,7 +7,9 @@ import {
     Calendar, RefreshCw, Pencil, Trash2, TrendingUp, TrendingDown,
     ArrowDownCircle, ArrowUpCircle
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { SkeletonTable } from '../components/Skeleton';
 
 // =================== INCOME TYPES ===================
 const INCOME_TYPES = [
@@ -299,6 +301,7 @@ export default function CashRegister() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [showForm, setShowForm] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
 
     const { data, isLoading, refetch } = useQuery({
         queryKey: ['cash-register', selectedDate],
@@ -330,8 +333,7 @@ export default function CashRegister() {
     };
 
     const handleDelete = (entry) => {
-        if (!window.confirm('Bu kaydı silmek istediğinize emin misiniz?')) return;
-        deleteMutation.mutate({ id: entry.id });
+        setConfirmDelete(entry);
     };
 
     return (
@@ -426,8 +428,8 @@ export default function CashRegister() {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="w-6 h-6 animate-spin" />
+                    <div className="p-3">
+                        <SkeletonTable rows={6} columns={7} />
                     </div>
                 ) : (
                     <table className="w-full text-sm">
@@ -534,6 +536,23 @@ export default function CashRegister() {
                     editingEntry={editingEntry}
                 />
             )}
+
+            <ConfirmDialog
+                open={!!confirmDelete}
+                onOpenChange={(o) => !o && setConfirmDelete(null)}
+                title="Kaydı sil"
+                description="Bu kayıt silinecek. Emin misiniz?"
+                destructive
+                confirmText="Sil"
+                cancelText="Vazgeç"
+                onConfirm={() => {
+                    if (!confirmDelete) return;
+                    deleteMutation.mutate({ id: confirmDelete.id }, {
+                        onSettled: () => setConfirmDelete(null)
+                    });
+                }}
+                loading={deleteMutation.isPending}
+            />
         </div>
     );
 }

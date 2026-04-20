@@ -7,7 +7,7 @@ import {
     Globe, Link2, Copy, Check, MessageCircle, ExternalLink,
     Loader2, Search, RefreshCw, ShoppingCart, Package
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import WooCommerceModal from '../components/WooCommerceModal';
 

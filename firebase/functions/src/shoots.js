@@ -8,7 +8,17 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
-const { shootSchema, validate } = require('./validators/schemas');
+const {
+    shootSchema,
+    shootIdSchema,
+    shootListSchema,
+    shootUpdateSchema,
+    shootStatusUpdateSchema,
+    shootPaymentSchema,
+    shootAssignSchema,
+    shootDateRangeSchema,
+    validate
+} = require('./validators/schemas');
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -21,9 +31,10 @@ exports.listShoots = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
+    const validated = validate(shootListSchema, request.data || {}, 'çekim listesi');
 
     try {
-        const { page = 1, limit = 12, status = '', search = '' } = request.data || {};
+        const { page, limit, status, search } = validated;
         const offset = (page - 1) * limit;
 
         let query = dbHandler.collection('shoots');
@@ -71,11 +82,7 @@ exports.getShoot = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { shootId } = request.data || {};
-
-    if (!shootId) {
-        throw new HttpsError('invalid-argument', 'shootId is required');
-    }
+    const { shootId } = validate(shootIdSchema, request.data || {}, 'çekim');
 
     try {
         const doc = await dbHandler.collection('shoots').doc(shootId).get();
@@ -91,7 +98,7 @@ exports.getShoot = onCall({ enforceAppCheck: false }, async (request) => {
     } catch (error) {
         if (error instanceof HttpsError) throw error;
         console.error('Get shoot error:', error);
-        throw new HttpsError('internal', error.message);
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -104,11 +111,8 @@ exports.updateShoot = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { shootId, ...updateData } = request.data || {};
-
-    if (!shootId) {
-        throw new HttpsError('invalid-argument', 'shootId is required');
-    }
+    const validated = validate(shootUpdateSchema, request.data || {}, 'çekim güncelleme');
+    const { shootId, ...updateData } = validated;
 
     // Whitelist allowed fields
     const allowedFields = [
@@ -153,11 +157,7 @@ exports.updateShootStatus = onCall({ enforceAppCheck: false }, async (request) =
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { shootId, status, workflowStage } = request.data || {};
-
-    if (!shootId || !status) {
-        throw new HttpsError('invalid-argument', 'shootId and status are required');
-    }
+    const { shootId, status, workflowStage } = validate(shootStatusUpdateSchema, request.data || {}, 'çekim durumu');
 
     const validStatuses = [
         'new', 'scheduled', 'confirmed', 'shot_done', 'editing',
@@ -192,16 +192,7 @@ exports.addPayment = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { shootId, amount, method, note } = request.data || {};
-
-    if (!shootId || !amount || !method) {
-        throw new HttpsError('invalid-argument', 'shootId, amount, and method are required');
-    }
-
-    const validMethods = ['cash', 'credit_card', 'transfer'];
-    if (!validMethods.includes(method)) {
-        throw new HttpsError('invalid-argument', 'Invalid payment method');
-    }
+    const { shootId, amount, method, note } = validate(shootPaymentSchema, request.data || {}, 'ödeme');
 
     try {
         const shootRef = dbHandler.collection('shoots').doc(shootId);
@@ -261,11 +252,7 @@ exports.assignPhotographer = onCall({ enforceAppCheck: false }, async (request) 
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { shootId, photographerId } = request.data || {};
-
-    if (!shootId || !photographerId) {
-        throw new HttpsError('invalid-argument', 'shootId and photographerId are required');
-    }
+    const { shootId, photographerId } = validate(shootAssignSchema, request.data || {}, 'fotoğrafçı atama');
 
     try {
         const db = admin.firestore();
@@ -310,11 +297,7 @@ exports.getShootsByDateRange = onCall({ enforceAppCheck: false }, async (request
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { startDate, endDate } = request.data || {};
-
-    if (!startDate || !endDate) {
-        throw new HttpsError('invalid-argument', 'startDate and endDate are required');
-    }
+    const { startDate, endDate } = validate(shootDateRangeSchema, request.data || {}, 'tarih aralığı');
 
     try {
         const snapshot = await dbHandler.collection('shoots')

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { FolderPlus, FileSearch, FolderOpen, Upload, Search, Loader2, ChevronRight, Camera } from 'lucide-react';
 import { archivesApi, settingsApi, optionsApi } from '../../services/api';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export default function StartupScreen({ onStartMode1, onStartMode2, onStartMode3 }) {
     const [activeCard, setActiveCard] = useState(null); // 1, 2, or 3

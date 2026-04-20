@@ -8,7 +8,16 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
-const { customerSchema, validate } = require('./validators/schemas');
+const {
+    customerSchema,
+    customerIdSchema,
+    customerListSchema,
+    customerSearchSchema,
+    customerPhoneLookupSchema,
+    customerUpdateSchema,
+    customerDeleteSchema,
+    validate
+} = require('./validators/schemas');
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -21,9 +30,10 @@ exports.listCustomers = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
+    const validated = validate(customerListSchema, request.data || {}, 'liste');
 
     try {
-        const { page = 1, limit = 12, search = '' } = request.data || {};
+        const { page, limit, search } = validated;
         const offset = (page - 1) * limit;
 
         let query = dbHandler.collection('customers');
@@ -67,11 +77,7 @@ exports.getCustomer = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { customerId } = request.data || {};
-
-    if (!customerId) {
-        throw new HttpsError('invalid-argument', 'customerId is required');
-    }
+    const { customerId } = validate(customerIdSchema, request.data || {}, 'müşteri');
 
     try {
         const doc = await dbHandler.collection('customers').doc(customerId).get();
@@ -87,7 +93,7 @@ exports.getCustomer = onCall({ enforceAppCheck: false }, async (request) => {
     } catch (error) {
         if (error instanceof HttpsError) throw error;
         console.error('Get customer error:', error);
-        throw new HttpsError('internal', error.message);
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -100,11 +106,7 @@ exports.getCustomerShoots = onCall({ enforceAppCheck: false }, async (request) =
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { customerId } = request.data || {};
-
-    if (!customerId) {
-        throw new HttpsError('invalid-argument', 'customerId is required');
-    }
+    const { customerId } = validate(customerIdSchema, request.data || {}, 'müşteri');
 
     try {
         // Query archives linked to this customer
@@ -143,11 +145,7 @@ exports.updateCustomer = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { customerId, updates } = request.data || {};
-
-    if (!customerId) {
-        throw new HttpsError('invalid-argument', 'customerId is required');
-    }
+    const { customerId, updates } = validate(customerUpdateSchema, request.data || {}, 'müşteri güncelleme');
 
     const allowedFields = [
         'fullName', 'phone', 'email', 'customerType',
@@ -181,7 +179,7 @@ exports.searchCustomers = onCall({ enforceAppCheck: false }, async (request) => 
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { query = '', limit = 10 } = request.data || {};
+    const { query, limit } = validate(customerSearchSchema, request.data || {}, 'arama');
 
     if (query.length < 2) {
         return { success: true, data: [] };
@@ -216,7 +214,7 @@ exports.lookupByPhone = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { phone } = request.data || {};
+    const { phone } = validate(customerPhoneLookupSchema, request.data || {}, 'telefon');
 
     if (!phone || phone.length < 4) {
         return { success: true, data: null };
@@ -313,11 +311,7 @@ exports.delete = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
-    const { id } = request.data || {};
-
-    if (!id) {
-        throw new HttpsError('invalid-argument', 'id is required');
-    }
+    const { id } = validate(customerDeleteSchema, request.data || {}, 'silme');
 
     try {
         const doc = await dbHandler.collection('customers').doc(id).get();

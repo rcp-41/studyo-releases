@@ -63,8 +63,13 @@ function cleanValue(val) {
 function parseDate(dateStr) {
     if (!dateStr) return null;
     try {
-        const clean = dateStr.replace(/\.000$/, '').trim();
-        const d = new Date(clean);
+        // SQL dump tarihler "2025-03-09 00:00:00.000" formatında gelir.
+        // new Date("2025-03-09 00:00:00") lokal saate (UTC+3) göre parse eder ve
+        // UTC'ye çevrilince "2025-03-08T21:00:00Z" olur → -1 gün kayması oluşur.
+        // Sonuna 'Z' ekleyerek UTC olarak işaretliyoruz.
+        const clean = dateStr.replace(/\.000$/, '').trim().replace(' ', 'T');
+        const isoStr = clean.endsWith('Z') ? clean : clean + 'Z';
+        const d = new Date(isoStr);
         return isNaN(d.getTime()) ? null : d.getTime();
     } catch {
         return null;

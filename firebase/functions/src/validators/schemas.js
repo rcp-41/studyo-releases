@@ -166,6 +166,101 @@ const photoSelectionDataSchema = z.object({
     notes: z.string().max(2000).optional().default(''),
 });
 
+// Customer endpoint schemas
+const customerIdSchema = z.object({
+    customerId: z.string().min(1).max(200),
+});
+
+const customerListSchema = z.object({
+    page: z.number().int().min(1).max(10000).optional().default(1),
+    limit: z.number().int().min(1).max(100).optional().default(12),
+    search: z.string().max(200).optional().default(''),
+});
+
+const customerSearchSchema = z.object({
+    query: z.string().max(200).optional().default(''),
+    limit: z.number().int().min(1).max(50).optional().default(10),
+});
+
+const customerPhoneLookupSchema = z.object({
+    phone: z.string().max(25).optional().default(''),
+});
+
+const customerUpdateSchema = z.object({
+    customerId: z.string().min(1).max(200),
+    updates: z.object({
+        fullName: z.string().min(1).max(200).optional(),
+        phone: z.string().max(25).optional(),
+        email: z.string().email().max(200).optional().or(z.literal('')),
+        customerType: z.enum(['individual', 'corporate']).optional(),
+        source: z.string().max(50).optional(),
+        isVip: z.boolean().optional(),
+        notes: z.string().max(2000).optional(),
+        address: z.string().max(500).optional(),
+    }).optional().default({}),
+});
+
+const customerDeleteSchema = z.object({
+    id: z.string().min(1).max(200),
+});
+
+// Shoot endpoint schemas
+const shootIdSchema = z.object({
+    shootId: z.string().min(1).max(200),
+});
+
+const shootListSchema = z.object({
+    page: z.number().int().min(1).max(10000).optional().default(1),
+    limit: z.number().int().min(1).max(100).optional().default(12),
+    status: z.string().max(50).optional().default(''),
+    search: z.string().max(200).optional().default(''),
+});
+
+const shootUpdateSchema = z.object({
+    shootId: z.string().min(1).max(200),
+    customerName: z.string().max(200).optional(),
+    customerId: z.string().max(200).optional(),
+    shootTypeId: z.string().max(200).optional(),
+    shootTypeName: z.string().max(200).optional(),
+    locationId: z.string().max(200).optional(),
+    locationName: z.string().max(200).optional(),
+    photographerId: z.string().max(200).optional(),
+    photographerName: z.string().max(200).optional(),
+    shootDate: z.string().max(50).optional(),
+    timeSlot: z.string().max(20).optional(),
+    packageId: z.string().max(200).optional(),
+    notes: z.string().max(2000).optional(),
+    status: z.string().max(50).optional(),
+    workflowStage: z.string().max(50).optional(),
+    totalAmount: z.number().min(0).max(1e9).optional(),
+    paidAmount: z.number().min(0).max(1e9).optional(),
+    remainingAmount: z.number().min(-1e9).max(1e9).optional(),
+    paymentStatus: z.string().max(50).optional(),
+}).passthrough();
+
+const shootStatusUpdateSchema = z.object({
+    shootId: z.string().min(1).max(200),
+    status: z.string().min(1).max(50),
+    workflowStage: z.string().max(50).optional(),
+});
+
+const shootPaymentSchema = z.object({
+    shootId: z.string().min(1).max(200),
+    amount: z.number().min(0).max(1e9),
+    method: z.enum(['cash', 'credit_card', 'transfer']),
+    note: z.string().max(500).optional().default(''),
+});
+
+const shootAssignSchema = z.object({
+    shootId: z.string().min(1).max(200),
+    photographerId: z.string().min(1).max(200),
+});
+
+const shootDateRangeSchema = z.object({
+    startDate: z.string().min(1).max(50),
+    endDate: z.string().min(1).max(50),
+});
+
 module.exports = {
     archiveSchema,
     appointmentSchema,
@@ -178,5 +273,18 @@ module.exports = {
     schoolSchema,
     priceListSchema,
     photoSelectionDataSchema,
+    customerIdSchema,
+    customerListSchema,
+    customerSearchSchema,
+    customerPhoneLookupSchema,
+    customerUpdateSchema,
+    customerDeleteSchema,
+    shootIdSchema,
+    shootListSchema,
+    shootUpdateSchema,
+    shootStatusUpdateSchema,
+    shootPaymentSchema,
+    shootAssignSchema,
+    shootDateRangeSchema,
     validate,
 };

@@ -76,8 +76,14 @@ function LicenseCheck({ children }) {
                     config = await window.electron.getLicenseConfig();
                 } else {
                     // Fallback for web
-                    const stored = localStorage.getItem('studyo_license');
-                    if (stored) config = JSON.parse(stored);
+                    try {
+                        const stored = localStorage.getItem('studyo_license');
+                        config = stored ? JSON.parse(stored) : null;
+                    } catch (parseErr) {
+                        console.error('[License] Failed to parse stored config:', parseErr);
+                        localStorage.removeItem('studyo_license');
+                        config = null;
+                    }
                 }
 
                 if (config && config.studioId) {
@@ -124,7 +130,9 @@ function LicenseCheck({ children }) {
             }
         };
         checkLicense();
-    }, [location.pathname]);
+        // Only re-run when crossing the /setup boundary (e.g., after saving the license on Setup page);
+        // avoids a Firebase call on every route change.
+    }, [location.pathname === '/setup']);
 
     if (loading) {
         return (

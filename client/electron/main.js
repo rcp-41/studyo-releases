@@ -261,9 +261,9 @@ app.whenReady().then(() => {
 
         // Once splash HTML loads, set the video source
         splashWindow.webContents.once('did-finish-load', () => {
-            const videoPath = path.join(__dirname, 'splash-intro.mp4').replace(/\\/g, '/');
+            const videoPath = 'file:///' + path.join(__dirname, 'splash-intro.mp4').replace(/\\/g, '/');
             splashWindow.webContents.executeJavaScript(
-                `window.postMessage({ type: 'videoSrc', data: 'file:///${videoPath}' }, '*')`
+                `window.postMessage(${JSON.stringify({ type: 'videoSrc', data: videoPath })}, '*')`
             ).catch(() => { });
         });
 
@@ -544,7 +544,15 @@ ipcMain.handle('folder:addAllowedPath', async (event, basePath) => {
         if (!basePath || typeof basePath !== 'string') {
             return { success: false, error: 'Invalid path' };
         }
-        const resolved = path.resolve(basePath);
+        // Reject raw path traversal segments before normalization
+        if (/(^|[\\/])\.\.($|[\\/])/.test(basePath)) {
+            return { success: false, error: 'Path traversal not allowed' };
+        }
+        const normalized = path.normalize(basePath);
+        if (normalized.split(/[\\/]/).includes('..')) {
+            return { success: false, error: 'Path traversal not allowed' };
+        }
+        const resolved = path.resolve(normalized);
         if (!ALLOWED_BASE_PATHS.includes(resolved)) {
             ALLOWED_BASE_PATHS.push(resolved);
             console.log('[folder:addAllowedPath] Added:', resolved);
@@ -730,14 +738,30 @@ const { spawn } = require('child_process');
  */
 ipcMain.handle('security:getHwid', async () => {
     return new Promise((resolve, reject) => {
-        const pythonScript = path.join(__dirname, '../security/hwid_generator.py');
+        let pythonScript;
+        try {
+            const rawScript = path.join(__dirname, '../security/hwid_generator.py');
+            const resolvedScript = fs.realpathSync(rawScript);
+            const allowedBase = fs.realpathSync(path.join(__dirname, '../security'));
+            if (!resolvedScript.startsWith(allowedBase + path.sep) && resolvedScript !== allowedBase) {
+                return reject({ error: 'Invalid script path' });
+            }
+            pythonScript = resolvedScript;
+        } catch (pathErr) {
+            return reject({ error: 'HWID script not found', details: pathErr.message });
+        }
 
         // Try python3 first, then python
         let pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
-        const python = spawn(pythonCmd, [pythonScript]);
+        const python = spawn(pythonCmd, [pythonScript], { timeout: 30000 });
         let stdout = '';
         let stderr = '';
+        let timedOut = false;
+        const killTimer = setTimeout(() => {
+            timedOut = true;
+            try { python.kill('SIGKILL'); } catch { }
+        }, 30000);
 
         python.stdout.on('data', (data) => {
             stdout += data.toString();
@@ -748,6 +772,8 @@ ipcMain.handle('security:getHwid', async () => {
         });
 
         python.on('close', (code) => {
+            clearTimeout(killTimer);
+            if (timedOut) return reject({ error: 'HWID generation timed out' });
             if (code === 0) {
                 try {
                     const result = JSON.parse(stdout);
@@ -761,6 +787,7 @@ ipcMain.handle('security:getHwid', async () => {
         });
 
         python.on('error', (err) => {
+            clearTimeout(killTimer);
             reject({ error: 'Failed to spawn Python process', details: err.message });
         });
     });
@@ -775,19 +802,34 @@ ipcMain.handle('security:validateLicense', async (event, registeredHwid) => {
             return { valid: false, error: 'No registered HWID provided' };
         }
         // Get local HWID by invoking the Python script
-        const pythonScript = path.join(__dirname, '../security/hwid_generator.py');
+        const rawScript = path.join(__dirname, '../security/hwid_generator.py');
+        const resolvedScript = fs.realpathSync(rawScript);
+        const allowedBase = fs.realpathSync(path.join(__dirname, '../security'));
+        if (!resolvedScript.startsWith(allowedBase + path.sep) && resolvedScript !== allowedBase) {
+            return { valid: false, error: 'Invalid script path' };
+        }
         const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
         const localHwidResult = await new Promise((resolve, reject) => {
-            const python = spawn(pythonCmd, [pythonScript]);
+            const python = spawn(pythonCmd, [resolvedScript], { timeout: 30000 });
             let stdout = '';
+            let timedOut = false;
+            const killTimer = setTimeout(() => {
+                timedOut = true;
+                try { python.kill('SIGKILL'); } catch { }
+            }, 30000);
             python.stdout.on('data', (data) => { stdout += data.toString(); });
             python.on('close', (code) => {
+                clearTimeout(killTimer);
+                if (timedOut) return reject(new Error('HWID generation timed out'));
                 if (code === 0) {
                     try { resolve(JSON.parse(stdout)); } catch (e) { reject(e); }
                 } else { reject(new Error('HWID generation failed')); }
             });
-            python.on('error', reject);
+            python.on('error', (err) => {
+                clearTimeout(killTimer);
+                reject(err);
+            });
         });
 
         const isValid = localHwidResult.hwid &&
@@ -925,12 +967,11 @@ const GDRIVE_TOKEN_FILE_LEGACY = 'gdrive-tokens.json';
 
 function saveGDriveTokens(tokens) {
     const tokenPath = path.join(app.getPath('userData'), GDRIVE_TOKEN_FILE);
-    if (safeStorage.isEncryptionAvailable()) {
-        const encrypted = safeStorage.encryptString(JSON.stringify(tokens));
-        fs.writeFileSync(tokenPath, encrypted);
-    } else {
-        fs.writeFileSync(tokenPath, JSON.stringify(tokens));
+    if (!safeStorage.isEncryptionAvailable()) {
+        throw new Error('OS encryption unavailable; refusing to persist Google Drive tokens in plain text.');
     }
+    const encrypted = safeStorage.encryptString(JSON.stringify(tokens));
+    fs.writeFileSync(tokenPath, encrypted);
 }
 
 function loadGDriveTokens() {
@@ -948,9 +989,13 @@ function loadGDriveTokens() {
     if (fs.existsSync(legacyPath)) {
         try {
             const tokens = JSON.parse(fs.readFileSync(legacyPath, 'utf-8'));
-            // Migrate to encrypted storage
-            saveGDriveTokens(tokens);
-            fs.unlinkSync(legacyPath);
+            // Migrate to encrypted storage; skip migration if encryption unavailable
+            try {
+                saveGDriveTokens(tokens);
+                fs.unlinkSync(legacyPath);
+            } catch (migrateErr) {
+                console.warn('[GDrive] Could not migrate legacy tokens to encrypted store:', migrateErr.message);
+            }
             return tokens;
         } catch { /* fall through */ }
     }
@@ -995,10 +1040,15 @@ ipcMain.handle('gdrive:authenticate', async (event, { clientId, clientSecret, sc
                             })
                         });
                         const tokens = await tokenResponse.json();
-                        googleDriveTokens = tokens;
 
-                        // SECURITY: Save tokens encrypted
-                        saveGDriveTokens(tokens);
+                        // SECURITY: Save tokens encrypted; refuse to store in plain text
+                        try {
+                            saveGDriveTokens(tokens);
+                        } catch (saveErr) {
+                            resolve({ success: false, error: saveErr.message });
+                            return;
+                        }
+                        googleDriveTokens = tokens;
 
                         resolve({ success: true, token: tokens.access_token, expiry: tokens.expires_in });
                     } catch (err) {

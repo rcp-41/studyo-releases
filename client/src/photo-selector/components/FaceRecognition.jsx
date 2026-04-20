@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Scan, Upload, X, Loader2, CheckCircle, AlertCircle, FolderSearch } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 
 const THRESHOLD = 0.5; // Euclidean distance threshold (lower = stricter)

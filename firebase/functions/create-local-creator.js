@@ -1,5 +1,6 @@
 
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 // Connect to Emulators
 process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
@@ -15,12 +16,13 @@ const db = admin.firestore();
 
 async function createLocalCreator() {
     const email = 'creator@studyo.app';
-    const password = '123456';
+    const password = process.env.CREATOR_PW || crypto.randomBytes(12).toString('base64url');
 
     try {
         console.log('Creating local creator account...');
         console.log(`Email: ${email}`);
         console.log(`Password: ${password}`);
+        console.log('Store this password safely. It cannot be retrieved later.');
 
         let uid;
         try {

@@ -284,17 +284,20 @@ exports.migrateLegacyBatch = onCall({
                         if (record.legacyId && existingIds.has(record.legacyId)) { skipped++; continue; }
                         const docRef = studioRef.collection('appointments').doc();
 
-                        // Build appointmentDate from legacy date + time
+                        // Build appointmentDate from legacy date + time.
+                        // record.date is UTC milliseconds (midnight UTC of the correct date).
+                        // We add the hour offset in milliseconds to preserve UTC date integrity
+                        // instead of using setHours() which would apply local timezone.
                         let appointmentDate = now;
                         if (record.date) {
-                            const baseDate = new Date(record.date);
                             // Parse legacy time (e.g. "10", "14", "16:30")
                             const timeStr = (record.time || '').trim();
-                            if (timeStr) {
-                                const hour = parseInt(timeStr) || 0;
-                                baseDate.setHours(hour, 0, 0, 0);
-                            }
-                            appointmentDate = admin.firestore.Timestamp.fromDate(baseDate);
+                            const hour = timeStr ? (parseInt(timeStr) || 0) : 0;
+                            const minutes = timeStr && timeStr.includes(':')
+                                ? (parseInt(timeStr.split(':')[1]) || 0) : 0;
+                            // Add hour/minute offset directly to UTC ms — no timezone conversion
+                            const utcMs = record.date + (hour * 3600000) + (minutes * 60000);
+                            appointmentDate = admin.firestore.Timestamp.fromMillis(utcMs);
                         }
 
                         // Map legacy time to timeSlot format (e.g. "10:00")
@@ -541,7 +544,7 @@ exports.migrateLegacyBatch = onCall({
     } catch (error) {
         console.error('Legacy migration error:', error);
         if (error instanceof HttpsError) throw error;
-        throw new HttpsError('internal', 'Migration failed: ' + error.message);
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -567,29 +570,39 @@ exports.recalculatePaymentBreakdown = onCall({
     if (!studioDoc.exists) throw new HttpsError('not-found', `Studio ${studioId} not found`);
 
     try {
-        // Step 1: Read ALL payments and group by archiveNumber
+        // Step 1: Read ALL payments in bounded batches and group by archiveNumber
         console.log(`Recalculating payment breakdown for studio ${studioId}...`);
-        const paymentsSnap = await studioRef.collection('payments').get();
-        console.log(`Found ${paymentsSnap.size} payment records`);
-
         const paymentsByArchive = {};
-        paymentsSnap.forEach(doc => {
-            const p = doc.data();
-            const archNum = p.archiveNumber;
-            if (!archNum) return;
-            if (!paymentsByArchive[archNum]) {
-                paymentsByArchive[archNum] = { cash: 0, card: 0, transfer: 0 };
-            }
-            const amount = Number(p.amount) || 0;
-            const method = p.method || 'cash';
-            if (method === 'card' || method === 'credit_card') {
-                paymentsByArchive[archNum].card += amount;
-            } else if (method === 'transfer') {
-                paymentsByArchive[archNum].transfer += amount;
-            } else {
-                paymentsByArchive[archNum].cash += amount;
-            }
-        });
+        let totalPayments = 0;
+        let lastDoc = null;
+        const PAGE = 100;
+        while (true) {
+            let q = studioRef.collection('payments').orderBy(admin.firestore.FieldPath.documentId()).limit(PAGE);
+            if (lastDoc) q = q.startAfter(lastDoc);
+            const snap = await q.get();
+            if (snap.empty) break;
+            snap.forEach(doc => {
+                const p = doc.data();
+                totalPayments++;
+                const archNum = p.archiveNumber;
+                if (!archNum) return;
+                if (!paymentsByArchive[archNum]) {
+                    paymentsByArchive[archNum] = { cash: 0, card: 0, transfer: 0 };
+                }
+                const amount = Number(p.amount) || 0;
+                const method = p.method || 'cash';
+                if (method === 'card' || method === 'credit_card') {
+                    paymentsByArchive[archNum].card += amount;
+                } else if (method === 'transfer') {
+                    paymentsByArchive[archNum].transfer += amount;
+                } else {
+                    paymentsByArchive[archNum].cash += amount;
+                }
+            });
+            lastDoc = snap.docs[snap.docs.length - 1];
+            if (snap.size < PAGE) break;
+        }
+        console.log(`Found ${totalPayments} payment records`);
 
         const archiveNumbers = Object.keys(paymentsByArchive);
         console.log(`Grouped payments for ${archiveNumbers.length} archives`);
@@ -642,13 +655,14 @@ exports.recalculatePaymentBreakdown = onCall({
 
         return {
             success: true,
-            totalPayments: paymentsSnap.size,
+            totalPayments,
             uniqueArchives: archiveNumbers.length,
             updated,
             notFound
         };
     } catch (error) {
         console.error('recalculatePaymentBreakdown error:', error);
-        throw new HttpsError('internal', 'Recalculation failed: ' + error.message);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });

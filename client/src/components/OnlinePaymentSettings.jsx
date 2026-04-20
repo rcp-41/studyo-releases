@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { cn } from '../lib/utils';
 import { X, CreditCard, ExternalLink, Shield, CheckCircle, AlertCircle, Loader2, Copy } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import PasswordInput from './PasswordInput';
 
 /**
  * OnlinePaymentSettings component
@@ -66,15 +67,15 @@ export default function OnlinePaymentSettings({ settings, onUpdate }) {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-xs font-medium text-muted-foreground">API Key</label>
-                                <input type="password" value={settings?.api?.iyzico_api_key || ''}
+                                <PasswordInput value={settings?.api?.iyzico_api_key || ''}
                                     onChange={e => handleKeyChange('iyzico_api_key', e.target.value)}
-                                    placeholder="sandbox-..." className="w-full mt-1 px-3 py-2 rounded-lg bg-background border border-input text-sm" />
+                                    placeholder="sandbox-..." className="mt-1" />
                             </div>
                             <div>
                                 <label className="text-xs font-medium text-muted-foreground">Secret Key</label>
-                                <input type="password" value={settings?.api?.iyzico_secret_key || ''}
+                                <PasswordInput value={settings?.api?.iyzico_secret_key || ''}
                                     onChange={e => handleKeyChange('iyzico_secret_key', e.target.value)}
-                                    placeholder="sandbox-..." className="w-full mt-1 px-3 py-2 rounded-lg bg-background border border-input text-sm" />
+                                    placeholder="sandbox-..." className="mt-1" />
                             </div>
                         </div>
                         <div>
@@ -134,16 +135,16 @@ export default function OnlinePaymentSettings({ settings, onUpdate }) {
                             </div>
                             <div>
                                 <label className="text-xs font-medium text-muted-foreground">Merchant Key</label>
-                                <input type="password" value={settings?.api?.paytr_merchant_key || ''}
+                                <PasswordInput value={settings?.api?.paytr_merchant_key || ''}
                                     onChange={e => handleKeyChange('paytr_merchant_key', e.target.value)}
-                                    placeholder="..." className="w-full mt-1 px-3 py-2 rounded-lg bg-background border border-input text-sm" />
+                                    placeholder="..." className="mt-1" />
                             </div>
                         </div>
                         <div>
                             <label className="text-xs font-medium text-muted-foreground">Merchant Salt</label>
-                            <input type="password" value={settings?.api?.paytr_merchant_salt || ''}
+                            <PasswordInput value={settings?.api?.paytr_merchant_salt || ''}
                                 onChange={e => handleKeyChange('paytr_merchant_salt', e.target.value)}
-                                placeholder="..." className="w-full mt-1 px-3 py-2 rounded-lg bg-background border border-input text-sm" />
+                                placeholder="..." className="mt-1" />
                         </div>
                         <div>
                             <label className="text-xs font-medium text-muted-foreground">Mod</label>

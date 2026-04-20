@@ -104,7 +104,10 @@ exports.updateWhatsApp = onCall({ enforceAppCheck: false }, async (request) => {
     }
 
     // Auto-set webhook URL
-    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'studyo-live-2026';
+    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+    if (!projectId) {
+        throw new Error('GCLOUD_PROJECT env variable is required');
+    }
     const region = process.env.FUNCTION_REGION || 'us-central1';
     config.webhookUrl = `https://${region}-${projectId}.cloudfunctions.net/whatsappBot-webhook`;
 
@@ -138,7 +141,10 @@ exports.updateVoice = onCall({ enforceAppCheck: false }, async (request) => {
     const path = getBotConfigPath(studioId, organizationId);
 
     // Auto-set webhook URLs
-    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'studyo-live-2026';
+    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+    if (!projectId) {
+        throw new Error('GCLOUD_PROJECT env variable is required');
+    }
     const region = process.env.FUNCTION_REGION || 'us-central1';
     config.webhookUrl = `https://${region}-${projectId}.cloudfunctions.net/voiceBot-incoming`;
     config.statusCallbackUrl = `https://${region}-${projectId}.cloudfunctions.net/voiceBot-status`;

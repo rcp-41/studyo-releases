@@ -1,6 +1,23 @@
-const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+let cspInstalled = false;
+function ensurePhotoSelectorCSP() {
+    if (cspInstalled) return;
+    cspInstalled = true;
+    // TODO: replace webSecurity:false with a custom safe-file:// protocol handler covering all renderer usages
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        const url = details.url || '';
+        if (url.startsWith('file://')) {
+            const headers = { ...details.responseHeaders };
+            headers['Content-Security-Policy'] = ["default-src 'self' file: data: blob:; img-src 'self' file: data: blob:; media-src 'self' file: data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'"];
+            callback({ responseHeaders: headers });
+            return;
+        }
+        callback({ responseHeaders: details.responseHeaders });
+    });
+}
 
 let photoSelectorWindow = null;
 
@@ -9,6 +26,8 @@ function createPhotoSelectorWindow(mainWindow, config, isDev) {
         photoSelectorWindow.focus();
         return photoSelectorWindow;
     }
+
+    ensurePhotoSelectorCSP();
 
     const displays = screen.getAllDisplays();
     const targetDisplay = config.preferredMonitor
@@ -426,6 +445,17 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
             const filePath = path.join(folderPath, fileName);
             const content = notes.map(n => `${n.orderNumber}: ${n.text}`).join('\n');
             fs.writeFileSync(filePath, content, 'utf-8');
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Generic write file (e.g., for note text)
+    ipcMain.handle('photos:writeFile', async (_event, { filePath: fp, content }) => {
+        if (!isPathAllowed(fp)) return { success: false, error: 'Path not allowed' };
+        try {
+            fs.writeFileSync(fp, content, 'utf-8');
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };

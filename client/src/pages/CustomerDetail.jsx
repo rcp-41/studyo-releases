@@ -8,9 +8,10 @@ import {
     Calendar, Edit, Loader2, MessageCircle, X, Clock,
     CreditCard, Banknote, ArrowRightLeft, FileText, RefreshCw
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { SkeletonCard } from '../components/Skeleton';
 
 // ==================== ACTIVITY TIMELINE ====================
 const ACTIVITY_ICONS = {
@@ -243,8 +244,12 @@ export default function CustomerDetail() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="space-y-6">
+                <SkeletonCard />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <SkeletonCard />
+                    <SkeletonCard className="lg:col-span-2 h-64" />
+                </div>
             </div>
         );
     }

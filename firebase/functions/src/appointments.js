@@ -54,9 +54,32 @@ exports.create = onCall({ enforceAppCheck: false }, async (request) => {
         const actualStart = new Date(Date.UTC(year, month - 1, day, slotHour, slotMin, 0, 0));
         const actualEnd = new Date(actualStart.getTime() + duration * 60000);
 
-        // Query existing appointments for this day
+        // Query existing appointments for this day (conflict preview — same-session)
         const tsStart = admin.firestore.Timestamp.fromDate(dayStart);
         const tsEnd = admin.firestore.Timestamp.fromDate(dayEnd);
+
+        const findConflicts = (docs) => {
+            const conflicts = [];
+            const newStartMs = actualStart.getTime();
+            const newEndMs = actualEnd.getTime();
+            (docs || []).forEach(doc => {
+                const data = doc.data();
+                const [exHour, exMin] = (data.timeSlot || '00:00').split(':').map(Number);
+                const exStart = new Date(Date.UTC(year, month - 1, day, exHour, exMin, 0, 0)).getTime();
+                const exEnd = exStart + (data.duration || 30) * 60000;
+                if (newStartMs < exEnd && newEndMs > exStart) {
+                    const sameRoom = studioRoom && data.studioRoom && studioRoom === data.studioRoom;
+                    conflicts.push({
+                        id: doc.id,
+                        fullName: data.fullName,
+                        timeSlot: data.timeSlot,
+                        studioRoom: data.studioRoom || '',
+                        sameRoom
+                    });
+                }
+            });
+            return conflicts;
+        };
 
         let existingSnapshot;
         try {
@@ -76,40 +99,29 @@ exports.create = onCall({ enforceAppCheck: false }, async (request) => {
             };
         }
 
-        // Conflict detection using actual timeSlot, not just date
-        const conflicts = [];
-        const newStartMs = actualStart.getTime();
-        const newEndMs = actualEnd.getTime();
+        // Early preview conflicts — gives the user a chance to confirm before forceCreate
+        const previewConflicts = findConflicts(existingSnapshot.docs || []);
 
-        (existingSnapshot.docs || []).forEach(doc => {
-            const data = doc.data();
-            // Parse existing appointment's timeSlot to get actual time
-            const [exHour, exMin] = (data.timeSlot || '00:00').split(':').map(Number);
-            const exStart = new Date(Date.UTC(year, month - 1, day, exHour, exMin, 0, 0)).getTime();
-            const exEnd = exStart + (data.duration || 30) * 60000;
-
-            if (newStartMs < exEnd && newEndMs > exStart) {
-                const sameRoom = studioRoom && data.studioRoom && studioRoom === data.studioRoom;
-                conflicts.push({
-                    id: doc.id,
-                    fullName: data.fullName,
-                    timeSlot: data.timeSlot,
-                    studioRoom: data.studioRoom || '',
-                    sameRoom
-                });
-            }
-        });
-
-        if (conflicts.length > 0 && !forceCreate) {
+        if (previewConflicts.length > 0 && !forceCreate) {
             return {
                 success: false,
                 hasConflict: true,
-                conflicts,
-                message: `${conflicts.length} çakışan randevu bulundu`
+                conflicts: previewConflicts,
+                message: `${previewConflicts.length} çakışan randevu bulundu`
             };
         }
 
-        // Store appointmentDate as UTC date (midnight) — timeSlot holds the actual time
+        // SECURITY: Race-free insert — transaction re-reads a deterministic day/room lock
+        // and the appointments for that day before writing. Since Firestore transactions
+        // restrict range-scan reads, we use a tiny lock doc per (studio, day, room) plus
+        // an inline re-check of the same-day appointments collection.
+        const db = admin.firestore();
+        const roomKey = (studioRoom || 'default').toString().replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+        const lockId = `${dbHandler.studioId}_${appointmentDate}_${roomKey}`;
+        const lockRef = db.collection('appointmentSlots').doc(lockId);
+        const appointmentsCol = dbHandler.collection('appointments');
+        const newAptRef = appointmentsCol.doc();
+
         const appointmentData = {
             studioId: dbHandler.studioId,
             fullName,
@@ -126,7 +138,66 @@ exports.create = onCall({ enforceAppCheck: false }, async (request) => {
             updatedAt: FieldValue.serverTimestamp()
         };
 
-        const docRef = await dbHandler.collection('appointments').add(appointmentData);
+        const txResult = await db.runTransaction(async (tx) => {
+            // Re-read lock doc — its presence in the tx serializes concurrent writes
+            // on the same (studio, day, room).
+            const lockSnap = await tx.get(lockRef);
+            const slots = lockSnap.exists && Array.isArray(lockSnap.data()?.slots)
+                ? lockSnap.data().slots
+                : [];
+
+            // Overlap check against recorded slots (transaction-consistent)
+            const newStartMs = actualStart.getTime();
+            const newEndMs = actualEnd.getTime();
+            const txConflicts = [];
+            for (const s of slots) {
+                const exStart = Number(s.startMs) || 0;
+                const exEnd = Number(s.endMs) || 0;
+                if (newStartMs < exEnd && newEndMs > exStart) {
+                    txConflicts.push({
+                        id: s.appointmentId || null,
+                        timeSlot: s.timeSlot || '',
+                        studioRoom: s.studioRoom || ''
+                    });
+                }
+            }
+
+            if (txConflicts.length > 0 && !forceCreate) {
+                return { created: false, conflicts: txConflicts };
+            }
+
+            const updatedSlots = slots.concat([{
+                appointmentId: newAptRef.id,
+                timeSlot,
+                startMs: newStartMs,
+                endMs: newEndMs,
+                studioRoom: studioRoom || '',
+                createdAt: Date.now()
+            }]);
+
+            tx.set(lockRef, {
+                studioId: dbHandler.studioId,
+                date: appointmentDate,
+                studioRoom: studioRoom || '',
+                slots: updatedSlots,
+                updatedAt: FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            tx.set(newAptRef, appointmentData);
+            return { created: true };
+        });
+
+        if (!txResult.created) {
+            return {
+                success: false,
+                hasConflict: true,
+                conflicts: txResult.conflicts,
+                message: `${txResult.conflicts.length} çakışan randevu bulundu`,
+                method: 'tx-slot'
+            };
+        }
+
+        const docRef = newAptRef;
 
         // Auto-create/link customer (best-effort, don't block)
         const cleanPhone = (phone || '').trim();
@@ -166,10 +237,11 @@ exports.create = onCall({ enforceAppCheck: false }, async (request) => {
             }
         }
 
-        return { id: docRef.id, success: true };
+        return { id: docRef.id, success: true, method: 'tx-slot' };
     } catch (error) {
         if (error instanceof HttpsError) throw error;
-        throw new HttpsError('internal', error.message);
+        console.error('Appointment create error:', error);
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 

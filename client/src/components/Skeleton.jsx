@@ -70,10 +70,12 @@ export function SkeletonDashboard() {
     );
 }
 
-export function SkeletonList({ count = 5, className }) {
+export function SkeletonList({ count, rows, className }) {
+    // Accept either `count` (legacy) or `rows` (preferred) for the number of items.
+    const n = rows ?? count ?? 5;
     return (
-        <div className={cn('space-y-3', className)}>
-            {Array.from({ length: count }).map((_, i) => (
+        <div className={cn('space-y-3', className)} role="status" aria-busy="true" aria-label="Yükleniyor">
+            {Array.from({ length: n }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <div className="flex-1 space-y-2">
@@ -83,6 +85,7 @@ export function SkeletonList({ count = 5, className }) {
                     <Skeleton className="h-6 w-16 rounded-full" />
                 </div>
             ))}
+            <span className="sr-only">Yükleniyor...</span>
         </div>
     );
 }

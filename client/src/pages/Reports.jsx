@@ -13,6 +13,7 @@ import {
 import { exportToExcel } from '../services/excelExport';
 import { jsPDF } from 'jspdf';
 import ExportColumnsModal from '../components/ExportColumnsModal';
+import { SkeletonDashboard, SkeletonTable } from '../components/Skeleton';
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#3b82f6', '#f97316'];
 
@@ -431,7 +432,7 @@ function SummaryCard({ label, value, color, bg }) {
 }
 
 function Loading() {
-    return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    return <SkeletonDashboard />;
 }
 
 function DataTable({ data, columns, fileName }) {

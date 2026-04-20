@@ -199,7 +199,7 @@ service cloud.firestore {
       // Legacy studio sub-collections
       match /{subcollection}/{docId} {
         allow read: if isStudioMember(studioId) || isCreator();
-        allow write: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
       }
     }
 

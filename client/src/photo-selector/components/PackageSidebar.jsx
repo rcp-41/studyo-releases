@@ -1,10 +1,10 @@
 /**
  * PackageSidebar — Right sidebar showing package info, gifts, and numbered photos
- * Visible when in favorites mode and there's an active pixonai config
+ * Always visible when a pixonai shoot category is active
  */
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
-import { Package, Gift, Hash, Save, X, Image, Tag } from 'lucide-react';
+import { Package, Gift, Hash, Save, Image, Tag, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function PackageSidebar({ onSaveNumbering }) {
     const favorites = usePhotoSelectorStore(s => s.favorites);
@@ -15,6 +15,11 @@ export default function PackageSidebar({ onSaveNumbering }) {
     const numberedPhotos = usePhotoSelectorStore(s => s.numberedPhotos);
     const shootCategoryType = usePhotoSelectorStore(s => s.shootCategoryType);
     const setActivePackage = usePhotoSelectorStore(s => s.setActivePackage);
+    const noteText = usePhotoSelectorStore(s => s.noteText);
+    const setNoteText = usePhotoSelectorStore(s => s.setNoteText);
+
+    // Toggle: show save button only when numbered section is expanded
+    const [numberedExpanded, setNumberedExpanded] = useState(true);
 
     const favCount = favorites.size;
 
@@ -30,19 +35,17 @@ export default function PackageSidebar({ onSaveNumbering }) {
         if (matched && matched.id !== activePackage?.id) {
             setActivePackage(matched);
         } else if (!matched && activePackage) {
-            // No matching package — find closest or clear
             setActivePackage(null);
         }
     }, [favCount, pixonaiConfig]);
 
-    // Build numbered photos display list
+    // Build numbered photos display list with shortcodes
     const numberedList = useMemo(() => {
         return numberedPhotos
             .filter(np => !np.isCancelled)
             .sort((a, b) => a.orderNumber - b.orderNumber)
             .map(np => {
                 const photo = photos.find(p => p.id === np.photoId);
-                // Build shortcode string from gift assignments
                 const giftCodes = [];
                 if (activePackage?.gifts) {
                     activePackage.gifts.forEach(gift => {
@@ -97,7 +100,8 @@ export default function PackageSidebar({ onSaveNumbering }) {
                                     </h4>
                                     {activePackage.gifts.map(gift => {
                                         const assigned = giftAssignments[gift.abbr] || [];
-                                        const isComplete = assigned.length >= gift.maxSelections;
+                                        const maxSel = gift.maxSelections || 0;
+                                        const isComplete = maxSel > 0 ? assigned.length >= maxSel : assigned.length > 0;
 
                                         return (
                                             <div key={gift.abbr} className={`ps-sidebar-gift-row ${isComplete ? 'complete' : ''}`}>
@@ -109,7 +113,7 @@ export default function PackageSidebar({ onSaveNumbering }) {
                                                 </span>
                                                 <span className="ps-sidebar-gift-code">[{gift.abbr}]</span>
                                                 <span className="text-[10px] text-neutral-500">
-                                                    {assigned.length}/{gift.maxSelections}
+                                                    {assigned.length}{maxSel > 0 ? `/${maxSel}` : ''}
                                                 </span>
                                             </div>
                                         );
@@ -136,43 +140,66 @@ export default function PackageSidebar({ onSaveNumbering }) {
                 </div>
             )}
 
-            {/* Numbered Photos List */}
+            {/* Numbered Photos List — collapsible section */}
             <div className="ps-sidebar-section flex-1 overflow-hidden flex flex-col">
-                <h4 className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-2 flex items-center gap-1.5 shrink-0">
+                <button
+                    className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-2 flex items-center gap-1.5 shrink-0 hover:text-neutral-300 transition-colors w-full text-left cursor-pointer bg-transparent border-none p-0"
+                    onClick={() => setNumberedExpanded(!numberedExpanded)}
+                >
+                    {numberedExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                     <Hash className="w-3 h-3" />
                     Numaralandırılan ({numberedList.length})
-                </h4>
-                <div className="flex-1 overflow-y-auto space-y-1">
-                    {numberedList.length === 0 ? (
-                        <p className="text-xs text-neutral-600 text-center py-4">
-                            Henüz numara verilmedi
-                        </p>
-                    ) : (
-                        numberedList.map(item => {
-                            const thumbSrc = item.photo?.thumbnailPath
-                                ? `file:///${item.photo.thumbnailPath.replace(/\\/g, '/')}`
-                                : null;
-                            return (
-                                <div key={item.photoId} className="ps-sidebar-numbered-row">
-                                    {thumbSrc ? (
-                                        <img src={thumbSrc} className="w-8 h-8 rounded object-cover shrink-0" alt="" />
-                                    ) : (
-                                        <div className="w-8 h-8 rounded bg-neutral-800 flex items-center justify-center shrink-0">
-                                            <Image className="w-3.5 h-3.5 text-neutral-600" />
-                                        </div>
-                                    )}
-                                    <span className="ps-sidebar-numbered-name">
-                                        {item.displayName}
-                                    </span>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
+                </button>
+
+                {numberedExpanded && (
+                    <div className="flex-1 overflow-y-auto space-y-1">
+                        {numberedList.length === 0 ? (
+                            <p className="text-xs text-neutral-600 text-center py-4">
+                                Henüz numara verilmedi
+                            </p>
+                        ) : (
+                            numberedList.map(item => {
+                                const thumbSrc = item.photo?.thumbnailPath
+                                    ? `file:///${item.photo.thumbnailPath.replace(/\\/g, '/')}`
+                                    : null;
+                                return (
+                                    <div key={item.photoId} className="ps-sidebar-numbered-row">
+                                        {thumbSrc ? (
+                                            <img src={thumbSrc} className="w-8 h-8 rounded object-cover shrink-0" alt="" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded bg-neutral-800 flex items-center justify-center shrink-0">
+                                                <Image className="w-3.5 h-3.5 text-neutral-600" />
+                                            </div>
+                                        )}
+                                        <span className="ps-sidebar-numbered-name">
+                                            {item.displayName}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Save Button */}
-            {numberedList.length > 0 && (
+            {/* Note Input */}
+            {!isPacketless && (
+                <div className="ps-sidebar-section shrink-0">
+                    <h4 className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <FileText className="w-3 h-3" /> Not
+                    </h4>
+                    <textarea
+                        className="ps-sidebar-note"
+                        placeholder="Ekstra fotoğraf açıklaması..."
+                        value={noteText || ''}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        rows={2}
+                    />
+                </div>
+            )}
+
+            {/* Save Button — only visible when numbered section is expanded */}
+            {numberedExpanded && numberedList.length > 0 && (
                 <div className="ps-sidebar-footer">
                     <button
                         className="ps-sidebar-save-btn"

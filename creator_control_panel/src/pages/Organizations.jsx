@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { creatorApi } from '../services/creatorApi';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Organizations() {
     const [organizations, setOrganizations] = useState([]);
@@ -13,6 +14,7 @@ export default function Organizations() {
     const [showModal, setShowModal] = useState(false);
     const [editingOrg, setEditingOrg] = useState(null);
     const [formData, setFormData] = useState({ name: '', owner: '', slug: '' });
+    const [deleteTarget, setDeleteTarget] = useState(null);
 
     useEffect(() => { loadOrganizations(); }, []);
 
@@ -62,11 +64,16 @@ export default function Organizations() {
         }
     }
 
-    async function handleDelete(org) {
-        if (!confirm(`"${org.name}" organizasyonu silinecek. Tüm stüdyolar da silinir! Devam edilsin mi?`)) return;
+    function handleDelete(org) {
+        setDeleteTarget(org);
+    }
+
+    async function confirmDelete() {
+        if (!deleteTarget) return;
         try {
-            await creatorApi.deleteOrganization(org.id);
+            await creatorApi.deleteOrganization(deleteTarget.id);
             toast.success('Organizasyon silindi!');
+            setDeleteTarget(null);
             loadOrganizations();
         } catch (error) {
             toast.error('Silme hatası: ' + error.message);
@@ -192,6 +199,18 @@ export default function Organizations() {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={!!deleteTarget}
+                onClose={() => setDeleteTarget(null)}
+                onConfirm={confirmDelete}
+                title="Organizasyonu Sil"
+                message={deleteTarget ? `"${deleteTarget.name}" organizasyonu ve tüm bağlı stüdyolar kalıcı olarak silinecektir. Devam etmek için aşağıya organizasyon adını yazın.` : ''}
+                confirmText="Sil"
+                cancelText="Vazgeç"
+                danger
+                requireText={deleteTarget?.name || ''}
+            />
         </div>
     );
 }

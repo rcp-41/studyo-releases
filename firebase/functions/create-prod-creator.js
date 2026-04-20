@@ -7,6 +7,7 @@ const { getAuth } = require('firebase-admin/auth');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 
 // Firebase CLI stores credentials here on Windows
 const configDir = path.join(os.homedir(), '.config', 'configstore');
@@ -40,7 +41,7 @@ if (!credential) {
 
 async function main() {
     const email = 'creator@studyo.app';
-    const password = '123456';
+    const password = process.env.CREATOR_PW || crypto.randomBytes(12).toString('base64url');
     const auth = credential;
 
     try {
@@ -62,6 +63,7 @@ async function main() {
 
         await auth.setCustomUserClaims(uid, { role: 'creator', super_admin: true });
         console.log('DONE! Email:', email, 'Password:', password);
+        console.log('Store this password safely. It cannot be retrieved later.');
     } catch (e) {
         console.error('ERROR:', e.code || '', e.message);
     }

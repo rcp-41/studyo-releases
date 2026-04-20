@@ -10,10 +10,13 @@ import { useState, useEffect } from 'react';
 import {
     X, Save, Bot, MessageSquare, Phone, Loader2, Copy, Check,
     Plus, Trash2, Clock, Send, Power, PowerOff, MapPin, Info,
-    CreditCard, HelpCircle, Tag, ShieldAlert, Building2, Instagram
+    CreditCard, HelpCircle, Tag, ShieldAlert, Building2, Instagram,
+    Eye, EyeOff
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { creatorApi } from '../services/creatorApi';
+
+const SECRET_MASK = '••••••••';
 
 const DAYS_OF_WEEK = [
     { key: 'mon', label: 'Pzt' },
@@ -63,6 +66,12 @@ export default function BotConfigModal({ studio, onClose, onRefresh }) {
         greetingText: 'Hoş geldiniz! Size nasıl yardımcı olabilirim?'
     });
 
+    // Secret masking state
+    const [secretState, setSecretState] = useState({
+        hasStoredWaToken: false, waTokenChanged: false, waTokenVisible: false,
+        hasStoredTwilioToken: false, twilioTokenChanged: false, twilioTokenVisible: false
+    });
+
     // New service input
     const [newService, setNewService] = useState({ name: '', price: '', duration: '' });
 
@@ -88,8 +97,20 @@ export default function BotConfigModal({ studio, onClose, onRefresh }) {
             const result = await creatorApi.getBotConfig(studio.id, studio.organizationId);
             if (result?.data) {
                 if (result.data.settings) setSettings(prev => ({ ...prev, ...result.data.settings }));
-                if (result.data.whatsapp) setWaConfig(prev => ({ ...prev, ...result.data.whatsapp }));
-                if (result.data.voice) setVoiceConfig(prev => ({ ...prev, ...result.data.voice }));
+                if (result.data.whatsapp) {
+                    const wa = { ...result.data.whatsapp };
+                    const hasStoredWaToken = !!wa.accessToken;
+                    if (hasStoredWaToken) wa.accessToken = SECRET_MASK;
+                    setWaConfig(prev => ({ ...prev, ...wa }));
+                    setSecretState(s => ({ ...s, hasStoredWaToken, waTokenChanged: false, waTokenVisible: false }));
+                }
+                if (result.data.voice) {
+                    const v = { ...result.data.voice };
+                    const hasStoredTwilioToken = !!v.twilioAuthToken;
+                    if (hasStoredTwilioToken) v.twilioAuthToken = SECRET_MASK;
+                    setVoiceConfig(prev => ({ ...prev, ...v }));
+                    setSecretState(s => ({ ...s, hasStoredTwilioToken, twilioTokenChanged: false, twilioTokenVisible: false }));
+                }
                 if (result.data.studioInfo) setStudioInfo(prev => ({ ...prev, ...result.data.studioInfo }));
             }
         } catch (err) {
@@ -114,9 +135,17 @@ export default function BotConfigModal({ studio, onClose, onRefresh }) {
     async function saveWhatsApp() {
         setSaving(true);
         try {
-            const result = await creatorApi.updateBotWhatsApp(studio.id, studio.organizationId, waConfig);
+            const payload = { ...waConfig };
+            if (secretState.hasStoredWaToken && !secretState.waTokenChanged) {
+                delete payload.accessToken;
+            }
+            const result = await creatorApi.updateBotWhatsApp(studio.id, studio.organizationId, payload);
             if (result?.webhookUrl) setWaConfig(prev => ({ ...prev, webhookUrl: result.webhookUrl }));
             if (result?.verifyToken) setWaConfig(prev => ({ ...prev, verifyToken: result.verifyToken }));
+            if (secretState.waTokenChanged) {
+                setWaConfig(prev => ({ ...prev, accessToken: SECRET_MASK }));
+                setSecretState(s => ({ ...s, hasStoredWaToken: true, waTokenChanged: false, waTokenVisible: false }));
+            }
             toast.success('WhatsApp ayarları kaydedildi');
             if (onRefresh) onRefresh();
         } catch (err) {
@@ -129,8 +158,16 @@ export default function BotConfigModal({ studio, onClose, onRefresh }) {
     async function saveVoice() {
         setSaving(true);
         try {
-            const result = await creatorApi.updateBotVoice(studio.id, studio.organizationId, voiceConfig);
+            const payload = { ...voiceConfig };
+            if (secretState.hasStoredTwilioToken && !secretState.twilioTokenChanged) {
+                delete payload.twilioAuthToken;
+            }
+            const result = await creatorApi.updateBotVoice(studio.id, studio.organizationId, payload);
             if (result?.webhookUrl) setVoiceConfig(prev => ({ ...prev, webhookUrl: result.webhookUrl }));
+            if (secretState.twilioTokenChanged) {
+                setVoiceConfig(prev => ({ ...prev, twilioAuthToken: SECRET_MASK }));
+                setSecretState(s => ({ ...s, hasStoredTwilioToken: true, twilioTokenChanged: false, twilioTokenVisible: false }));
+            }
             toast.success('Voice Bot ayarları kaydedildi');
             if (onRefresh) onRefresh();
         } catch (err) {
@@ -668,10 +705,32 @@ Kişisel bilgi paylaşma."
                                     </div>
                                     <div style={inputGroupStyle}>
                                         <label style={labelStyle}>Access Token</label>
-                                        <input type="password" className="form-input" placeholder="EAA..." style={monoInputStyle}
-                                            value={waConfig.accessToken}
-                                            onChange={e => setWaConfig(prev => ({ ...prev, accessToken: e.target.value }))}
-                                        />
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ position: 'relative', flex: 1 }}>
+                                                <input type={secretState.waTokenVisible ? 'text' : 'password'} className="form-input" placeholder="EAA..."
+                                                    style={{ ...monoInputStyle, paddingRight: '40px' }}
+                                                    value={waConfig.accessToken}
+                                                    disabled={secretState.hasStoredWaToken && !secretState.waTokenChanged}
+                                                    onChange={e => setWaConfig(prev => ({ ...prev, accessToken: e.target.value }))}
+                                                />
+                                                {(!secretState.hasStoredWaToken || secretState.waTokenChanged) && (
+                                                    <button type="button"
+                                                        onClick={() => setSecretState(s => ({ ...s, waTokenVisible: !s.waTokenVisible }))}
+                                                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                                                        {secretState.waTokenVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {secretState.hasStoredWaToken && !secretState.waTokenChanged && (
+                                                <button type="button" className="btn btn-secondary btn-sm"
+                                                    onClick={() => {
+                                                        setWaConfig(prev => ({ ...prev, accessToken: '' }));
+                                                        setSecretState(s => ({ ...s, waTokenChanged: true }));
+                                                    }}>
+                                                    Değiştir
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Read-only fields */}
@@ -740,10 +799,32 @@ Kişisel bilgi paylaşma."
                                     </div>
                                     <div style={inputGroupStyle}>
                                         <label style={labelStyle}>Twilio Auth Token</label>
-                                        <input type="password" className="form-input" style={monoInputStyle}
-                                            value={voiceConfig.twilioAuthToken}
-                                            onChange={e => setVoiceConfig(prev => ({ ...prev, twilioAuthToken: e.target.value }))}
-                                        />
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ position: 'relative', flex: 1 }}>
+                                                <input type={secretState.twilioTokenVisible ? 'text' : 'password'} className="form-input"
+                                                    style={{ ...monoInputStyle, paddingRight: '40px' }}
+                                                    value={voiceConfig.twilioAuthToken}
+                                                    disabled={secretState.hasStoredTwilioToken && !secretState.twilioTokenChanged}
+                                                    onChange={e => setVoiceConfig(prev => ({ ...prev, twilioAuthToken: e.target.value }))}
+                                                />
+                                                {(!secretState.hasStoredTwilioToken || secretState.twilioTokenChanged) && (
+                                                    <button type="button"
+                                                        onClick={() => setSecretState(s => ({ ...s, twilioTokenVisible: !s.twilioTokenVisible }))}
+                                                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                                                        {secretState.twilioTokenVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {secretState.hasStoredTwilioToken && !secretState.twilioTokenChanged && (
+                                                <button type="button" className="btn btn-secondary btn-sm"
+                                                    onClick={() => {
+                                                        setVoiceConfig(prev => ({ ...prev, twilioAuthToken: '' }));
+                                                        setSecretState(s => ({ ...s, twilioTokenChanged: true }));
+                                                    }}>
+                                                    Değiştir
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     <div style={inputGroupStyle}>
                                         <label style={labelStyle}>Karşılama Metni</label>

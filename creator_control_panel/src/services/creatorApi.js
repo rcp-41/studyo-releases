@@ -116,6 +116,17 @@ export const creatorApi = {
         }
     },
 
+    // Reset studio data (archive/customers or all data)
+    resetStudioData: async (organizationId, studioId, resetOption) => {
+        try {
+            const func = httpsCallable(functions, 'dataManagement-resetStudioData');
+            const result = await func({ organizationId, studioId, resetOption });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Reset Studio Data');
+        }
+    },
+
     // Get WhatsApp status
     getWhatsappStatus: async (organizationId, studioId) => {
         try {

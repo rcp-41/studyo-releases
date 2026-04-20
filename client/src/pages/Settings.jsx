@@ -8,7 +8,7 @@ import {
     QrCode, LogOut, Smartphone, Plus, Trash2, Clock, Monitor, Package, Database, Download, Upload,
     School, ChevronDown, ChevronUp
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { backupApi } from '../services/backup';
 import auditLog from '../services/auditLog';
 

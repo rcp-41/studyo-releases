@@ -12,7 +12,7 @@ import {
 } from 'firebase/storage';
 import { db, storage, functions } from '../lib/firebase';
 import { httpsCallable } from 'firebase/functions';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { getUserFriendlyError } from '../lib/utils';
 
 // Helper for consistent error handling

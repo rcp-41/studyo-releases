@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { pixonaiApi, optionsApi } from '../services/api';
+import { pixonaiApi, optionsApi, schoolsApi } from '../services/api';
 import { cn } from '../lib/utils';
 import {
     Camera, Plus, Trash2, Edit3, Save, X, Package, GripVertical,
     ChevronDown, ChevronUp, Settings2, List, Hash, CheckSquare, Type,
     Gift, Copy, Tag
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 // Option type definitions
 const OPTION_TYPES = [
@@ -120,6 +120,17 @@ function OptionRow({ option, index, onChange, onRemove }) {
                                rounded focus:border-blue-500 outline-none text-right"
                 />
                 <span className="text-xs text-neutral-500">₺</span>
+
+                <input
+                    type="number"
+                    value={option.maxSelections ?? 0}
+                    onChange={e => onChange({ ...option, maxSelections: Math.max(0, Number(e.target.value) || 0) })}
+                    placeholder="Maks"
+                    min="0"
+                    className="w-14 px-1.5 py-1 text-sm bg-neutral-900 border border-neutral-700 
+                               rounded focus:border-blue-500 outline-none text-center"
+                    title="Maks seçim sayısı (0 = sınırsız)"
+                />
 
                 <button onClick={() => setExpanded(!expanded)}
                     className="p-1 hover:bg-neutral-700 rounded transition-colors">
@@ -357,13 +368,15 @@ function PackageRow({ pkg, index, onChange, onRemove }) {
 }
 
 // ========== CONFIG EDIT MODAL ==========
-function ConfigEditModal({ config, shootTypes, onSave, onClose, saving }) {
+function ConfigEditModal({ config, shootTypes, schools, onSave, onClose, saving }) {
     const isNew = !config?.id;
 
     const [form, setForm] = useState({
         shootCategoryId: config?.shootCategoryId || '',
         shootCategoryLabel: config?.shootCategoryLabel || '',
         type: config?.type || 'yearly',
+        schoolId: config?.schoolId || '',
+        className: config?.className || '',
         options: config?.options || [],
         packages: config?.packages || [],
     });
@@ -519,6 +532,57 @@ function ConfigEditModal({ config, shootTypes, onSave, onClose, saving }) {
                         </div>
                     </div>
 
+                    {/* School Selection (only for yearly type) */}
+                    {form.type === 'yearly' && schools && schools.length > 0 && (
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">Okul</label>
+                                <select
+                                    value={form.schoolId}
+                                    onChange={e => setForm(f => ({ ...f, schoolId: e.target.value, className: '' }))}
+                                    className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 
+                                               rounded-lg focus:border-blue-500 outline-none"
+                                >
+                                    <option value="">— Okul seçin —</option>
+                                    {schools.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {form.schoolId && (() => {
+                                const school = schools.find(s => s.id === form.schoolId);
+                                const classes = school?.classes || [];
+                                return (
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-300 mb-1">Sınıf</label>
+                                        {classes.length > 0 ? (
+                                            <select
+                                                value={form.className}
+                                                onChange={e => setForm(f => ({ ...f, className: e.target.value }))}
+                                                className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 
+                                                           rounded-lg focus:border-blue-500 outline-none"
+                                            >
+                                                <option value="">Seçin...</option>
+                                                {classes.map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={form.className}
+                                                onChange={e => setForm(f => ({ ...f, className: e.target.value }))}
+                                                placeholder="Ör: 4-A"
+                                                className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 
+                                                           rounded-lg focus:border-blue-500 outline-none"
+                                            />
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+
                     {/* Options Section */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
@@ -635,6 +699,12 @@ export default function PixonaiSettings() {
     const { data: shootTypes } = useQuery({
         queryKey: ['shootTypes'],
         queryFn: () => optionsApi.getShootTypes().then(r => r.data || r),
+    });
+
+    // Fetch schools for school dropdown
+    const { data: schools } = useQuery({
+        queryKey: ['schools'],
+        queryFn: () => schoolsApi.list().then(r => r.data || []),
     });
 
     // Save mutation
@@ -779,6 +849,7 @@ export default function PixonaiSettings() {
                 <ConfigEditModal
                     config={editConfig}
                     shootTypes={shootTypes}
+                    schools={schools}
                     onSave={data => saveMutation.mutate(data)}
                     onClose={() => setEditConfig(null)}
                     saving={saveMutation.isPending}

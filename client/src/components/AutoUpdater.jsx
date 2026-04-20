@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Download, RefreshCw, CheckCircle, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 /**
  * AutoUpdater — Premium floating update dialog.
@@ -24,10 +25,22 @@ export default function AutoUpdater() {
                 setDismissed(false);
             } else if (st === 'downloaded') {
                 setStatus('downloaded');
-                setVersion(data?.version || version);
+                const ver = data?.version || version;
+                setVersion(ver);
+                // Dismiss the progress toast and show a success toast with a restart action.
+                toast.dismiss('update-progress');
+                toast.success(`v${ver} indirildi — yeniden başlatıp yüklemek ister misiniz?`, {
+                    id: 'update-downloaded',
+                    duration: Infinity,
+                    action: {
+                        label: 'Yeniden Başlat',
+                        onClick: () => updateApi.install?.()
+                    }
+                });
             } else if (st === 'error') {
                 // Don't show error UI — silent fail
                 console.error('[AutoUpdater] Error:', data?.message);
+                toast.dismiss('update-progress');
             } else if (st === 'up-to-date') {
                 setStatus('idle');
             }
@@ -36,6 +49,10 @@ export default function AutoUpdater() {
         updateApi.onProgress((pct) => {
             setStatus('downloading');
             setProgress(pct);
+            // Keep a single loading toast in sync with the download progress.
+            toast.loading(`Güncelleme indiriliyor: ${Math.round(pct)}%`, {
+                id: 'update-progress'
+            });
         });
 
         return () => updateApi.removeListeners?.();

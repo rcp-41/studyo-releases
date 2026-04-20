@@ -65,7 +65,7 @@ function initWhatsApp(mainWindow) {
         waWindow = null;
         connectionStatus = 'disconnected';
         qrDataUrl = null;
-        if (statusCheckInterval) clearInterval(statusCheckInterval);
+        stopStatusMonitoring();
     });
 
     // Override user agent for all requests from this window
@@ -97,7 +97,7 @@ function initWhatsApp(mainWindow) {
  * Start periodic status monitoring
  */
 function startStatusMonitoring() {
-    if (statusCheckInterval) clearInterval(statusCheckInterval);
+    if (statusCheckInterval) return; // Already monitoring
 
     // Check every 1.5s for faster QR capture
     statusCheckInterval = setInterval(() => {
@@ -106,6 +106,13 @@ function startStatusMonitoring() {
 
     // Check immediately
     setTimeout(() => checkConnectionStatus(), 500);
+}
+
+function stopStatusMonitoring() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+        statusCheckInterval = null;
+    }
 }
 
 /**
@@ -390,6 +397,7 @@ function openWhatsAppChat(phoneNumber) {
  */
 async function logout() {
     try {
+        stopStatusMonitoring();
         if (waWindow && !waWindow.isDestroyed()) {
             const ses = session.fromPartition(WA_PARTITION);
             await ses.clearStorageData();

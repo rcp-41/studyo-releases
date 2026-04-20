@@ -15,7 +15,8 @@ import {
     ChevronRight,
     X
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import { SkeletonList } from '../components/Skeleton';
 
 // Customer Card Component
 function CustomerCard({ customer }) {
@@ -355,9 +356,7 @@ export default function Customers() {
 
             {/* Customer Grid */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
+                <SkeletonList rows={8} />
             ) : customers.length === 0 ? (
                 <div className="text-center py-12">
                     <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">

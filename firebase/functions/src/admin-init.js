@@ -12,6 +12,7 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 // --- SECURITY: Firestore-backed Rate Limiting (survives cold starts) ---
+// DEPLOYMENT: Configure a Firestore TTL policy on _rateLimits.expiresAt in Firebase console.
 async function checkRateLimit(key, maxCalls, windowMs) {
     const rateLimitRef = db.collection('_rateLimits').doc(key);
     const now = Date.now();
@@ -20,13 +21,14 @@ async function checkRateLimit(key, maxCalls, windowMs) {
         await db.runTransaction(async (transaction) => {
             const doc = await transaction.get(rateLimitRef);
             const data = doc.exists ? doc.data() : { count: 0, resetAt: now + windowMs };
+            const expiresAt = admin.firestore.Timestamp.fromMillis(now + windowMs * 2);
 
             if (now > data.resetAt) {
-                transaction.set(rateLimitRef, { count: 1, resetAt: now + windowMs });
+                transaction.set(rateLimitRef, { count: 1, resetAt: now + windowMs, expiresAt });
             } else if (data.count >= maxCalls) {
                 throw new HttpsError('resource-exhausted', 'Çok fazla istek. Lütfen bekleyin.');
             } else {
-                transaction.update(rateLimitRef, { count: data.count + 1 });
+                transaction.update(rateLimitRef, { count: data.count + 1, expiresAt });
             }
         });
     } catch (error) {
@@ -135,7 +137,8 @@ exports.createOrganization = onCall({ enforceAppCheck: false }, async (request) 
         return result;
     } catch (error) {
         console.error('Create organization error:', error);
-        throw new HttpsError('internal', 'Organizasyon oluşturma başarısız: ' + error.message);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -186,7 +189,14 @@ exports.deleteOrganization = onCall({ enforceAppCheck: false }, async (request) 
             // Delete Auth users for this studio
             const usersSnap = await studioDoc.ref.collection('users').get();
             for (const userDoc of usersSnap.docs) {
-                try { await auth.deleteUser(userDoc.id); } catch (e) { /* user may already be deleted */ }
+                try {
+                    await auth.deleteUser(userDoc.id);
+                } catch (e) {
+                    if (e.code !== 'auth/user-not-found') {
+                        console.error('Failed to delete auth user:', userDoc.id, e);
+                        throw e;
+                    }
+                }
             }
 
             await studioDoc.ref.delete();
@@ -244,7 +254,8 @@ exports.updateOrganization = onCall({ enforceAppCheck: false }, async (request) 
         return { success: true };
     } catch (error) {
         console.error('updateOrganization error:', error);
-        throw new HttpsError('internal', 'Organizasyon güncellenemedi: ' + error.message);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -467,7 +478,14 @@ exports.deleteStudio = onCall({ enforceAppCheck: false }, async (request) => {
         // 2. Delete Auth users for this studio
         const usersSnap = await studioRef.collection('users').get();
         for (const userDoc of usersSnap.docs) {
-            try { await auth.deleteUser(userDoc.id); } catch (e) { /* user may already be deleted */ }
+            try {
+                await auth.deleteUser(userDoc.id);
+            } catch (e) {
+                if (e.code !== 'auth/user-not-found') {
+                    console.error('Failed to delete auth user:', userDoc.id, e);
+                    throw e;
+                }
+            }
             await userDoc.ref.delete();
         }
 
@@ -526,60 +544,34 @@ exports.validateSerialKey = onCall({ enforceAppCheck: false }, async (request) =
     }
 
     try {
-        // Search across all organizations
-        const orgsSnap = await db.collection('organizations').get();
-        console.log(`[validateSerialKey] Searching ${orgsSnap.size} organizations for key: ${cleanKey}`);
+        // SECURITY/PERF: Collection group query scoped to the indexed field — bounded O(1) lookup
+        const studiosSnap = await db.collectionGroup('studios')
+            .where('license.license_key', '==', cleanKey)
+            .limit(1)
+            .get();
 
-        for (const orgDoc of orgsSnap.docs) {
-            console.log(`[validateSerialKey] Checking org: ${orgDoc.id} (${orgDoc.data().name || 'unnamed'})`);
+        if (!studiosSnap.empty) {
+            const studioDoc = studiosSnap.docs[0];
+            const studioData = studioDoc.data();
+            // studioDoc.ref.parent.parent is the organization doc
+            const orgRef = studioDoc.ref.parent.parent;
+            const orgId = orgRef ? orgRef.id : null;
 
-            // First try indexed query
-            const studiosSnap = await orgDoc.ref.collection('studios')
-                .where('license.license_key', '==', cleanKey)
-                .limit(1)
-                .get();
-
-            if (!studiosSnap.empty) {
-                const studioDoc = studiosSnap.docs[0];
-                const studioData = studioDoc.data();
-                console.log(`[validateSerialKey] FOUND via indexed query in org ${orgDoc.id}, studio ${studioDoc.id}`);
-
-                return {
-                    success: true,
-                    studioId: studioDoc.id,
-                    organizationId: orgDoc.id,
-                    studioName: studioData.info?.name || 'Studio'
-                };
-            }
-
-            // Fallback: manually scan studios (in case field path is different)
-            const allStudios = await orgDoc.ref.collection('studios').get();
-            console.log(`[validateSerialKey] Org ${orgDoc.id} has ${allStudios.size} studios, scanning manually...`);
-            for (const sDoc of allStudios.docs) {
-                const sData = sDoc.data();
-                const storedKey = sData.license?.license_key || sData.licenseKey || sData.license_key || sData.serialKey;
-                console.log(`[validateSerialKey]   Studio ${sDoc.id} (${sData.info?.name}): license_key=${storedKey}`);
-
-                if (storedKey && storedKey.toUpperCase() === cleanKey) {
-                    console.log(`[validateSerialKey] FOUND via manual scan! Studio ${sDoc.id}`);
-                    return {
-                        success: true,
-                        studioId: sDoc.id,
-                        organizationId: orgDoc.id,
-                        studioName: sData.info?.name || 'Studio'
-                    };
-                }
-            }
+            return {
+                success: true,
+                studioId: studioDoc.id,
+                organizationId: orgId,
+                studioName: studioData.info?.name || 'Studio'
+            };
         }
 
-        console.log(`[validateSerialKey] Key ${cleanKey} NOT FOUND in any organization`);
         throw new HttpsError('not-found', 'No studio found with this serial key');
     } catch (error) {
         if (error instanceof HttpsError) {
             throw error;
         }
         console.error('Error validating serial key:', error);
-        throw new HttpsError('internal', 'Failed to validate serial key');
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -676,9 +668,11 @@ exports.verifyTotp = onCall({ enforceAppCheck: false }, async (request) => {
             return otp.toString().padStart(6, '0');
         };
 
-        const isValid = [timeStep - 1, timeStep, timeStep + 1].some(step =>
-            verifyForStep(step) === code
-        );
+        const isValid = [timeStep - 1, timeStep, timeStep + 1].some(step => {
+            const expected = verifyForStep(step);
+            if (typeof expected !== 'string' || expected.length !== code.length) return false;
+            return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(code));
+        });
 
         if (!isValid) {
             return { success: false, message: 'Geçersiz kod' };
@@ -778,7 +772,8 @@ exports.getStudiosWithStats = onCall({ enforceAppCheck: false, memory: '512MiB' 
         return { success: true, studios: allStudios };
     } catch (error) {
         console.error('getStudiosWithStats error:', error);
-        throw new HttpsError('internal', 'Stüdyo istatistikleri alınamadı: ' + error.message);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -856,7 +851,8 @@ exports.updateStudio = onCall({ enforceAppCheck: false }, async (request) => {
         return { success: true };
     } catch (error) {
         console.error('updateStudio error:', error);
-        throw new HttpsError('internal', 'Stüdyo güncellenemedi: ' + error.message);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 
@@ -898,7 +894,8 @@ exports.updateIntegration = onCall({ enforceAppCheck: false }, async (request) =
         return { success: true };
     } catch (error) {
         console.error('updateIntegration error:', error);
-        throw new HttpsError('internal', 'Entegrasyon güncellenemedi: ' + error.message);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'İşlem sırasında bir hata oluştu.');
     }
 });
 

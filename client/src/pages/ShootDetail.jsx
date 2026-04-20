@@ -8,7 +8,9 @@ import {
     Edit, Trash2, CheckCircle, Loader2, Play, Pause, AlertCircle, X,
     Undo2, UserCog, Image, FolderOpen, ChevronDown
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { SkeletonCard } from '../components/Skeleton';
 
 const workflowStages = [
     { key: 'confirmed', label: 'Onay', icon: CheckCircle },
@@ -227,6 +229,7 @@ export default function ShootDetail() {
     const queryClient = useQueryClient();
     const [showEdit, setShowEdit] = useState(false);
     const [showPayment, setShowPayment] = useState(false);
+    const [confirmRollback, setConfirmRollback] = useState(false);
 
     const { data: shoot, isLoading } = useQuery({
         queryKey: ['shoot', id],
@@ -266,16 +269,30 @@ export default function ShootDetail() {
     const rollbackStage = () => {
         const currentIdx = getStageIndex();
         if (currentIdx > 0) {
-            if (!confirm('Aşamayı geri almak istediğinizden emin misiniz?')) return;
+            setConfirmRollback(true);
+        }
+    };
+
+    const performRollback = () => {
+        const currentIdx = getStageIndex();
+        if (currentIdx > 0) {
             const prevStage = workflowStages[currentIdx - 1];
-            statusMutation.mutate({ status: prevStage.key, workflowStage: prevStage.key });
+            statusMutation.mutate({ status: prevStage.key, workflowStage: prevStage.key }, {
+                onSettled: () => setConfirmRollback(false)
+            });
+        } else {
+            setConfirmRollback(false);
         }
     };
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="space-y-6">
+                <SkeletonCard />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <SkeletonCard className="lg:col-span-2 h-64" />
+                    <SkeletonCard className="h-64" />
+                </div>
             </div>
         );
     }
@@ -491,6 +508,18 @@ export default function ShootDetail() {
                     onSave={() => { queryClient.invalidateQueries({ queryKey: ['shoot', id] }); setShowPayment(false); }}
                 />
             )}
+
+            <ConfirmDialog
+                open={confirmRollback}
+                onOpenChange={(o) => !o && setConfirmRollback(false)}
+                title="Aşamayı geri al"
+                description="Aşamayı geri almak istediğinizden emin misiniz?"
+                destructive={false}
+                confirmText="Geri Al"
+                cancelText="Vazgeç"
+                onConfirm={performRollback}
+                loading={statusMutation.isPending}
+            />
         </div>
     );
 }

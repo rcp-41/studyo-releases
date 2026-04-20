@@ -16,7 +16,8 @@ import {
     X,
     CalendarRange
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import { SkeletonList } from '../components/Skeleton';
 
 const statusFilters = [
     { value: '', label: 'Tümü' },
@@ -401,9 +402,7 @@ export default function Shoots() {
 
             {/* Grid */}
             {isLoading ? (
-                <div className="flex justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
+                <SkeletonList rows={8} />
             ) : shoots.length === 0 ? (
                 <div className="text-center py-12">
                     <Camera className="w-16 h-16 text-muted-foreground mx-auto mb-4" />

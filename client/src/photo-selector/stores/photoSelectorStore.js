@@ -34,7 +34,9 @@ const usePhotoSelectorStore = create(
             pixonaiConfig: null,       // active pixonai config from Firestore
             activePackage: null,       // matched package based on fav count
             giftAssignments: {},       // { giftAbbr: [photoId1, photoId2, ...] }
+            optionAssignments: {},     // { optionAbbr: [photoId1, photoId2, ...] }
             shootCategoryType: null,   // 'yearly' | 'set' | 'portrait' | 'none'
+            noteText: '',              // extra photo note (saved as txt file)
 
             // ============ PRICING ============
             priceList: null,
@@ -70,7 +72,9 @@ const usePhotoSelectorStore = create(
                 pixonaiConfig: null,
                 activePackage: null,
                 giftAssignments: {},
+                optionAssignments: {},
                 shootCategoryType: config.shootCategoryType || null,
+                noteText: '',
             }),
 
             setOperationMode: (mode) => set({ operationMode: mode }),
@@ -160,6 +164,14 @@ const usePhotoSelectorStore = create(
                 set({ favorites: newFavs, removedFavorites: newRemoved, isDirty: true });
             },
 
+            reorderFavorites: (oldIndex, newIndex) => {
+                const { favorites } = get();
+                const favsArray = Array.from(favorites);
+                const [movedItem] = favsArray.splice(oldIndex, 1);
+                favsArray.splice(newIndex, 0, movedItem);
+                set({ favorites: new Set(favsArray), isDirty: true });
+            },
+
             // --- Numbering ---
             assignNumber: (photoId, options = [], optionDetails = {}) => {
                 const { numberedPhotos, nextOrderNumber, undoStack } = get();
@@ -245,7 +257,10 @@ const usePhotoSelectorStore = create(
             updatePricing: (breakdown, total) => set({ priceBreakdown: breakdown, totalPrice: total }),
 
             // --- Pixonai / Package Gifts ---
-            setPixonaiConfig: (config) => set({ pixonaiConfig: config }),
+            setPixonaiConfig: (config) => set({
+                pixonaiConfig: config,
+                shootCategoryType: config?.type || null,
+            }),
 
             setActivePackage: (pkg) => set({
                 activePackage: pkg,
@@ -269,9 +284,10 @@ const usePhotoSelectorStore = create(
                 // If photo already has this gift, do nothing
                 if (current.includes(photoId)) return;
 
-                // Enforce maxSelections: remove oldest if limit reached
-                if (current.length >= gift.maxSelections) {
-                    current.shift(); // remove oldest
+                // maxSelections: 0 means unlimited — no cap
+                const maxSel = gift.maxSelections || 0;
+                if (maxSel > 0 && current.length >= maxSel) {
+                    current.shift(); // remove oldest to make room
                 }
                 current.push(photoId);
 
@@ -291,6 +307,41 @@ const usePhotoSelectorStore = create(
             },
 
             clearGifts: () => set({ giftAssignments: {} }),
+
+            // --- Pixonai / Options ---
+            assignOption: (photoId, optionAbbr) => {
+                const { optionAssignments, pixonaiConfig } = get();
+                if (!pixonaiConfig) return;
+
+                const option = pixonaiConfig.options?.find(o => o.abbr === optionAbbr);
+                if (!option) return;
+
+                const current = [...(optionAssignments[optionAbbr] || [])];
+                if (current.includes(photoId)) return;
+
+                const maxSel = option.maxSelections || 0;
+                if (maxSel > 0 && current.length >= maxSel) {
+                    current.shift();
+                }
+                current.push(photoId);
+
+                set({
+                    optionAssignments: { ...optionAssignments, [optionAbbr]: current },
+                    isDirty: true,
+                });
+            },
+
+            removeOption: (photoId, optionAbbr) => {
+                const { optionAssignments } = get();
+                const current = (optionAssignments[optionAbbr] || []).filter(id => id !== photoId);
+                set({
+                    optionAssignments: { ...optionAssignments, [optionAbbr]: current },
+                    isDirty: true,
+                });
+            },
+
+            clearOptions: () => set({ optionAssignments: {} }),
+            setNoteText: (text) => set({ noteText: text, isDirty: true }),
 
             getGiftsForPhoto: (photoId) => {
                 const { giftAssignments, activePackage } = get();
@@ -475,7 +526,9 @@ const usePhotoSelectorStore = create(
                 filterMode: state.filterMode,
                 gridColumns: state.gridColumns,
                 giftAssignments: state.giftAssignments,
+                optionAssignments: state.optionAssignments,
                 shootCategoryType: state.shootCategoryType,
+                noteText: state.noteText,
             }),
             onRehydrateStorage: () => (state) => {
                 if (state) {

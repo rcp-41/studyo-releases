@@ -72,6 +72,7 @@ contextBridge.exposeInMainWorld('electron', {
         readIni: (params) => ipcRenderer.invoke('photos:readIniFile', params),
         writeIni: (params) => ipcRenderer.invoke('photos:writeIniFile', params),
         createNotes: (params) => ipcRenderer.invoke('photos:createNotesFile', params),
+        writeFile: (params) => ipcRenderer.invoke('photos:writeFile', params),
         getImageAsBase64: (params) => ipcRenderer.invoke('photos:getImageAsBase64', params),
         getDisplays: () => ipcRenderer.invoke('screen:getDisplays'),
         selectFolder: () => ipcRenderer.invoke('photos:selectFolder'),

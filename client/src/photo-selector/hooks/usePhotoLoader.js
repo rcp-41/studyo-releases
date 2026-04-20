@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import { deserializeFromIni } from '../utils/iniManager';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'tiff', 'tif', 'webp', 'bmp', 'cr2', 'nef', 'arw', 'dng'];
 

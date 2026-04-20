@@ -9,7 +9,8 @@ import {
     LayoutDashboard, TrendingUp, Percent
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import { SkeletonDashboard, SkeletonTable, SkeletonCard } from '../components/Skeleton';
 
 const tabs = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -77,7 +78,7 @@ function DashboardTab({ range }) {
         queryFn: () => financeApi.getDailyCash({ date: today })
     });
 
-    if (payLoading || expLoading || cashLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    if (payLoading || expLoading || cashLoading) return <SkeletonDashboard />;
 
     const cash = cashData || {};
     const kasaBalance = (cash.openingBalance || 0) + (cash.cashIncome || 0) + (cash.cardIncome || 0) + (cash.transferIncome || 0) - (cash.totalExpenses || 0);
@@ -304,7 +305,7 @@ function PaymentsTab({ range }) {
         return { cash, card, transfer, total: cash + card + transfer };
     }, [filtered]);
 
-    if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    if (isLoading) return <SkeletonTable rows={8} columns={6} />;
 
     return (
         <div className="space-y-4">
@@ -412,7 +413,7 @@ function CashTab({ range }) {
         onError: () => toast.error('Güncelleme başarısız')
     });
 
-    if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    if (isLoading) return <div className="max-w-2xl mx-auto"><SkeletonCard className="h-96" /></div>;
 
     const closingBalance = (cash.openingBalance || 0) + (cash.cashIncome || 0) + (cash.cardIncome || 0) + (cash.transferIncome || 0) - (cash.totalExpenses || 0);
 
@@ -515,7 +516,7 @@ function ExpensesTab({ range }) {
 
     const total = useMemo(() => expenses.reduce((s, e) => s + (e.amount || 0), 0), [expenses]);
 
-    if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    if (isLoading) return <SkeletonTable rows={8} columns={5} />;
 
     return (
         <div className="space-y-4">
@@ -706,7 +707,7 @@ function OverdueTab() {
 
     const totalOverdue = useMemo(() => overdueList.reduce((s, o) => s + (o.remaining || 0), 0), [overdueList]);
 
-    if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    if (isLoading) return <SkeletonTable rows={8} columns={8} />;
 
     return (
         <div className="space-y-4">

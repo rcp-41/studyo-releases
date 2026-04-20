@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customersApi } from '../services/api';
 import { cn } from '../lib/utils';
 import { X, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const TEMPLATE_COLUMNS = ['İsim', 'Telefon', 'Email', 'Tür', 'Kaynak', 'Not'];
 const FIELD_MAP = {

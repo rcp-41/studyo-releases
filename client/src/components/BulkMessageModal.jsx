@@ -6,7 +6,7 @@ import {
     X, Search, Plus, Trash2, ChevronRight, MessageCircle,
     Loader2, Send, CheckCircle, AlertCircle, Users
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const messageTemplates = [
     { key: '', label: 'Şablon Seçin...' },

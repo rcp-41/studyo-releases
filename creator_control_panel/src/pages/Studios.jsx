@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     Plus, Search, Edit, Eye, EyeOff, RefreshCcw, Pause, Play, Trash2, X, Key,
     Settings, Camera, MapPin, User, Save, Globe, Lock, Wifi, WifiOff, Loader2,
     Building, Shield, RotateCcw, ChevronDown, ChevronRight, Monitor, Bell,
-    CheckCircle, XCircle, Clock
+    CheckCircle, XCircle, Clock, Database
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { creatorApi } from '../services/creatorApi';
 import BotConfigModal from '../components/BotConfigModal';
+import ConfirmDialog from '../components/ConfirmDialog';
+
+const SECRET_MASK = '••••••••';
 
 // SECURITY: Generate random license key using crypto.getRandomValues
 function generateLicenseKey() {
@@ -39,6 +42,10 @@ export default function Studios() {
     // Modal States
     const [showModal, setShowModal] = useState(false);
     const [showHwidModal, setShowHwidModal] = useState(null);
+    const [showResetModal, setShowResetModal] = useState(null);
+    const [resetOption, setResetOption] = useState('archives');
+    const [resetConfirmText, setResetConfirmText] = useState('');
+    const [resettingData, setResettingData] = useState(false);
     const [activeTab, setActiveTab] = useState('general');
     const [editingStudio, setEditingStudio] = useState(null);
     const [showPasswords, setShowPasswords] = useState({ admin: false, user: false });
@@ -59,6 +66,16 @@ export default function Studios() {
 
     // Bot Config Modal
     const [showBotModal, setShowBotModal] = useState(null);
+
+    // Confirm Dialog state
+    const [confirmState, setConfirmState] = useState(null);
+    const [deviceModalPending, setDeviceModalPending] = useState(false);
+
+    // Secret masking state for WooCommerce credentials
+    const [wcSecretState, setWcSecretState] = useState({
+        hasStoredKey: false, keyChanged: false, keyVisible: false,
+        hasStoredSecret: false, secretChanged: false, secretVisible: false
+    });
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -98,6 +115,10 @@ export default function Studios() {
             name: '', owner: '', contact: '', email: '', ownerEmail: '',
             wc_url: '', wc_consumer_key: '', wc_consumer_secret: ''
         });
+        setWcSecretState({
+            hasStoredKey: false, keyChanged: false, keyVisible: false,
+            hasStoredSecret: false, secretChanged: false, secretVisible: false
+        });
         setActiveTab('general');
         setShowModal(true);
     }
@@ -136,6 +157,8 @@ export default function Studios() {
 
     function openEditModal(studio) {
         setEditingStudio(studio);
+        const storedKey = studio.integrations?.woocommerce?.consumer_key || '';
+        const storedSecret = studio.integrations?.woocommerce?.consumer_secret || '';
         setFormData({
             organizationId: studio.organizationId || '',
             name: studio.info?.name || '',
@@ -143,8 +166,12 @@ export default function Studios() {
             contact: studio.info?.contact || '',
             email: studio.info?.email || '',
             wc_url: studio.integrations?.woocommerce?.url || '',
-            wc_consumer_key: studio.integrations?.woocommerce?.consumer_key || '',
-            wc_consumer_secret: studio.integrations?.woocommerce?.consumer_secret || ''
+            wc_consumer_key: storedKey ? SECRET_MASK : '',
+            wc_consumer_secret: storedSecret ? SECRET_MASK : ''
+        });
+        setWcSecretState({
+            hasStoredKey: !!storedKey, keyChanged: false, keyVisible: false,
+            hasStoredSecret: !!storedSecret, secretChanged: false, secretVisible: false
         });
         setActiveTab('general');
         setShowModal(true);
@@ -154,16 +181,19 @@ export default function Studios() {
         e.preventDefault();
         try {
             if (editingStudio) {
+                const wc = { url: formData.wc_url };
+                if (wcSecretState.keyChanged || !wcSecretState.hasStoredKey) {
+                    wc.consumer_key = formData.wc_consumer_key;
+                }
+                if (wcSecretState.secretChanged || !wcSecretState.hasStoredSecret) {
+                    wc.consumer_secret = formData.wc_consumer_secret;
+                }
                 const updateData = {
                     'info.name': formData.name,
                     'info.owner': formData.owner,
                     'info.contact': formData.contact,
                     'info.email': formData.email,
-                    'integrations.woocommerce': {
-                        url: formData.wc_url,
-                        consumer_key: formData.wc_consumer_key,
-                        consumer_secret: formData.wc_consumer_secret
-                    }
+                    'integrations.woocommerce': wc
                 };
                 await creatorApi.updateStudio(
                     editingStudio.organizationId,
@@ -232,31 +262,53 @@ export default function Studios() {
         }
     }
 
-    async function handleResetHwid(studio) {
-        if (!confirm(`${studio.info?.name} için HWID sıfırlansın mı?`)) return;
-        try {
-            await creatorApi.resetHwid(studio.organizationId, studio.id);
-            toast.success('HWID sıfırlandı!');
-            loadData();
-            setShowHwidModal(null);
-        } catch (error) {
-            toast.error('HWID sıfırlama hatası: ' + error.message);
-        }
+    function handleResetHwid(studio) {
+        setConfirmState({
+            kind: 'resetHwid',
+            title: 'HWID Sıfırla',
+            message: `${studio.info?.name || 'Stüdyo'} için HWID sıfırlansın mı? Kilitli cihaz bağlantısı kaldırılır.`,
+            confirmText: 'Sıfırla',
+            danger: false,
+            onConfirm: async () => {
+                try {
+                    await creatorApi.resetHwid(studio.organizationId, studio.id);
+                    toast.success('HWID sıfırlandı!');
+                    loadData();
+                    setShowHwidModal(null);
+                } catch (error) {
+                    toast.error('HWID sıfırlama hatası: ' + error.message);
+                } finally {
+                    setConfirmState(null);
+                }
+            }
+        });
     }
 
-    async function handleRegenerateLicense(studio) {
-        if (!confirm(`${studio.info?.name} için lisans anahtarı yenilensin mi?`)) return;
-        try {
-            const result = await creatorApi.regenerateLicenseKey(studio.organizationId, studio.id);
-            toast.success(`Yeni lisans: ${result?.newLicenseKey || 'Oluşturuldu'}`);
-            loadData();
-            setShowHwidModal(null);
-        } catch (error) {
-            toast.error('Lisans yenileme hatası: ' + error.message);
-        }
+    function handleRegenerateLicense(studio) {
+        setConfirmState({
+            kind: 'regenLicense',
+            title: 'Lisans Anahtarını Yenile',
+            message: `${studio.info?.name || 'Stüdyo'} için yeni bir lisans anahtarı oluşturulacak. Mevcut anahtar geçersiz olacaktır.`,
+            confirmText: 'Yenile',
+            danger: false,
+            onConfirm: async () => {
+                try {
+                    const result = await creatorApi.regenerateLicenseKey(studio.organizationId, studio.id);
+                    toast.success(`Yeni lisans: ${result?.newLicenseKey || 'Oluşturuldu'}`);
+                    loadData();
+                    setShowHwidModal(null);
+                } catch (error) {
+                    toast.error('Lisans yenileme hatası: ' + error.message);
+                } finally {
+                    setConfirmState(null);
+                }
+            }
+        });
     }
 
-    async function openDeviceModal(studio) {
+    const openDeviceModal = useCallback(async (studio) => {
+        if (deviceModalPending) return;
+        setDeviceModalPending(true);
         setShowHwidModal(studio);
         setDeviceLoading(true);
         setDeviceList([]);
@@ -268,17 +320,44 @@ export default function Studios() {
             toast.error('Cihaz listesi yüklenemedi');
         } finally {
             setDeviceLoading(false);
+            setDeviceModalPending(false);
         }
+    }, [deviceModalPending]);
+
+    function handleDeleteStudio(studio) {
+        setConfirmState({
+            kind: 'deleteStudio',
+            title: 'Stüdyoyu Sil',
+            message: `${studio.info?.name || 'Stüdyo'} ve tüm verileri kalıcı olarak silinecektir. Devam etmek için stüdyo adını yazın.`,
+            confirmText: 'Sil',
+            danger: true,
+            requireText: studio.info?.name || 'SİL',
+            onConfirm: async () => {
+                try {
+                    await creatorApi.deleteStudio(studio.organizationId, studio.id);
+                    toast.success('Stüdyo silindi!');
+                    loadData();
+                } catch (error) {
+                    toast.error('Silme hatası: ' + error.message);
+                } finally {
+                    setConfirmState(null);
+                }
+            }
+        });
     }
 
-    async function handleDeleteStudio(studio) {
-        if (!confirm(`${studio.info?.name} silinecek. Bu işlem geri alınamaz! Devam edilsin mi?`)) return;
+    async function handleResetData() {
+        if (resetConfirmText !== 'ONAYLIYORUM') return;
+        setResettingData(true);
         try {
-            await creatorApi.deleteStudio(studio.organizationId, studio.id);
-            toast.success('Stüdyo silindi!');
+            await creatorApi.resetStudioData(showResetModal.organizationId, showResetModal.id, resetOption);
+            toast.success('Stüdyo verileri başarıyla sıfırlandı!');
+            setShowResetModal(null);
             loadData();
         } catch (error) {
-            toast.error('Silme hatası: ' + error.message);
+            toast.error('Sıfırlama hatası: ' + error.message);
+        } finally {
+            setResettingData(false);
         }
     }
 
@@ -440,11 +519,15 @@ export default function Studios() {
                                                             style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.3)' }}>
                                                             🤖
                                                         </button>
-                                                        <button className="btn btn-secondary btn-sm" title="Cihazlar" onClick={() => openDeviceModal(studio)}>
+                                                        <button className="btn btn-secondary btn-sm" title="Cihazlar" disabled={deviceModalPending} onClick={() => openDeviceModal(studio)}>
                                                             <Monitor size={14} />
                                                         </button>
                                                         <button className="btn btn-secondary btn-sm" title="Durum Değiştir" onClick={() => handleToggleStatus(studio)}>
                                                             {studio.info?.subscription_status === 'active' ? <Pause size={14} /> : <Play size={14} />}
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Veri Sıfırlama" onClick={() => { setShowResetModal(studio); setResetOption('archives'); setResetConfirmText(''); }}
+                                                            style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                                            <Database size={14} />
                                                         </button>
                                                         <button className="btn btn-danger btn-sm" title="Sil" onClick={() => handleDeleteStudio(studio)}>
                                                             <Trash2 size={14} />
@@ -663,19 +746,61 @@ export default function Studios() {
                                         </div>
                                         <div className="form-group">
                                             <label className="form-label">Consumer Key</label>
-                                            <input type="password" className="form-input"
-                                                value={formData.wc_consumer_key}
-                                                onChange={(e) => setFormData({ ...formData, wc_consumer_key: e.target.value })}
-                                                placeholder="ck_..." style={{ fontFamily: 'monospace', fontSize: '13px' }}
-                                            />
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <div style={{ position: 'relative', flex: 1 }}>
+                                                    <input type={wcSecretState.keyVisible ? 'text' : 'password'} className="form-input"
+                                                        value={formData.wc_consumer_key}
+                                                        disabled={wcSecretState.hasStoredKey && !wcSecretState.keyChanged}
+                                                        onChange={(e) => setFormData({ ...formData, wc_consumer_key: e.target.value })}
+                                                        placeholder="ck_..." style={{ fontFamily: 'monospace', fontSize: '13px', paddingRight: '40px' }}
+                                                    />
+                                                    {(!wcSecretState.hasStoredKey || wcSecretState.keyChanged) && (
+                                                        <button type="button"
+                                                            onClick={() => setWcSecretState(s => ({ ...s, keyVisible: !s.keyVisible }))}
+                                                            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                                                            {wcSecretState.keyVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {wcSecretState.hasStoredKey && !wcSecretState.keyChanged && (
+                                                    <button type="button" className="btn btn-secondary btn-sm"
+                                                        onClick={() => {
+                                                            setFormData(p => ({ ...p, wc_consumer_key: '' }));
+                                                            setWcSecretState(s => ({ ...s, keyChanged: true }));
+                                                        }}>
+                                                        Değiştir
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="form-group">
                                             <label className="form-label">Consumer Secret</label>
-                                            <input type="password" className="form-input"
-                                                value={formData.wc_consumer_secret}
-                                                onChange={(e) => setFormData({ ...formData, wc_consumer_secret: e.target.value })}
-                                                placeholder="cs_..." style={{ fontFamily: 'monospace', fontSize: '13px' }}
-                                            />
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <div style={{ position: 'relative', flex: 1 }}>
+                                                    <input type={wcSecretState.secretVisible ? 'text' : 'password'} className="form-input"
+                                                        value={formData.wc_consumer_secret}
+                                                        disabled={wcSecretState.hasStoredSecret && !wcSecretState.secretChanged}
+                                                        onChange={(e) => setFormData({ ...formData, wc_consumer_secret: e.target.value })}
+                                                        placeholder="cs_..." style={{ fontFamily: 'monospace', fontSize: '13px', paddingRight: '40px' }}
+                                                    />
+                                                    {(!wcSecretState.hasStoredSecret || wcSecretState.secretChanged) && (
+                                                        <button type="button"
+                                                            onClick={() => setWcSecretState(s => ({ ...s, secretVisible: !s.secretVisible }))}
+                                                            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                                                            {wcSecretState.secretVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {wcSecretState.hasStoredSecret && !wcSecretState.secretChanged && (
+                                                    <button type="button" className="btn btn-secondary btn-sm"
+                                                        onClick={() => {
+                                                            setFormData(p => ({ ...p, wc_consumer_secret: '' }));
+                                                            setWcSecretState(s => ({ ...s, secretChanged: true }));
+                                                        }}>
+                                                        Değiştir
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -849,7 +974,9 @@ export default function Studios() {
                                                                         <button
                                                                             className="btn btn-primary btn-sm"
                                                                             style={{ fontSize: '11px', padding: '4px 8px' }}
+                                                                            disabled={deviceModalPending}
                                                                             onClick={async () => {
+                                                                                if (deviceModalPending) return;
                                                                                 try {
                                                                                     await creatorApi.approveDevice(showHwidModal.organizationId, showHwidModal.id, device.id);
                                                                                     toast.success('Cihaz onaylandı!');
@@ -864,7 +991,9 @@ export default function Studios() {
                                                                         <button
                                                                             className="btn btn-danger btn-sm"
                                                                             style={{ fontSize: '11px', padding: '4px 8px' }}
+                                                                            disabled={deviceModalPending}
                                                                             onClick={async () => {
+                                                                                if (deviceModalPending) return;
                                                                                 try {
                                                                                     await creatorApi.rejectDevice(showHwidModal.organizationId, showHwidModal.id, device.id);
                                                                                     toast.success('Cihaz reddedildi');
@@ -882,16 +1011,24 @@ export default function Studios() {
                                                                     <button
                                                                         className="btn btn-secondary btn-sm"
                                                                         style={{ fontSize: '11px', padding: '4px 8px' }}
-                                                                        onClick={async () => {
-                                                                            if (!confirm('Bu cihazın erişimini kaldırmak istediğinize emin misiniz?')) return;
-                                                                            try {
-                                                                                await creatorApi.rejectDevice(showHwidModal.organizationId, showHwidModal.id, device.id);
-                                                                                toast.success('Cihaz erişimi kaldırıldı');
-                                                                                openDeviceModal(showHwidModal);
-                                                                            } catch (err) {
-                                                                                toast.error('Kaldırma hatası: ' + err.message);
+                                                                        onClick={() => setConfirmState({
+                                                                            kind: 'removeDevice',
+                                                                            title: 'Cihaz Erişimini Kaldır',
+                                                                            message: 'Bu cihazın erişimi kaldırılacak. Devam edilsin mi?',
+                                                                            confirmText: 'Kaldır',
+                                                                            danger: true,
+                                                                            onConfirm: async () => {
+                                                                                try {
+                                                                                    await creatorApi.rejectDevice(showHwidModal.organizationId, showHwidModal.id, device.id);
+                                                                                    toast.success('Cihaz erişimi kaldırıldı');
+                                                                                    openDeviceModal(showHwidModal);
+                                                                                } catch (err) {
+                                                                                    toast.error('Kaldırma hatası: ' + err.message);
+                                                                                } finally {
+                                                                                    setConfirmState(null);
+                                                                                }
                                                                             }
-                                                                        }}
+                                                                        })}
                                                                     >
                                                                         <Trash2 size={12} /> Kaldır
                                                                     </button>
@@ -921,6 +1058,67 @@ export default function Studios() {
                 </div>
             )}
 
+            {/* Reset Data Modal */}
+            {showResetModal && (
+                <div className="modal-overlay" onClick={() => !resettingData && setShowResetModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h2>Veri Sıfırlama</h2>
+                            <button className="modal-close" onClick={() => !resettingData && setShowResetModal(null)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>
+                                Lütfen <strong>{showResetModal.info?.name}</strong> için sıfırlamak istediğiniz veri türünü seçin:
+                            </p>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', padding: '12px', background: resetOption === 'archives' ? 'rgba(99,102,241,0.1)' : 'var(--bg-secondary)', border: `1px solid ${resetOption === 'archives' ? 'var(--primary)' : 'var(--border-color)'}`, borderRadius: '8px' }}>
+                                    <input type="radio" name="resetOption" value="archives" checked={resetOption === 'archives'} onChange={() => setResetOption('archives')} style={{ marginTop: '4px' }} />
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>Arşiv Database</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Sadece arşiv listesi ve müşteri listesi silinir. (Okullar, paketler vb. kalır)</div>
+                                    </div>
+                                </label>
+                                
+                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', padding: '12px', background: resetOption === 'all' ? 'rgba(239,68,68,0.1)' : 'var(--bg-secondary)', border: `1px solid ${resetOption === 'all' ? '#ef4444' : 'var(--border-color)'}`, borderRadius: '8px' }}>
+                                    <input type="radio" name="resetOption" value="all" checked={resetOption === 'all'} onChange={() => setResetOption('all')} style={{ marginTop: '4px' }} />
+                                    <div>
+                                        <div style={{ fontWeight: 600, color: '#ef4444' }}>Tüm Veriler</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Arşivler, müşteriler, okullar, paketler, hediyeler vb. kullanıcı tarafından oluşturulan tüm veriler silinir. (Stüdyo ayarları kalır)</div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
+                                <strong>Dikkat:</strong> {showResetModal.info?.name} stüdyosunun seçilen verileri kalıcı olarak silinecektir.
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label">Onaylıyorsanız aşağıya "ONAYLIYORUM" yazın:</label>
+                                <input type="text" className="form-input" 
+                                    value={resetConfirmText} 
+                                    onChange={e => setResetConfirmText(e.target.value)}
+                                    placeholder="ONAYLIYORUM"
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
+                            <button className="btn btn-secondary" onClick={() => setShowResetModal(null)} disabled={resettingData}>
+                                Vazgeç
+                            </button>
+                            <button className="btn btn-danger" 
+                                disabled={resetConfirmText !== 'ONAYLIYORUM' || resettingData}
+                                onClick={handleResetData}
+                            >
+                                {resettingData ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Siliniyor...</> : 'Sil'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Bot Config Modal */}
             {showBotModal && (
                 <BotConfigModal
@@ -929,6 +1127,18 @@ export default function Studios() {
                     onRefresh={loadData}
                 />
             )}
+
+            <ConfirmDialog
+                open={!!confirmState}
+                onClose={() => setConfirmState(null)}
+                onConfirm={confirmState?.onConfirm}
+                title={confirmState?.title}
+                message={confirmState?.message}
+                confirmText={confirmState?.confirmText}
+                cancelText={confirmState?.cancelText || 'Vazgeç'}
+                danger={confirmState?.danger}
+                requireText={confirmState?.requireText}
+            />
         </div>
     );
 }

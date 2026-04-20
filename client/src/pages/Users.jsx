@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../services/api';
 import { formatDate, getRoleLabel, getInitials, cn } from '../lib/utils';
 import { Plus, Search, Edit, Trash2, Loader2, X, User, Shield, Check, Key, Calendar, CalendarPlus } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PasswordInput from '../components/PasswordInput';
+import { SkeletonTable } from '../components/Skeleton';
 
 const leaveTypes = [
     { value: 'annual', label: 'Yıllık İzin', color: 'bg-blue-500/20 text-blue-400' },
@@ -61,8 +63,7 @@ function AddUserModal({ isOpen, onClose }) {
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Şifre *</label>
-                        <input type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none" />
+                        <PasswordInput value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Rol</label>
@@ -116,10 +117,10 @@ function ResetPasswordModal({ isOpen, onClose, user }) {
                 </div>
                 <p className="text-sm text-muted-foreground mb-4"><b>{user.fullName}</b> için yeni şifre belirleyin.</p>
                 <form onSubmit={handleSubmit} className="space-y-3">
-                    <input type="password" placeholder="Yeni Şifre (min 6 karakter)" value={password}
-                        onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none" />
-                    <input type="password" placeholder="Şifre Tekrar" value={confirm}
-                        onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none" />
+                    <PasswordInput placeholder="Yeni Şifre (min 6 karakter)" value={password}
+                        onChange={(e) => setPassword(e.target.value)} minLength={6} />
+                    <PasswordInput placeholder="Şifre Tekrar" value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)} />
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted">İptal</button>
                         <button type="submit" disabled={resetMutation.isPending}
@@ -338,7 +339,7 @@ export default function Users() {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>
+                    <SkeletonTable rows={6} columns={5} />
                 ) : (
                     <div className="bg-card border border-border rounded-xl overflow-hidden">
                         <table className="w-full">

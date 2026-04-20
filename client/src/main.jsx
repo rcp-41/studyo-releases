@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'sonner';
 import App from './App';
 import './index.css';
 
@@ -34,17 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <QueryClientProvider client={queryClient}>
             <App />
-            <Toaster
-                position="top-right"
-                toastOptions={{
-                    duration: 4000,
-                    style: {
-                        background: 'hsl(222.2 84% 4.9%)',
-                        color: 'hsl(210 40% 98%)',
-                        border: '1px solid hsl(217.2 32.6% 17.5%)',
-                    },
-                }}
-            />
+            <Toaster richColors position="top-right" />
         </QueryClientProvider>
     </React.StrictMode>
 );

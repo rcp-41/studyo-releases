@@ -13,6 +13,11 @@ const { expenseSchema, validate } = require('./validators/schemas');
 const FieldValue = admin.firestore.FieldValue;
 const Timestamp = admin.firestore.Timestamp;
 
+// Money helpers — sum/compare in integer cents to avoid float drift.
+// Storage stays as decimal TRY for backward compatibility.
+const toCents = (amount) => Math.round(Number(amount || 0) * 100);
+const fromCents = (cents) => cents / 100;
+
 // Helper: normalize any date value (Timestamp, string, Date) to ISO string
 const toISOString = (val) => {
     if (!val) return new Date().toISOString();
@@ -156,17 +161,18 @@ exports.getDailyCash = onCall({ enforceAppCheck: false }, async (request) => {
 
         const seen = new Set();
 
-        let cashIncome = 0, cardIncome = 0, transferIncome = 0;
+        // Sum in integer cents to avoid float drift
+        let cashCents = 0, cardCents = 0, transferCents = 0;
         for (const snap of [tsSnap, isoSnap]) {
             for (const doc of snap.docs) {
                 if (seen.has(doc.id)) continue;
                 seen.add(doc.id);
                 const p = doc.data();
-                const amount = p.amount || 0;
+                const cents = toCents(p.amount);
                 switch (p.method) {
-                    case 'cash': cashIncome += amount; break;
-                    case 'credit_card': cardIncome += amount; break;
-                    case 'transfer': transferIncome += amount; break;
+                    case 'cash': cashCents += cents; break;
+                    case 'credit_card': cardCents += cents; break;
+                    case 'transfer': transferCents += cents; break;
                 }
             }
         }
@@ -183,21 +189,21 @@ exports.getDailyCash = onCall({ enforceAppCheck: false }, async (request) => {
         ]);
 
         const expSeen = new Set();
-        let totalExpenses = 0;
+        let totalExpensesCents = 0;
         for (const snap of [expTsSnap, expIsoSnap]) {
             for (const doc of snap.docs) {
                 if (expSeen.has(doc.id)) continue;
                 expSeen.add(doc.id);
-                totalExpenses += doc.data().amount || 0;
+                totalExpensesCents += toCents(doc.data().amount);
             }
         }
 
         return {
             openingBalance,
-            cashIncome,
-            cardIncome,
-            transferIncome,
-            totalExpenses
+            cashIncome: fromCents(cashCents),
+            cardIncome: fromCents(cardCents),
+            transferIncome: fromCents(transferCents),
+            totalExpenses: fromCents(totalExpensesCents)
         };
     } catch (error) {
         console.error('getDailyCash error:', error);
@@ -362,7 +368,8 @@ exports.getCashRegisterEntries = onCall({ enforceAppCheck: false }, async (reque
             .get();
 
         const entries = [];
-        const summary = { cash: 0, card: 0, transfer: 0, total: 0, totalIncome: 0, totalExpense: 0 };
+        // Sum in integer cents to avoid float drift
+        const summaryCents = { cash: 0, card: 0, transfer: 0, total: 0, totalIncome: 0, totalExpense: 0 };
 
         snap.docs.forEach(doc => {
             const d = doc.data();
@@ -388,21 +395,29 @@ exports.getCashRegisterEntries = onCall({ enforceAppCheck: false }, async (reque
             };
             entries.push(entry);
 
-            // Calculate summary from items
-            const amount = entry.totalAmount;
+            const amountCents = toCents(entry.totalAmount);
             if (direction === 'income') {
-                summary.totalIncome += amount;
+                summaryCents.totalIncome += amountCents;
                 if (items.length > 0) {
                     const method = items[0].paymentMethod;
-                    if (method === 'cash') summary.cash += amount;
-                    else if (method === 'credit_card') summary.card += amount;
-                    else if (method === 'transfer') summary.transfer += amount;
+                    if (method === 'cash') summaryCents.cash += amountCents;
+                    else if (method === 'credit_card') summaryCents.card += amountCents;
+                    else if (method === 'transfer') summaryCents.transfer += amountCents;
                 }
             } else {
-                summary.totalExpense += amount;
+                summaryCents.totalExpense += amountCents;
             }
-            summary.total += (direction === 'income' ? amount : -amount);
+            summaryCents.total += (direction === 'income' ? amountCents : -amountCents);
         });
+
+        const summary = {
+            cash: fromCents(summaryCents.cash),
+            card: fromCents(summaryCents.card),
+            transfer: fromCents(summaryCents.transfer),
+            total: fromCents(summaryCents.total),
+            totalIncome: fromCents(summaryCents.totalIncome),
+            totalExpense: fromCents(summaryCents.totalExpense)
+        };
 
         return { entries, summary, date: targetDate };
     } catch (error) {
@@ -430,7 +445,9 @@ exports.createCashEntry = onCall({ enforceAppCheck: false }, async (request) => 
         throw new HttpsError('invalid-argument', 'direction must be income or expense');
     }
 
-    const totalAmount = items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
+    // Sum in integer cents to avoid float drift
+    const totalAmountCents = items.reduce((sum, item) => sum + toCents(item.totalPrice), 0);
+    const totalAmount = fromCents(totalAmountCents);
     const firstItem = items[0] || {};
     const itemDate = firstItem.date || new Date().toISOString().split('T')[0];
 
@@ -508,7 +525,9 @@ exports.updateCashEntry = onCall({ enforceAppCheck: false }, async (request) => 
         throw new HttpsError('invalid-argument', 'items array required');
     }
 
-    const totalAmount = items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
+    // Sum in integer cents to avoid float drift
+    const totalAmountCents = items.reduce((sum, item) => sum + toCents(item.totalPrice), 0);
+    const totalAmount = fromCents(totalAmountCents);
     const firstItem = items[0] || {};
     const itemDate = firstItem.date || new Date().toISOString().split('T')[0];
 
@@ -658,9 +677,11 @@ exports.getOverduePayments = onCall({ enforceAppCheck: false }, async (request) 
             const data = doc.data();
             const totalAmount = data.totalAmount || data.packagePrice || 0;
             const paidAmount = data.paidAmount || 0;
-            const remaining = totalAmount - paidAmount;
+            // Compute remaining in integer cents to avoid float drift, then convert back
+            const remainingCents = toCents(totalAmount) - toCents(paidAmount);
+            const remaining = fromCents(remainingCents);
 
-            if (remaining <= 0) return;
+            if (remainingCents <= 0) return;
 
             const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt || now);
             const daysPassed = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
@@ -717,29 +738,36 @@ exports.getFinanceSummary = onCall({ enforceAppCheck: false }, async (request) =
                 .get()
         ]);
 
-        let cashIncome = 0, cardIncome = 0, transferIncome = 0, otherIncome = 0;
+        // Sum in integer cents to avoid float drift
+        let cashCents = 0, cardCents = 0, transferCents = 0, otherCents = 0;
         paymentsSnap.docs.forEach(doc => {
             const p = doc.data();
-            const amount = Number(p.amount) || 0;
+            const cents = toCents(p.amount);
             switch (p.method) {
-                case 'cash': cashIncome += amount; break;
-                case 'credit_card': cardIncome += amount; break;
-                case 'transfer': transferIncome += amount; break;
-                default: otherIncome += amount;
+                case 'cash': cashCents += cents; break;
+                case 'credit_card': cardCents += cents; break;
+                case 'transfer': transferCents += cents; break;
+                default: otherCents += cents;
             }
         });
 
-        const totalIncome = cashIncome + cardIncome + transferIncome + otherIncome;
+        const totalIncomeCents = cashCents + cardCents + transferCents + otherCents;
 
-        // Expenses grouped by category
-        const expenseByCategory = {};
-        let totalExpenses = 0;
+        // Expenses grouped by category (cents)
+        const expenseByCategoryCents = {};
+        let totalExpensesCents = 0;
         expensesSnap.docs.forEach(doc => {
             const e = doc.data();
-            const amount = Number(e.amount) || 0;
-            totalExpenses += amount;
-            expenseByCategory[e.category || 'other'] = (expenseByCategory[e.category || 'other'] || 0) + amount;
+            const cents = toCents(e.amount);
+            totalExpensesCents += cents;
+            const cat = e.category || 'other';
+            expenseByCategoryCents[cat] = (expenseByCategoryCents[cat] || 0) + cents;
         });
+
+        const expenseByCategory = {};
+        for (const [k, v] of Object.entries(expenseByCategoryCents)) {
+            expenseByCategory[k] = fromCents(v);
+        }
 
         return {
             success: true,
@@ -748,17 +776,17 @@ exports.getFinanceSummary = onCall({ enforceAppCheck: false }, async (request) =
                 startDate: start.toISOString(),
                 endDate: end.toISOString(),
                 income: {
-                    total: totalIncome,
-                    cash: cashIncome,
-                    card: cardIncome,
-                    transfer: transferIncome,
-                    other: otherIncome
+                    total: fromCents(totalIncomeCents),
+                    cash: fromCents(cashCents),
+                    card: fromCents(cardCents),
+                    transfer: fromCents(transferCents),
+                    other: fromCents(otherCents)
                 },
                 expenses: {
-                    total: totalExpenses,
+                    total: fromCents(totalExpensesCents),
                     byCategory: expenseByCategory
                 },
-                netProfit: totalIncome - totalExpenses
+                netProfit: fromCents(totalIncomeCents - totalExpensesCents)
             }
         };
     } catch (error) {
