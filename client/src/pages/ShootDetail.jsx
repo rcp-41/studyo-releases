@@ -6,11 +6,14 @@ import { formatDate, formatDateTime, formatCurrency, getStatusLabel, getShootTyp
 import {
     ArrowLeft, Camera, Calendar, MapPin, DollarSign, User, Package, Clock,
     Edit, Trash2, CheckCircle, Loader2, Play, Pause, AlertCircle, X,
-    Undo2, UserCog, Image, FolderOpen, ChevronDown
+    Undo2, UserCog, Image, FolderOpen, ChevronDown, Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonCard } from '../components/Skeleton';
+import useF2Print from '../hooks/useF2Print';
+import { printTemplate, isPrintAvailable } from '../lib/printService';
+import { getPrintSettings } from '../lib/printSettings';
 
 const workflowStages = [
     { key: 'confirmed', label: 'Onay', icon: CheckCircle },
@@ -258,6 +261,45 @@ export default function ShootDetail() {
         return idx >= 0 ? idx : -1;
     };
 
+    const printShootDocs = async () => {
+        if (!shoot || !isPrintAvailable()) {
+            toast.error('Yazdırma servisi kullanılamıyor');
+            return;
+        }
+        const settings = getPrintSettings();
+        const types = ['receipt', 'smallEnvelope', 'bigEnvelope'].filter(t => settings.enabled?.[t]);
+        if (types.length === 0) {
+            toast.error('Hiçbir şablon aktif değil. Ayarlar > Yazdırma');
+            return;
+        }
+        const printable = {
+            archiveNumber: shoot.archiveNumber || shoot.shootCode,
+            fullName: shoot.customer?.fullName,
+            phone: shoot.customer?.phone,
+            email: shoot.customer?.email,
+            shootDate: shoot.shootDate,
+            deliveryDate: shoot.deliveryDate,
+            size: (shoot.packageItems || []).map(p => p.name || p.description).filter(Boolean).join(' + '),
+            photographer: shoot.photographer?.fullName,
+            shootLocation: shoot.location?.name,
+            shootType: shoot.shootType?.name,
+            totalAmount: shoot.totalAmount,
+            paidAmount: shoot.paidAmount,
+            remainingAmount: shoot.remainingAmount,
+            notes: shoot.notes
+        };
+        toast.loading('Yazdırılıyor...', { id: 'print-shoot' });
+        for (const type of types) {
+            await printTemplate(type, printable);
+        }
+        toast.success(`${types.length} şablon yazdırıldı`, { id: 'print-shoot' });
+    };
+
+    useF2Print({
+        enabled: !!shoot && !showEdit && !showPayment,
+        onF2: printShootDocs
+    });
+
     const advanceStage = () => {
         const currentIdx = getStageIndex();
         if (currentIdx < workflowStages.length - 1) {
@@ -342,6 +384,13 @@ export default function ShootDetail() {
                         >
                             <Play className="w-4 h-4" />
                             İleri Al
+                        </button>
+                    )}
+                    {isPrintAvailable() && (
+                        <button onClick={printShootDocs} className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted" title="Fiş + Zarf yazdır (F2)">
+                            <Printer className="w-4 h-4" />
+                            Yazdır
+                            <kbd className="hidden md:inline-block text-[10px] px-1 py-0.5 bg-muted rounded font-mono">F2</kbd>
                         </button>
                     )}
                     <button onClick={() => setShowEdit(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">

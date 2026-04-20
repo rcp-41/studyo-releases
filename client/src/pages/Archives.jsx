@@ -5,13 +5,16 @@ import { format, addDays, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
     Plus, Search, ChevronLeft, ChevronRight, X, Loader2,
-    MessageCircle, Globe, HardDrive, Folder, SlidersHorizontal, UserCircle, Archive, ExternalLink
+    MessageCircle, Globe, HardDrive, Folder, SlidersHorizontal, UserCircle, Archive, ExternalLink, Printer
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import WooCommerceModal from '../components/WooCommerceModal';
 import PhoneInput from '../components/PhoneInput';
 import { SkeletonTable } from '../components/Skeleton';
+import useF2Print from '../hooks/useF2Print';
+import { autoPrintArchive, printTemplate, isPrintAvailable } from '../lib/printService';
+import { getPrintSettings } from '../lib/printSettings';
 
 // Workflow Status Badge
 const WORKFLOW_STATUSES = {
@@ -123,11 +126,50 @@ function ArchiveModal({ isOpen, onClose, archive }) {
         }
     }, [isOpen, archive, shootTypes, locations, photographers]);
 
+    const runAutoPrint = useCallback(async (archiveDoc, formPayload) => {
+        const settings = getPrintSettings();
+        if (!settings.autoPrintOnSave) return;
+        try {
+            const archiveNum = archiveDoc?.archiveId || archiveDoc?.archiveNumber || formPayload?.archiveNumber;
+            const photographerName = photographers?.find(p => p.id === formPayload.photographerId)?.fullName || '';
+            const locationName = locations?.find(l => l.id === formPayload.locationId)?.name || '';
+            const shootTypeName = shootTypes?.find(s => s.id === formPayload.shootTypeId)?.name || '';
+            const total = Number(formPayload.totalAmount) || 0;
+            const paid = (Number(formPayload.cashAmount) || 0) + (Number(formPayload.cardAmount) || 0) + (Number(formPayload.transferAmount) || 0);
+            const printable = {
+                archiveNumber: String(archiveNum || ''),
+                fullName: formPayload.fullName,
+                phone: formPayload.phone,
+                email: formPayload.email,
+                shootDate: formPayload.shootDate || new Date(),
+                deliveryDate: formPayload.deliveryDate,
+                size: formPayload.description1 || formPayload.ebat || '',
+                photographer: photographerName,
+                shootLocation: locationName,
+                shootType: shootTypeName,
+                totalAmount: total,
+                paidAmount: paid,
+                remainingAmount: total - paid,
+                notes: formPayload.notes || formPayload.description2 || ''
+            };
+            const result = await autoPrintArchive(printable);
+            if (!result?.skipped) {
+                const failed = (result?.results || []).filter(r => !r.success);
+                if (failed.length) {
+                    toast.warning(`Yazdırma kısmen başarısız: ${failed.map(f => f.type).join(', ')}`);
+                }
+            }
+        } catch (err) {
+            console.error('[autoPrint] failed:', err);
+        }
+    }, [photographers, locations, shootTypes]);
+
     const createMutation = useMutation({
         mutationFn: (data) => archivesApi.create(data),
-        onSuccess: async (response) => {
+        onSuccess: async (response, variables) => {
             const archive = response || {};
             const archiveNum = archive.archiveId || archive.archiveNumber;
+            runAutoPrint(archive, variables);
 
             // Try to create folder for this archive
             if (archiveNum && window.electron?.createFolder) {
@@ -180,7 +222,12 @@ function ArchiveModal({ isOpen, onClose, archive }) {
 
     const updateMutation = useMutation({
         mutationFn: (data) => archivesApi.update(archive.id, data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['archives'] }); toast.success('Kayıt güncellendi'); onClose(); },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['archives'] });
+            toast.success('Kayıt güncellendi');
+            runAutoPrint(archive, variables);
+            onClose();
+        },
         onError: (error) => { console.error('Update error:', error); toast.error('Kayıt güncellenemedi'); }
     });
 
@@ -191,7 +238,7 @@ function ArchiveModal({ isOpen, onClose, archive }) {
     });
 
     const handleSubmit = (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         if (!formData.fullName || !formData.phone || !formData.shootTypeId || !formData.locationId || !formData.photographerId) {
             toast.error('Zorunlu alanları doldurun');
             return;
@@ -209,6 +256,11 @@ function ArchiveModal({ isOpen, onClose, archive }) {
             createMutation.mutate(data);
         }
     };
+
+    useF2Print({
+        enabled: isOpen && !createMutation.isPending && !updateMutation.isPending,
+        onF2: () => handleSubmit()
+    });
 
     // Calculate paid and remaining
     const total = parseFloat(formData.totalAmount) || 0;
@@ -417,6 +469,7 @@ function ArchiveModal({ isOpen, onClose, archive }) {
                         <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
                             {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
                             {isEdit ? 'Güncelle' : 'Kaydet'}
+                            <kbd className="hidden md:inline-block text-[10px] px-1 py-0.5 bg-white/20 rounded font-mono ml-1">F2</kbd>
                         </button>
                     </div>
                 </form>
@@ -1048,6 +1101,44 @@ export default function Archives() {
                                             <td className="px-3 py-2 text-muted-foreground truncate max-w-[200px] border-r border-border hidden lg:table-cell">{arc.description1 || '-'}</td>
                                             <td className="px-3 py-2">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    {isPrintAvailable() && (
+                                                        <button
+                                                            className="p-1.5 hover:bg-muted rounded text-cyan-500 hover:text-cyan-600"
+                                                            title="Yazdır (Fiş + Zarf)"
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                const settings = getPrintSettings();
+                                                                const printable = {
+                                                                    archiveNumber: arc.archiveNumber || arc.archiveId,
+                                                                    fullName: arc.fullName,
+                                                                    phone: arc.phone,
+                                                                    email: arc.email,
+                                                                    shootDate: arc.shootDate,
+                                                                    deliveryDate: arc.deliveryDate,
+                                                                    size: arc.description1 || '',
+                                                                    photographer: arc.photographer?.fullName,
+                                                                    shootLocation: arc.location?.name,
+                                                                    shootType: arc.shootType?.name,
+                                                                    totalAmount: arc.totalAmount,
+                                                                    paidAmount: (arc.cashAmount || 0) + (arc.cardAmount || 0) + (arc.transferAmount || 0),
+                                                                    remainingAmount: (arc.totalAmount || 0) - ((arc.cashAmount || 0) + (arc.cardAmount || 0) + (arc.transferAmount || 0)),
+                                                                    notes: arc.description2 || ''
+                                                                };
+                                                                const types = ['receipt', 'smallEnvelope', 'bigEnvelope'].filter(t => settings.enabled?.[t]);
+                                                                if (types.length === 0) {
+                                                                    toast.error('Hiçbir şablon aktif değil. Ayarlar > Yazdırma.');
+                                                                    return;
+                                                                }
+                                                                toast.loading('Yazdırılıyor...', { id: 'print-row' });
+                                                                for (const type of types) {
+                                                                    await printTemplate(type, printable);
+                                                                }
+                                                                toast.success(`${types.length} şablon yazdırıldı`, { id: 'print-row' });
+                                                            }}
+                                                        >
+                                                            <Printer className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         className="p-1.5 hover:bg-muted rounded text-indigo-500 hover:text-indigo-600"
                                                         title="Müşteri Profili"

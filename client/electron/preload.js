@@ -110,6 +110,13 @@ contextBridge.exposeInMainWorld('electron', {
         }
     },
 
+    // Print service (F2 auto-print)
+    print: {
+        getPrinters: () => ipcRenderer.invoke('print:getPrinters'),
+        printHtml: (params) => ipcRenderer.invoke('print:html', params),
+        pdfPreview: (params) => ipcRenderer.invoke('print:pdfPreview', params),
+    },
+
     // Auto-Update
     update: {
         onStatus: (callback) => {

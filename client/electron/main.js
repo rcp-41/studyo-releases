@@ -7,6 +7,7 @@ const { machineIdSync } = require('node-machine-id');
 const { autoUpdater } = require('electron-updater');
 const { registerWhatsAppIPC } = require('./whatsapp');
 const { registerPhotoSelectorIPC, createPhotoSelectorWindow } = require('./photoSelector');
+const { registerPrinterIPC } = require('./printer');
 
 let mainWindow;
 let tray;
@@ -232,6 +233,9 @@ app.whenReady().then(() => {
 
         // Update Photo Selector IPC with actual mainWindow reference
         registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, ALLOWED_BASE_PATHS);
+
+        // Register Printer IPC handlers
+        registerPrinterIPC();
 
         // ===== FRAMELESS SPLASH WINDOW (plays intro video like Photoshop) =====
         let splashWindow = null;

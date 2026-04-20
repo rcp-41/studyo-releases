@@ -6,16 +6,19 @@ import {
     Settings2, MessageSquare, Mail, Shield,
     Save, Loader2, CheckCircle, AlertCircle, Eye, EyeOff, FolderOpen,
     QrCode, LogOut, Smartphone, Plus, Trash2, Clock, Monitor, Package, Database, Download, Upload,
-    School, ChevronDown, ChevronUp
+    School, ChevronDown, ChevronUp, Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { backupApi } from '../services/backup';
 import auditLog from '../services/auditLog';
+import PrintSettingsModal from '../components/PrintSettingsModal';
+import { getPrintSettings } from '../lib/printSettings';
 
 const settingCategories = [
     { id: 'general', label: 'Genel', icon: Settings2 },
     { id: 'notification', label: 'Bildirimler', icon: Mail },
     { id: 'security', label: 'Güvenlik', icon: Shield },
+    { id: 'print', label: 'Yazdırma', icon: Printer },
     { id: 'backup', label: 'Yedekleme', icon: Database }
 ];
 
@@ -365,6 +368,8 @@ function SchoolManager({ schools, onCreate, onDelete }) {
 export default function Settings() {
     const [activeCategory, setActiveCategory] = useState('general');
     const [localSettings, setLocalSettings] = useState({});
+    const [printModalOpen, setPrintModalOpen] = useState(false);
+    const [printSnapshot, setPrintSnapshot] = useState(() => getPrintSettings());
     const queryClient = useQueryClient();
 
     // Queries for Options
@@ -649,6 +654,59 @@ export default function Settings() {
                         </div>
                     )}
 
+                    {/* Print Tab */}
+                    {activeCategory === 'print' && (
+                        <div className="space-y-6">
+                            <div className="bg-card border border-border rounded-xl p-6">
+                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                                    <Printer className="w-5 h-5" /> F2 Otomatik Yazdırma
+                                </h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Arşiv formu açıkken <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded border border-border font-mono">F2</kbd> tuşuna basıldığında kayıt edilir ve seçili şablonlar otomatik yazdırılır.
+                                </p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                                    <div className={cn('p-3 rounded-lg border', printSnapshot.enabled?.receipt ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/30')}>
+                                        <div className="text-xs text-muted-foreground mb-1">Kayıt Fişi</div>
+                                        <div className="font-medium text-sm truncate">{printSnapshot.printers?.receipt || 'Varsayılan yazıcı'}</div>
+                                        <div className="text-xs text-muted-foreground mt-1">{printSnapshot.enabled?.receipt ? `Aktif · ${printSnapshot.copies?.receipt || 1}× kopya` : 'Kapalı'}</div>
+                                    </div>
+                                    <div className={cn('p-3 rounded-lg border', printSnapshot.enabled?.smallEnvelope ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/30')}>
+                                        <div className="text-xs text-muted-foreground mb-1">Küçük Zarf</div>
+                                        <div className="font-medium text-sm truncate">{printSnapshot.printers?.smallEnvelope || 'Varsayılan yazıcı'}</div>
+                                        <div className="text-xs text-muted-foreground mt-1">{printSnapshot.enabled?.smallEnvelope ? `Aktif · ${printSnapshot.copies?.smallEnvelope || 1}× kopya` : 'Kapalı'}</div>
+                                    </div>
+                                    <div className={cn('p-3 rounded-lg border', printSnapshot.enabled?.bigEnvelope ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/30')}>
+                                        <div className="text-xs text-muted-foreground mb-1">Büyük Zarf</div>
+                                        <div className="font-medium text-sm truncate">{printSnapshot.printers?.bigEnvelope || 'Varsayılan yazıcı'}</div>
+                                        <div className="text-xs text-muted-foreground mt-1">{printSnapshot.enabled?.bigEnvelope ? `Aktif · ${printSnapshot.copies?.bigEnvelope || 1}× kopya` : 'Kapalı'}</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className={cn('px-3 py-1.5 rounded-full text-xs font-medium', printSnapshot.autoPrintOnSave ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-muted text-muted-foreground')}>
+                                        {printSnapshot.autoPrintOnSave ? '● F2 otomatik yazdırma AÇIK' : '○ F2 otomatik yazdırma KAPALI'}
+                                    </div>
+                                    <button
+                                        onClick={() => setPrintModalOpen(true)}
+                                        className="ml-auto flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                                    >
+                                        <Settings2 className="w-4 h-4" /> Yapılandır
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-card border border-border rounded-xl p-6">
+                                <h3 className="text-base font-semibold mb-2">Şablon Özellikleri</h3>
+                                <div className="text-sm text-muted-foreground space-y-2">
+                                    <p><strong className="text-foreground">Kayıt Fişi (200×65mm):</strong> Müşteriye verilen alındı. Ad, tarih, teslim, ebat, tutar/alınan/kalan + Code39 barkod.</p>
+                                    <p><strong className="text-foreground">Küçük Zarf (200×65mm):</strong> CD/küçük işler zarfı üzerine. Telefon, e-posta + tüm fiş bilgileri + barkod.</p>
+                                    <p><strong className="text-foreground">Büyük Zarf (200×205mm):</strong> Albüm/proof zarfı üzerine. Tüm bilgiler + çekimci, çekim yeri, çekim türü, notlar + büyük barkod.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Backup Tab */}
                     {activeCategory === 'backup' && (
                         <div className="space-y-6">
@@ -711,6 +769,13 @@ export default function Settings() {
                     )}
                 </div>
             </div>
+            <PrintSettingsModal
+                open={printModalOpen}
+                onClose={() => {
+                    setPrintModalOpen(false);
+                    setPrintSnapshot(getPrintSettings());
+                }}
+            />
         </div >
     );
 }
