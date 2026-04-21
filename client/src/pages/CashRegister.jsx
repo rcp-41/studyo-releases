@@ -10,6 +10,7 @@ import {
 import { toast } from 'sonner';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/Skeleton';
+import useUndoable from '../hooks/useUndoable';
 
 // =================== INCOME TYPES ===================
 const INCOME_TYPES = [
@@ -315,11 +316,38 @@ export default function CashRegister() {
     const deleteMutation = useMutation({
         mutationFn: ({ id }) => financeApi.deleteCashEntry({ id }),
         onSuccess: () => {
-            toast.success('Kayıt silindi');
             queryClient.invalidateQueries({ queryKey: ['cash-register'] });
         },
-        onError: (err) => toast.error(err?.message || 'Silinemedi')
+        onError: (err) => {
+            toast.error(err?.message || 'Silinemedi — değişiklikler geri alındı');
+            queryClient.invalidateQueries({ queryKey: ['cash-register'] });
+        }
     });
+
+    // Undo-capable cash-register delete: after Confirm, optimistically drop the row
+    // from the cache, show an 8s "Geri Al" toast, and commit the real delete on expiry.
+    const undoableDelete = useUndoable({
+        onConfirm: ({ id }) => deleteMutation.mutateAsync({ id }),
+        onUndo: () => {
+            // Restore from server truth — optimistic update already happened.
+            queryClient.invalidateQueries({ queryKey: ['cash-register'] });
+        },
+        delayMs: 8000
+    });
+
+    const triggerUndoableDelete = (entry) => {
+        if (!entry?.id) return;
+        const item = getItem(entry);
+        const label = item.description || getTypeLabel(item.category || item.type, entry.direction) || 'Kayıt';
+        // Optimistic cache update for the current day's cash-register list.
+        queryClient.setQueriesData({ queryKey: ['cash-register'] }, (old) => {
+            if (!old) return old;
+            if (Array.isArray(old?.entries)) return { ...old, entries: old.entries.filter(x => x.id !== entry.id) };
+            if (Array.isArray(old)) return old.filter(x => x.id !== entry.id);
+            return old;
+        });
+        undoableDelete.trigger({ id: entry.id }, { message: `'${label}' silindi — Geri Al` });
+    };
 
     const handleSave = () => {
         queryClient.invalidateQueries({ queryKey: ['cash-register'] });
@@ -547,11 +575,10 @@ export default function CashRegister() {
                 cancelText="Vazgeç"
                 onConfirm={() => {
                     if (!confirmDelete) return;
-                    deleteMutation.mutate({ id: confirmDelete.id }, {
-                        onSettled: () => setConfirmDelete(null)
-                    });
+                    const entry = confirmDelete;
+                    setConfirmDelete(null);
+                    triggerUndoableDelete(entry);
                 }}
-                loading={deleteMutation.isPending}
             />
         </div>
     );

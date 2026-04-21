@@ -18,6 +18,7 @@ import { tr } from 'date-fns/locale';
 import PhoneInput from '../components/PhoneInput';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/Skeleton';
+import useUndoable from '../hooks/useUndoable';
 
 const appointmentTypes = [
     { value: 'consultation', label: 'Görüşme' },
@@ -712,11 +713,38 @@ export default function Appointments() {
         onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); }
     });
 
-    // Delete mutation
+    // Delete mutation (now invoked by the undoable grace window, not directly by the dialog)
     const deleteMutation = useMutation({
         mutationFn: (id) => appointmentsApi.delete(id),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); toast.success('Randevu silindi'); }
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); },
+        onError: () => { toast.error('Randevu silinemedi — değişiklikler geri alındı'); queryClient.invalidateQueries({ queryKey: ['appointments'] }); }
     });
+
+    // Undo-capable appointment delete: after Confirm, optimistically remove from cache,
+    // show an 8s "Geri Al" toast, and commit the real mutation on expiry.
+    const undoableDelete = useUndoable({
+        onConfirm: ({ id }) => deleteMutation.mutateAsync(id),
+        onUndo: () => {
+            // Re-fetch calendar cache to restore the optimistically-removed row.
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        },
+        message: '',
+        delayMs: 8000
+    });
+
+    const triggerUndoableDelete = (apt) => {
+        if (!apt?.id) return;
+        const label = apt.fullName || apt.customer?.fullName || 'Randevu';
+        // Optimistic cache removal across all appointments queries (month/day/calendar).
+        queryClient.setQueriesData({ queryKey: ['appointments'] }, (old) => {
+            if (!old) return old;
+            if (Array.isArray(old)) return old.filter(x => x.id !== apt.id);
+            if (Array.isArray(old.appointments)) return { ...old, appointments: old.appointments.filter(x => x.id !== apt.id) };
+            if (Array.isArray(old.data)) return { ...old, data: old.data.filter(x => x.id !== apt.id) };
+            return old;
+        });
+        undoableDelete.trigger({ id: apt.id }, { message: `'${label}' silindi — Geri Al` });
+    };
 
     // Drag-and-drop handler: move appointment to new time slot
     const handleAppointmentDrop = async (appointmentId, newTimeSlot, dateStr) => {
@@ -951,7 +979,7 @@ export default function Appointments() {
                 appointment={moveAppointment}
             />
 
-            {/* Delete Confirmation */}
+            {/* Delete Confirmation — on confirm, hand off to the undoable flow (8s grace). */}
             <ConfirmDialog
                 open={!!confirmDelete}
                 onOpenChange={(o) => !o && setConfirmDelete(null)}
@@ -962,11 +990,10 @@ export default function Appointments() {
                 cancelText="Vazgeç"
                 onConfirm={() => {
                     if (!confirmDelete) return;
-                    deleteMutation.mutate(confirmDelete.id, {
-                        onSettled: () => setConfirmDelete(null)
-                    });
+                    const apt = confirmDelete;
+                    setConfirmDelete(null);
+                    triggerUndoableDelete(apt);
                 }}
-                loading={deleteMutation.isPending}
             />
 
             {/* Postpone Modal */}

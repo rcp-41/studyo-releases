@@ -8,13 +8,11 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { userSchema, leaveSchema, validate } = require('./validators/schemas');
+const { APPCHECK_ENABLED } = require('./config');
 
 const db = admin.firestore();
 const auth = admin.auth();
 const FieldValue = admin.firestore.FieldValue;
-
-// --- Firebase AppCheck ---
-const APPCHECK_ENFORCED = process.env.APPCHECK_ENABLED === 'true';
 
 // Helper: get studio-scoped users collection reference (with legacy fallback)
 const usersCollection = (organizationId, studioId) => {
@@ -44,7 +42,7 @@ const requireAdmin = (request) => {
 /**
  * List all users (admin only)
  */
-exports.getAll = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.getAll = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     try {
@@ -68,7 +66,7 @@ exports.getAll = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) 
 /**
  * Create a new user
  */
-exports.create = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.create = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     // Zod validation
@@ -117,7 +115,7 @@ exports.create = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) 
 /**
  * Update user (role, fullName, email, isActive)
  */
-exports.update = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.update = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     const { id, data } = request.data;
@@ -181,7 +179,7 @@ exports.update = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) 
 /**
  * Delete user
  */
-exports.delete = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.delete = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     const { id } = request.data;
@@ -210,7 +208,7 @@ exports.delete = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) 
 /**
  * Toggle user active status
  */
-exports.toggleStatus = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.toggleStatus = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     const { id } = request.data;
@@ -246,7 +244,7 @@ exports.toggleStatus = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (req
 /**
  * Reset user password (admin only)
  */
-exports.resetPassword = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.resetPassword = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     const { uid, password } = request.data;
@@ -278,7 +276,7 @@ exports.resetPassword = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (re
 /**
  * Get staff leaves
  */
-exports.getLeaves = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.getLeaves = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     try {
@@ -305,7 +303,7 @@ exports.getLeaves = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (reques
 /**
  * Add staff leave
  */
-exports.addLeave = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.addLeave = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     const validated = validate(leaveSchema, request.data, 'izin');
@@ -341,7 +339,7 @@ exports.addLeave = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request
 /**
  * Delete staff leave
  */
-exports.deleteLeave = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.deleteLeave = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     const { studioId, organizationId } = requireAdmin(request);
 
     const { id } = request.data;

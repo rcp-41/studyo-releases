@@ -19,13 +19,14 @@ const {
     shootDateRangeSchema,
     validate
 } = require('./validators/schemas');
+const { APPCHECK_ENABLED } = require('./config');
 
 const FieldValue = admin.firestore.FieldValue;
 
 /**
  * List shoots with pagination and filters
  */
-exports.listShoots = onCall({ enforceAppCheck: false }, async (request) => {
+exports.listShoots = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -76,7 +77,7 @@ exports.listShoots = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Get shoot by ID
  */
-exports.getShoot = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getShoot = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -105,7 +106,7 @@ exports.getShoot = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Update shoot (general update - date, customer, notes, etc.)
  */
-exports.updateShoot = onCall({ enforceAppCheck: false }, async (request) => {
+exports.updateShoot = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -151,7 +152,7 @@ exports.updateShoot = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Update shoot status
  */
-exports.updateShootStatus = onCall({ enforceAppCheck: false }, async (request) => {
+exports.updateShootStatus = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -186,7 +187,7 @@ exports.updateShootStatus = onCall({ enforceAppCheck: false }, async (request) =
 /**
  * Add payment to a shoot
  */
-exports.addPayment = onCall({ enforceAppCheck: false }, async (request) => {
+exports.addPayment = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -246,7 +247,7 @@ exports.addPayment = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Assign photographer to shoot
  */
-exports.assignPhotographer = onCall({ enforceAppCheck: false }, async (request) => {
+exports.assignPhotographer = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -291,7 +292,7 @@ exports.assignPhotographer = onCall({ enforceAppCheck: false }, async (request) 
 /**
  * Get shoots by date range
  */
-exports.getShootsByDateRange = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getShootsByDateRange = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -321,7 +322,7 @@ exports.getShootsByDateRange = onCall({ enforceAppCheck: false }, async (request
 /**
  * Create a new shoot
  */
-exports.create = onCall({ enforceAppCheck: false }, async (request) => {
+exports.create = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

@@ -8,6 +8,7 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
+const { APPCHECK_ENABLED } = require('./config');
 
 // Helper: build date range boundaries from dateRange string
 const buildDateRange = (dateRange = 'month') => {
@@ -50,7 +51,7 @@ const buildDateRange = (dateRange = 'month') => {
  * TEK KAYNAK: Tüm veriler archives koleksiyonundan çekilir
  * PERFORMANS: Tarih bazlı ayrı sorgular — tüm arşivleri belleğe yüklemez
  */
-exports.getDashboardSummary = onCall({ memory: '256MiB' }, async (request) => {
+exports.getDashboardSummary = onCall({ enforceAppCheck: APPCHECK_ENABLED, memory: '256MiB' }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -200,7 +201,7 @@ exports.getDashboardSummary = onCall({ memory: '256MiB' }, async (request) => {
 /**
  * Get filtered stats for a specific dateRange — for dashboard date filter buttons
  */
-exports.getFilteredStats = onCall({ memory: '256MiB' }, async (request) => {
+exports.getFilteredStats = onCall({ enforceAppCheck: APPCHECK_ENABLED, memory: '256MiB' }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
@@ -278,7 +279,7 @@ exports.getFilteredStats = onCall({ memory: '256MiB' }, async (request) => {
 /**
  * Get today's appointments
  */
-exports.getTodayAppointments = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getTodayAppointments = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -316,7 +317,7 @@ exports.getTodayAppointments = onCall({ enforceAppCheck: false }, async (request
 /**
  * Get recent archives
  */
-exports.getRecentArchives = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getRecentArchives = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -346,7 +347,7 @@ exports.getRecentArchives = onCall({ enforceAppCheck: false }, async (request) =
 /**
  * Get monthly statistics
  */
-exports.getMonthlyStats = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getMonthlyStats = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -423,7 +424,7 @@ exports.getMonthlyStats = onCall({ enforceAppCheck: false }, async (request) => 
 /**
  * Get calendar view (appointments and shoots for a date range)
  */
-exports.getCalendarView = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getCalendarView = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -551,7 +552,7 @@ exports.getCalendarView = onCall({ enforceAppCheck: false }, async (request) => 
 /**
  * Get available time slots for a specific date
  */
-exports.getAvailableSlots = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getAvailableSlots = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

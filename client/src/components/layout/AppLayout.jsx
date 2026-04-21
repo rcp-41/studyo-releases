@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/authStore';
 import { cn } from '../../lib/utils';
 import {
@@ -9,19 +10,20 @@ import {
 import Breadcrumb from '../Breadcrumb';
 import NotificationCenter from '../NotificationCenter';
 import AutoUpdater from '../AutoUpdater';
+import LanguageSwitcher from '../LanguageSwitcher';
 
-const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
-    { name: 'Arşiv', href: '/archives', icon: Archive },
-    { name: 'Randevular', href: '/appointments', icon: Calendar },
-    { name: 'Müşteriler', href: '/customers', icon: UsersRound },
-    { name: 'Finans', href: '/finance', icon: DollarSign, adminOnly: true },
-    { name: 'Kasa', href: '/cash-register', icon: Wallet },
-    { name: 'Raporlar', href: '/reports', icon: BarChart3, adminOnly: true },
-    { name: 'Online Satış', href: '/wc-clients', icon: Globe, adminOnly: true },
-    { name: 'Ayarlar', href: '/settings', icon: Settings, adminOnly: true },
-    { name: 'Pixonai Ayarları', href: '/pixonai-settings', icon: Camera, adminOnly: true },
-    { name: 'Kullanıcılar', href: '/users', icon: Users, adminOnly: true }
+const NAV_ITEMS = [
+    { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
+    { key: 'archives', href: '/archives', icon: Archive },
+    { key: 'appointments', href: '/appointments', icon: Calendar },
+    { key: 'customers', href: '/customers', icon: UsersRound },
+    { key: 'finance', href: '/finance', icon: DollarSign, adminOnly: true },
+    { key: 'cashRegister', href: '/cash-register', icon: Wallet },
+    { key: 'reports', href: '/reports', icon: BarChart3, adminOnly: true },
+    { key: 'onlineSales', href: '/wc-clients', icon: Globe, adminOnly: true },
+    { key: 'settings', href: '/settings', icon: Settings, adminOnly: true },
+    { key: 'pixonaiSettings', href: '/pixonai-settings', icon: Camera, adminOnly: true },
+    { key: 'users', href: '/users', icon: Users, adminOnly: true },
 ];
 
 export default function AppLayout({ children }) {
@@ -41,6 +43,9 @@ export default function AppLayout({ children }) {
     const { user, logout } = useAuthStore();
     const location = useLocation();
     const navigate = useNavigate();
+    const { t } = useTranslation();
+
+    const navigation = NAV_ITEMS.map((item) => ({ ...item, name: t(`nav.${item.key}`) }));
 
     // Close mobile menu on route change
     useEffect(() => {
@@ -146,7 +151,7 @@ export default function AppLayout({ children }) {
                                 window.electron.photoSelector.open({});
                             }
                         }}
-                        title="Fotoğraf Seçim"
+                        title={t('nav.photoSelector')}
                         className={cn(
                             'w-full rounded-xl transition-all duration-200 group relative overflow-hidden',
                             'bg-gradient-to-b from-amber-400 to-amber-600',
@@ -162,11 +167,18 @@ export default function AppLayout({ children }) {
                         <div className={cn('relative flex items-center', sidebarOpen ? 'gap-3' : 'justify-center')}>
                             <Camera className="w-5 h-5 text-amber-950 shrink-0 group-hover:scale-110 transition-transform" />
                             {sidebarOpen && (
-                                <span className="text-sm font-bold text-amber-950">Fotoğraf Seçim</span>
+                                <span className="text-sm font-bold text-amber-950">{t('nav.photoSelector')}</span>
                             )}
                         </div>
                     </button>
                 </div>
+
+                {/* Language Switcher (Desktop footer) */}
+                {sidebarOpen && (
+                    <div className="px-2 pb-2">
+                        <LanguageSwitcher className="w-full" />
+                    </div>
+                )}
 
                 {/* User */}
                 <div className="p-2 border-t border-border">
@@ -181,7 +193,7 @@ export default function AppLayout({ children }) {
                                 </div>
                                 <div className="flex-1 text-left">
                                     <p className="text-sm font-medium truncate">{user?.fullName}</p>
-                                    <p className="text-xs text-muted-foreground">{user?.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}</p>
+                                    <p className="text-xs text-muted-foreground">{user?.role === 'admin' ? t('auth.admin') : t('auth.user')}</p>
                                 </div>
                                 <ChevronDown className="w-4 h-4" />
                             </button>
@@ -190,17 +202,17 @@ export default function AppLayout({ children }) {
                                 <div className="absolute bottom-full left-0 right-0 mb-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
                                     <button onClick={toggleDarkMode} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted text-sm">
                                         {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                                        {darkMode ? 'Açık Mod' : 'Koyu Mod'}
+                                        {darkMode ? t('nav.lightMode') : t('nav.darkMode')}
                                     </button>
                                     {window.electron?.update?.check && (
                                         <button onClick={() => { window.electron.update.check(); setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted text-sm">
                                             <RefreshCw className="w-4 h-4" />
-                                            Güncellemeleri Denetle
+                                            {t('nav.checkUpdates')}
                                         </button>
                                     )}
                                     <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted text-sm text-destructive">
                                         <LogOut className="w-4 h-4" />
-                                        Çıkış Yap
+                                        {t('nav.logout')}
                                     </button>
                                 </div>
                             )}
@@ -263,23 +275,26 @@ export default function AppLayout({ children }) {
                         <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded-xl" />
                         <div className="relative flex items-center gap-3">
                             <Camera className="w-5 h-5 text-amber-950 shrink-0 group-hover:scale-110 transition-transform" />
-                            <span className="text-sm font-bold text-amber-950">Fotoğraf Seçim</span>
+                            <span className="text-sm font-bold text-amber-950">{t('nav.photoSelector')}</span>
                         </div>
                     </button>
                 </div>
 
                 <div className="p-4 border-t border-border space-y-2">
+                    <div className="flex justify-end pb-1">
+                        <LanguageSwitcher />
+                    </div>
                     <button onClick={toggleDarkMode} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg text-sm">
                         {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                        {darkMode ? 'Açık Mod' : 'Koyu Mod'}
+                        {darkMode ? t('nav.lightMode') : t('nav.darkMode')}
                     </button>
                     {window.electron?.update?.check && (
                         <button onClick={() => { window.electron.update.check(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg text-sm">
-                            <RefreshCw className="w-4 h-4" /> Güncellemeleri Denetle
+                            <RefreshCw className="w-4 h-4" /> {t('nav.checkUpdates')}
                         </button>
                     )}
                     <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg text-sm text-destructive">
-                        <LogOut className="w-4 h-4" /> Çıkış Yap
+                        <LogOut className="w-4 h-4" /> {t('nav.logout')}
                     </button>
                 </div>
             </aside>

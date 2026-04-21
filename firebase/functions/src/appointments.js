@@ -9,6 +9,7 @@ const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
 const { appointmentSchema, validate } = require('./validators/schemas');
+const { APPCHECK_ENABLED } = require('./config');
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -17,7 +18,7 @@ const FieldValue = admin.firestore.FieldValue;
 /**
  * Create a new appointment
  */
-exports.create = onCall({ enforceAppCheck: false }, async (request) => {
+exports.create = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -248,7 +249,7 @@ exports.create = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Get appointments for a specific day
  */
-exports.getDay = onCall({ enforceAppCheck: false, memory: '512MiB' }, async (request) => {
+exports.getDay = onCall({ enforceAppCheck: APPCHECK_ENABLED, memory: '512MiB' }, async (request) => {
     console.log('📅 appointments-getDay called');
 
     if (!request.auth) {
@@ -327,7 +328,7 @@ exports.getDay = onCall({ enforceAppCheck: false, memory: '512MiB' }, async (req
  * Get weekly appointments with staff availability
  * Returns appointments for Mon-Sun of the given week + staff off-days
  */
-exports.getWeeklyAppointmentsWithStaff = onCall({ enforceAppCheck: false, memory: '512MiB' }, async (request) => {
+exports.getWeeklyAppointmentsWithStaff = onCall({ enforceAppCheck: APPCHECK_ENABLED, memory: '512MiB' }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -425,7 +426,7 @@ exports.getWeeklyAppointmentsWithStaff = onCall({ enforceAppCheck: false, memory
 /**
  * Update appointment (general update - date, time, customer info, etc.)
  */
-exports.update = onCall({ enforceAppCheck: false }, async (request) => {
+exports.update = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -471,7 +472,7 @@ exports.update = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Update appointment status
  */
-exports.updateStatus = onCall({ enforceAppCheck: false }, async (request) => {
+exports.updateStatus = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -507,7 +508,7 @@ exports.updateStatus = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Delete appointment
  */
-exports.delete = onCall({ enforceAppCheck: false }, async (request) => {
+exports.delete = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

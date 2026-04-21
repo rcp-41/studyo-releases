@@ -6,6 +6,7 @@ const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
 const { archiveSchema, validate } = require('./validators/schemas');
+const { APPCHECK_ENABLED } = require('./config');
 
 const db = admin.firestore();
 const FieldValue = admin.firestore.FieldValue;
@@ -55,7 +56,7 @@ const filterAllowedFields = (data) => {
  * List Archives (Server-Side)
  * Returns archives from the studio-scoped subcollection
  */
-exports.list = onCall({ memory: '512MiB', timeoutSeconds: 120 }, async (request) => {
+exports.list = onCall({ enforceAppCheck: APPCHECK_ENABLED, memory: '512MiB', timeoutSeconds: 120 }, async (request) => {
     validateAuth(request);
 
     const { search, limit: queryLimit, filters, startAfterDocId } = request.data || {};
@@ -201,7 +202,7 @@ exports.list = onCall({ memory: '512MiB', timeoutSeconds: 120 }, async (request)
     }
 });
 
-exports.getNextNumber = onCall(async (request) => {
+exports.getNextNumber = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     validateAuth(request);
     const dbHandler = await DatabaseHandler.fromRequest(request);
     try {
@@ -214,7 +215,7 @@ exports.getNextNumber = onCall(async (request) => {
     }
 });
 
-exports.create = onCall(async (request) => {
+exports.create = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     validateAuth(request);
 
     const data = request.data;
@@ -337,7 +338,7 @@ exports.create = onCall(async (request) => {
 /**
  * Update Archive (Server-Side)
  */
-exports.update = onCall(async (request) => {
+exports.update = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     validateAuth(request);
 
     const { id, data } = request.data;
@@ -369,7 +370,7 @@ exports.update = onCall(async (request) => {
 /**
  * Delete Archive (Server-Side)
  */
-exports.delete = onCall(async (request) => {
+exports.delete = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     validateAuth(request);
 
     const { id } = request.data;
@@ -392,7 +393,7 @@ exports.delete = onCall(async (request) => {
 /**
  * Delete Multiple Archives (Server-Side)
  */
-exports.deleteMultiple = onCall(async (request) => {
+exports.deleteMultiple = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     validateAuth(request);
 
     const { ids } = request.data;
@@ -426,7 +427,7 @@ exports.deleteMultiple = onCall(async (request) => {
 /**
  * Update Status (Server-Side)
  */
-exports.updateStatus = onCall(async (request) => {
+exports.updateStatus = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     validateAuth(request);
 
     const { id, status } = request.data;
@@ -452,7 +453,7 @@ exports.updateStatus = onCall(async (request) => {
 /**
  * Get the physical folder path for an archive record
  */
-exports.getArchiveFolderPath = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getArchiveFolderPath = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -491,7 +492,7 @@ exports.getArchiveFolderPath = onCall({ enforceAppCheck: false }, async (request
  * Creates a new archive from appointment data, then deletes the appointment.
  * All within a transaction for atomicity.
  */
-exports.transferFromAppointment = onCall({ enforceAppCheck: false }, async (request) => {
+exports.transferFromAppointment = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     validateAuth(request);
 
     const { appointmentId, archiveData } = request.data;

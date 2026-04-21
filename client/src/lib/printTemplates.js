@@ -1,4 +1,6 @@
 import { generateCode39SVG } from './barcode';
+import { getCustomTemplate } from './customTemplates';
+import { renderCustomTemplate } from './customTemplateRenderer';
 
 const fmtDate = (d) => {
     if (!d) return '';
@@ -143,6 +145,17 @@ export function buildBigEnvelopeHtml(rawArchive) {
 }
 
 export function buildTemplateHtml(templateType, archive) {
+    // Prefer user-authored custom template if one exists. Any failure in the
+    // custom path is logged and we fall back to the built-in builder below.
+    try {
+        const custom = getCustomTemplate(templateType);
+        if (custom) {
+            return renderCustomTemplate(custom, archive);
+        }
+    } catch (e) {
+        console.error('[printTemplates] custom template render failed, using built-in:', e);
+    }
+
     switch (templateType) {
         case 'receipt': return buildReceiptHtml(archive);
         case 'smallEnvelope': return buildSmallEnvelopeHtml(archive);

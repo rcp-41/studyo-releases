@@ -5,6 +5,9 @@ import { Toaster } from 'sonner';
 import App from './App';
 import './index.css';
 
+// Initialize i18n BEFORE any component using useTranslation mounts
+import './i18n';
+
 // Initialize Firebase (must be imported before any Firebase-dependent code)
 import '@/lib/firebase';
 import useAuthStore from '@/store/authStore';

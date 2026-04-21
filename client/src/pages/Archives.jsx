@@ -13,6 +13,7 @@ import WooCommerceModal from '../components/WooCommerceModal';
 import PhoneInput from '../components/PhoneInput';
 import { SkeletonTable } from '../components/Skeleton';
 import useF2Print from '../hooks/useF2Print';
+import useUndoable from '../hooks/useUndoable';
 import { autoPrintArchive, printTemplate, isPrintAvailable } from '../lib/printService';
 import { getPrintSettings } from '../lib/printSettings';
 
@@ -233,9 +234,35 @@ function ArchiveModal({ isOpen, onClose, archive }) {
 
     const deleteMutation = useMutation({
         mutationFn: () => archivesApi.delete(archive.id),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['archives'] }); toast.success('Kayıt silindi'); onClose(); },
-        onError: (error) => { console.error('Delete error:', error); toast.error('Kayıt silinemedi'); }
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['archives'] }); },
+        onError: (error) => { console.error('Delete error:', error); toast.error('Kayıt silinemedi — değişiklikler geri alındı'); queryClient.invalidateQueries({ queryKey: ['archives'] }); }
     });
+
+    // Undo-capable archive delete: optimistically remove from cache and show an 8s
+    // "Geri Al" toast. After the grace window, the real mutation fires.
+    const undoableDelete = useUndoable({
+        onConfirm: () => deleteMutation.mutateAsync(),
+        onUndo: () => {
+            // Restore by refetching server truth — the cache was optimistically filtered.
+            queryClient.invalidateQueries({ queryKey: ['archives'] });
+        },
+        message: `'${archive?.fullName || 'Kayıt'}' silindi — Geri Al`,
+        delayMs: 8000
+    });
+
+    const handleDeleteClick = () => {
+        if (!archive?.id) return;
+        // Optimistic cache update across all paginated/filtered archives queries.
+        queryClient.setQueriesData({ queryKey: ['archives'] }, (old) => {
+            if (!old) return old;
+            if (Array.isArray(old)) return old.filter(x => x.id !== archive.id);
+            if (Array.isArray(old.data)) return { ...old, data: old.data.filter(x => x.id !== archive.id) };
+            if (Array.isArray(old.archives)) return { ...old, archives: old.archives.filter(x => x.id !== archive.id) };
+            return old;
+        });
+        undoableDelete.trigger({ id: archive.id });
+        onClose();
+    };
 
     const handleSubmit = (e) => {
         if (e?.preventDefault) e.preventDefault();
@@ -461,7 +488,7 @@ function ArchiveModal({ isOpen, onClose, archive }) {
 
                     <div className="flex gap-3 pt-4">
                         {isEdit && (
-                            <button type="button" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending} className="px-4 py-2 border border-destructive text-destructive rounded-lg hover:bg-destructive/10 disabled:opacity-50">
+                            <button type="button" onClick={handleDeleteClick} disabled={deleteMutation.isPending} className="px-4 py-2 border border-destructive text-destructive rounded-lg hover:bg-destructive/10 disabled:opacity-50">
                                 {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sil'}
                             </button>
                         )}

@@ -18,13 +18,20 @@ admin.initializeApp();
 //
 // NOTE: This flag is read at deploy time. Functions already deployed with
 // enforceAppCheck: false will NOT be affected until redeployed.
-const APPCHECK_ENABLED = process.env.APPCHECK_ENABLED === 'true'
-    || (process.env.FIREBASE_CONFIG && JSON.parse(process.env.FIREBASE_CONFIG || '{}')?.appcheck?.enabled === 'true');
+// Shared flag lives in ./config so individual modules can require it
+// without creating a circular dependency on index.js.
+const { APPCHECK_ENABLED } = require('./config');
 
-// Export the flag so individual modules can import it if needed
-// Usage in modules: const { APPCHECK_ENABLED } = require('./index') -- NOT recommended (circular).
-// Instead, modules should use: process.env.APPCHECK_ENABLED === 'true'
-// or import from a shared config. For now, we log the status at cold start.
+/**
+ * Build shared onCall options with the AppCheck flag applied.
+ * Usage: onCall(getCallableOptions({ region: 'us-central1', memory: '512MiB' }), handler)
+ * Modules are free to call this or inline the flag directly from ./config.
+ */
+const getCallableOptions = (baseOpts = {}) => ({
+    ...baseOpts,
+    enforceAppCheck: APPCHECK_ENABLED
+});
+
 if (APPCHECK_ENABLED) {
     console.log('[AppCheck] ENFORCED - requests without valid AppCheck tokens will be rejected');
 } else {
@@ -60,5 +67,7 @@ exports.voiceBot = require('./voice-bot');
 exports.botConfig = require('./bot-config');
 exports.dataManagement = require('./data-management');
 
-// Export AppCheck flag for modules that need it
+// Export AppCheck flag + helper for any external tooling that reads from index.
+// Modules inside functions/src should prefer `require('./config')` to avoid cycles.
 exports.APPCHECK_ENABLED = APPCHECK_ENABLED;
+exports.getCallableOptions = getCallableOptions;

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { Loader2, User, UserCog, RotateCcw, ShieldAlert, X } from 'lucide-react';
 import BaseOSLoader from '../components/BaseOSLoader';
 import PasswordInput from '../components/PasswordInput';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { toast } from 'sonner';
 
 export default function Login() {
@@ -23,6 +25,7 @@ export default function Login() {
     const { login, loading } = useAuthStore();
     const user = useAuthStore((state) => state.user);
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     // Auto-redirect when user becomes authenticated
     useEffect(() => {
@@ -70,7 +73,7 @@ export default function Login() {
         e.preventDefault();
 
         if (!password) {
-            toast.error('Lütfen şifrenizi girin');
+            toast.error(t('auth.enterPassword'));
             return;
         }
 
@@ -86,11 +89,11 @@ export default function Login() {
             const result = await login(email, password);
 
             if (result.success) {
-                toast.success('Giriş başarılı!');
+                toast.success(t('auth.loginSuccess'));
                 navigate('/');
             }
         } catch (error) {
-            const message = error.message || 'Giriş başarısız';
+            const message = error.message || t('auth.loginFailed');
             toast.error(message);
         }
     };
@@ -156,9 +159,12 @@ export default function Login() {
     if (!studioConfig) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/10 p-4">
+                <div className="absolute top-4 right-4">
+                    <LanguageSwitcher />
+                </div>
                 <div className="text-center">
                     <BaseOSLoader size={48} className="mx-auto mb-4" />
-                    <p className="text-muted-foreground">Yükleniyor...</p>
+                    <p className="text-muted-foreground">{t('auth.loadingApp')}</p>
                 </div>
             </div>
         );
@@ -166,6 +172,9 @@ export default function Login() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/10 p-4">
+            <div className="absolute top-4 right-4">
+                <LanguageSwitcher />
+            </div>
             <div className="w-full max-w-md">
                 {/* Logo & Header */}
                 <div className="text-center mb-8">
@@ -174,7 +183,7 @@ export default function Login() {
                         {studioConfig.studioName || 'BaseOS'}
                     </h1>
                     <p className="text-muted-foreground mt-2">
-                        Stüdyo Yönetim Sistemi
+                        {t('auth.studioTitle')}
                     </p>
                 </div>
 
@@ -192,7 +201,7 @@ export default function Login() {
                                     }`}
                             >
                                 <UserCog className="w-4 h-4" />
-                                Yönetici
+                                {t('auth.admin')}
                             </button>
                             <button
                                 type="button"
@@ -203,14 +212,14 @@ export default function Login() {
                                     }`}
                             >
                                 <User className="w-4 h-4" />
-                                Personel
+                                {t('auth.staff')}
                             </button>
                         </div>
 
                         {/* Password - Only visible field */}
                         <div>
                             <label className="block text-sm font-medium mb-2">
-                                Şifre
+                                {t('auth.password')}
                             </label>
                             <PasswordInput
                                 value={password}
@@ -231,10 +240,10 @@ export default function Login() {
                             {loading ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    Giriş yapılıyor...
+                                    {t('auth.loggingIn')}
                                 </>
                             ) : (
-                                'Giriş Yap'
+                                t('auth.login')
                             )}
                         </button>
                     </form>
@@ -247,10 +256,10 @@ export default function Login() {
                             className="w-full py-2.5 px-4 text-sm font-medium text-muted-foreground hover:text-destructive border border-border hover:border-destructive/50 rounded-lg transition-all flex items-center justify-center gap-2"
                         >
                             <RotateCcw className="w-4 h-4" />
-                            Stüdyo Sıfırla
+                            {t('auth.resetStudio')}
                         </button>
                         <p className="text-xs text-muted-foreground text-center mt-2">
-                            Farklı bir stüdyoya geçmek için Super Admin şifresi gereklidir.
+                            {t('auth.resetStudioHint')}
                         </p>
                     </div>
                 </div>

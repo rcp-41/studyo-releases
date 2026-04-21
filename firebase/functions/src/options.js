@@ -5,6 +5,7 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
+const { APPCHECK_ENABLED } = require('./config');
 
 const db = admin.firestore();
 const FieldValue = admin.firestore.FieldValue;
@@ -98,26 +99,26 @@ const deleteOption = async (request, type) => {
 // --- Exported Functions (Matched to api.js calls) ---
 
 // Shoot Types
-exports.saveShootType = onCall({ enforceAppCheck: false }, (req) => saveOption(req, 'shootTypes'));
-exports.deleteShootType = onCall({ enforceAppCheck: false }, (req) => deleteOption(req, 'shootTypes'));
+exports.saveShootType = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => saveOption(req, 'shootTypes'));
+exports.deleteShootType = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => deleteOption(req, 'shootTypes'));
 
 // Locations
-exports.saveLocation = onCall({ enforceAppCheck: false }, (req) => saveOption(req, 'locations'));
-exports.deleteLocation = onCall({ enforceAppCheck: false }, (req) => deleteOption(req, 'locations'));
+exports.saveLocation = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => saveOption(req, 'locations'));
+exports.deleteLocation = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => deleteOption(req, 'locations'));
 
 // Photographers
-exports.savePhotographer = onCall({ enforceAppCheck: false }, (req) => saveOption(req, 'photographers'));
-exports.deletePhotographer = onCall({ enforceAppCheck: false }, (req) => deleteOption(req, 'photographers'));
+exports.savePhotographer = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => saveOption(req, 'photographers'));
+exports.deletePhotographer = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => deleteOption(req, 'photographers'));
 
 // Packages
-exports.savePackage = onCall({ enforceAppCheck: false }, (req) => saveOption(req, 'packages'));
-exports.deletePackage = onCall({ enforceAppCheck: false }, (req) => deleteOption(req, 'packages'));
+exports.savePackage = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => saveOption(req, 'packages'));
+exports.deletePackage = onCall({ enforceAppCheck: APPCHECK_ENABLED }, (req) => deleteOption(req, 'packages'));
 
 /**
  * Get Options (studio-scoped)
  * Returns shootTypes, locations, photographers, or packages for the current studio
  */
-exports.get = onCall({ enforceAppCheck: false }, async (request) => {
+exports.get = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -146,7 +147,7 @@ exports.get = onCall({ enforceAppCheck: false }, async (request) => {
 });
 
 // Convenience list functions (frontend calls these directly)
-const listByType = (type) => onCall({ enforceAppCheck: false }, async (request) => {
+const listByType = (type) => onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

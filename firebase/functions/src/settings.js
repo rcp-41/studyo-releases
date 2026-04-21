@@ -7,6 +7,7 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
+const { APPCHECK_ENABLED } = require('./config');
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -15,7 +16,7 @@ const FieldValue = admin.firestore.FieldValue;
 /**
  * Get all settings
  */
-exports.getAll = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getAll = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -48,7 +49,7 @@ const STUDIO_ADMIN_ALLOWED_SETTINGS = ['archivePath', 'archive_base_path', 'what
  * Update settings — studio admin can only update archivePath and backup settings
  * Studio name, phone, email, address are controlled by Creator Panel (super_admin only)
  */
-exports.update = onCall({ enforceAppCheck: false }, async (request) => {
+exports.update = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -102,7 +103,7 @@ exports.update = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Get single setting
  */
-exports.get = onCall({ enforceAppCheck: false }, async (request) => {
+exports.get = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

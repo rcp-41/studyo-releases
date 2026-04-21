@@ -18,13 +18,14 @@ const {
     customerDeleteSchema,
     validate
 } = require('./validators/schemas');
+const { APPCHECK_ENABLED } = require('./config');
 
 const FieldValue = admin.firestore.FieldValue;
 
 /**
  * List customers with pagination and search
  */
-exports.listCustomers = onCall({ enforceAppCheck: false }, async (request) => {
+exports.listCustomers = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -71,7 +72,7 @@ exports.listCustomers = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Get customer by ID
  */
-exports.getCustomer = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getCustomer = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -100,7 +101,7 @@ exports.getCustomer = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Get customer's shoots
  */
-exports.getCustomerShoots = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getCustomerShoots = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -139,7 +140,7 @@ exports.getCustomerShoots = onCall({ enforceAppCheck: false }, async (request) =
 /**
  * Update customer
  */
-exports.updateCustomer = onCall({ enforceAppCheck: false }, async (request) => {
+exports.updateCustomer = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -173,7 +174,7 @@ exports.updateCustomer = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Search customers (for autocomplete)
  */
-exports.searchCustomers = onCall({ enforceAppCheck: false }, async (request) => {
+exports.searchCustomers = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -208,7 +209,7 @@ exports.searchCustomers = onCall({ enforceAppCheck: false }, async (request) => 
  * Lookup customer by phone number (exact match)
  * Used in ArchiveModal to auto-fill customer info
  */
-exports.lookupByPhone = onCall({ enforceAppCheck: false }, async (request) => {
+exports.lookupByPhone = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -255,7 +256,7 @@ exports.lookupByPhone = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Create a new customer
  */
-exports.create = onCall({ enforceAppCheck: false }, async (request) => {
+exports.create = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -305,7 +306,7 @@ exports.create = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Delete a customer
  */
-exports.delete = onCall({ enforceAppCheck: false }, async (request) => {
+exports.delete = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -334,7 +335,7 @@ exports.delete = onCall({ enforceAppCheck: false }, async (request) => {
  * Scans all archives, groups by phone, creates customer records
  */
 exports.syncCustomersFromArchives = onCall({
-    enforceAppCheck: false,
+    enforceAppCheck: APPCHECK_ENABLED,
     timeoutSeconds: 540,
     memory: '1GiB'
 }, async (request) => {

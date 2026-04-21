@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Printer, Check, X, Loader2, AlertCircle, Eye } from 'lucide-react';
+import { Printer, Check, X, Loader2, AlertCircle, Eye, Pencil, Sparkles } from 'lucide-react';
 import { getPrintSettings, savePrintSettings } from '../lib/printSettings';
 import { listPrinters, printTemplate, isPrintAvailable } from '../lib/printService';
+import { getCustomTemplate } from '../lib/customTemplates';
+import TemplateEditor from './TemplateEditor';
 
 const TEMPLATE_LABELS = {
     receipt: 'Kayıt Fişi',
@@ -39,11 +41,24 @@ export default function PrintSettingsModal({ open, onClose }) {
     const [printers, setPrinters] = useState([]);
     const [loadingPrinters, setLoadingPrinters] = useState(false);
     const [testing, setTesting] = useState(null);
+    const [editorType, setEditorType] = useState(null);
+    // Tracks which templates have a user-authored custom layout (for the badge
+    // next to the card title). Refreshes on modal open and after the editor closes.
+    const [customFlags, setCustomFlags] = useState({});
     const available = isPrintAvailable();
+
+    const refreshCustomFlags = () => {
+        setCustomFlags({
+            receipt: !!getCustomTemplate('receipt'),
+            smallEnvelope: !!getCustomTemplate('smallEnvelope'),
+            bigEnvelope: !!getCustomTemplate('bigEnvelope')
+        });
+    };
 
     useEffect(() => {
         if (!open) return;
         setSettings(getPrintSettings());
+        refreshCustomFlags();
         if (!available) return;
         setLoadingPrinters(true);
         listPrinters()
@@ -54,6 +69,12 @@ export default function PrintSettingsModal({ open, onClose }) {
             })
             .finally(() => setLoadingPrinters(false));
     }, [open, available]);
+
+    const handleEditorClose = () => {
+        setEditorType(null);
+        setSettings(getPrintSettings());
+        refreshCustomFlags();
+    };
 
     const update = (patch) => setSettings(s => ({ ...s, ...patch }));
     const updateNested = (key, sub, val) => setSettings(s => ({
@@ -138,7 +159,14 @@ export default function PrintSettingsModal({ open, onClose }) {
                         <div key={type} className="p-4 border border-border rounded-lg space-y-3">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
-                                    <div className="font-medium">{TEMPLATE_LABELS[type]}</div>
+                                    <div className="font-medium flex items-center gap-2">
+                                        {TEMPLATE_LABELS[type]}
+                                        {customFlags[type] && (
+                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-semibold">
+                                                <Sparkles className="w-2.5 h-2.5" /> Özel
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-muted-foreground">{TEMPLATE_DESCRIPTIONS[type]}</p>
                                 </div>
                                 <button
@@ -153,7 +181,7 @@ export default function PrintSettingsModal({ open, onClose }) {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-[1fr_70px_auto] gap-2 items-end">
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_70px_auto_auto] gap-2 items-end">
                                 <div>
                                     <label className="block text-xs text-muted-foreground mb-1">Yazıcı</label>
                                     <select
@@ -192,6 +220,17 @@ export default function PrintSettingsModal({ open, onClose }) {
                                         Test
                                     </button>
                                 </div>
+                                <div>
+                                    <label className="block text-xs text-muted-foreground mb-1">&nbsp;</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditorType(type)}
+                                        className="px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm flex items-center gap-2 w-full justify-center"
+                                    >
+                                        <Pencil className="w-3 h-3" />
+                                        Şablonu Düzenle
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -216,6 +255,13 @@ export default function PrintSettingsModal({ open, onClose }) {
                     </button>
                 </div>
             </div>
+            {editorType && (
+                <TemplateEditor
+                    open={!!editorType}
+                    onClose={handleEditorClose}
+                    templateType={editorType}
+                />
+            )}
         </div>
     );
 }

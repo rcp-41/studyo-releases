@@ -10,6 +10,7 @@ const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
+const { APPCHECK_ENABLED } = require('./config');
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -69,7 +70,7 @@ async function getWooCommerceApi(dbHandler) {
 /**
  * Test WooCommerce connection
  */
-exports.testConnection = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
+exports.testConnection = onCall({ enforceAppCheck: APPCHECK_ENABLED, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
     if (!request.auth || request.auth.token.role !== 'admin') {
         throw new HttpsError('permission-denied', 'Admin only');
     }
@@ -93,7 +94,7 @@ exports.testConnection = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_S
 /**
  * Get WooCommerce stats for an archive
  */
-exports.getStats = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
+exports.getStats = onCall({ enforceAppCheck: APPCHECK_ENABLED, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -132,7 +133,7 @@ exports.getStats = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SECRET,
 /**
  * Create WooCommerce category, products with Firebase Storage images
  */
-exports.uploadSingle = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
+exports.uploadSingle = onCall({ enforceAppCheck: APPCHECK_ENABLED, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -287,7 +288,7 @@ exports.uploadSingle = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SEC
 /**
  * Get WooCommerce clients/orders
  */
-exports.getClients = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
+exports.getClients = onCall({ enforceAppCheck: APPCHECK_ENABLED, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
     console.log('📋 woocommerce-getClients called');
 
     if (!request.auth || request.auth.token.role !== 'admin') {
@@ -321,7 +322,7 @@ exports.getClients = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SECRE
  * Reset WooCommerce data for an archive
  * Deletes: WC products, WC category, and Firebase Storage files
  */
-exports.reset = onCall({ enforceAppCheck: false, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
+exports.reset = onCall({ enforceAppCheck: APPCHECK_ENABLED, secrets: [WC_KEY, WC_SECRET, WC_URL] }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

@@ -9,6 +9,7 @@ const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
 const { expenseSchema, validate } = require('./validators/schemas');
+const { APPCHECK_ENABLED } = require('./config');
 
 const FieldValue = admin.firestore.FieldValue;
 const Timestamp = admin.firestore.Timestamp;
@@ -63,7 +64,7 @@ const getDateRange = (range) => {
 /**
  * Get payments for a date range
  */
-exports.getPayments = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getPayments = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -122,7 +123,7 @@ exports.getPayments = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Get daily cash summary
  */
-exports.getDailyCash = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getDailyCash = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -214,7 +215,7 @@ exports.getDailyCash = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Set opening balance for a day
  */
-exports.setOpeningBalance = onCall({ enforceAppCheck: false }, async (request) => {
+exports.setOpeningBalance = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -246,7 +247,7 @@ exports.setOpeningBalance = onCall({ enforceAppCheck: false }, async (request) =
 /**
  * Get expenses for a date range
  */
-exports.getExpenses = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getExpenses = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -302,7 +303,7 @@ exports.getExpenses = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Add a new expense
  */
-exports.addExpense = onCall({ enforceAppCheck: false }, async (request) => {
+exports.addExpense = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -346,7 +347,7 @@ exports.addExpense = onCall({ enforceAppCheck: false }, async (request) => {
  * Kayıtsız işlemler: Amatör baskı, biyometrik çoğaltma, çerçeve vb.
  * Supports both income and expense entries.
  */
-exports.getCashRegisterEntries = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getCashRegisterEntries = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
@@ -432,7 +433,7 @@ exports.getCashRegisterEntries = onCall({ enforceAppCheck: false }, async (reque
  * Income entries sync to 'payments' collection.
  * Expense entries sync to 'expenses' collection.
  */
-exports.createCashEntry = onCall({ enforceAppCheck: false }, async (request) => {
+exports.createCashEntry = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
@@ -514,7 +515,7 @@ exports.createCashEntry = onCall({ enforceAppCheck: false }, async (request) => 
  * Update a cash register entry
  * Also updates the synced payment/expense record.
  */
-exports.updateCashEntry = onCall({ enforceAppCheck: false }, async (request) => {
+exports.updateCashEntry = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
@@ -621,7 +622,7 @@ exports.updateCashEntry = onCall({ enforceAppCheck: false }, async (request) => 
  * Delete a cash register entry
  * Also deletes the synced payment/expense record.
  */
-exports.deleteCashEntry = onCall({ enforceAppCheck: false }, async (request) => {
+exports.deleteCashEntry = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
     const dbHandler = await DatabaseHandler.fromRequest(request);
@@ -654,7 +655,7 @@ exports.deleteCashEntry = onCall({ enforceAppCheck: false }, async (request) => 
 /**
  * Get overdue payments (archives with remaining balance)
  */
-exports.getOverduePayments = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getOverduePayments = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -714,7 +715,7 @@ exports.getOverduePayments = onCall({ enforceAppCheck: false }, async (request) 
  * Aggregates total income (by method), total expenses and net profit
  * for a given date range string: 'today' | 'week' | 'month'
  */
-exports.getFinanceSummary = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getFinanceSummary = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

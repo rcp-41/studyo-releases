@@ -1,8 +1,9 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
+const { APPCHECK_ENABLED } = require('./config');
 
 exports.resetStudioData = onCall({
-    enforceAppCheck: false,
+    enforceAppCheck: APPCHECK_ENABLED,
     region: 'us-central1',
     maxInstances: 5,
     memory: '1GiB',

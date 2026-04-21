@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { settingsApi, whatsappApi, optionsApi, schoolsApi } from '../services/api';
 import { cn, formatDate } from '../lib/utils';
 import {
@@ -13,14 +14,6 @@ import { backupApi } from '../services/backup';
 import auditLog from '../services/auditLog';
 import PrintSettingsModal from '../components/PrintSettingsModal';
 import { getPrintSettings } from '../lib/printSettings';
-
-const settingCategories = [
-    { id: 'general', label: 'Genel', icon: Settings2 },
-    { id: 'notification', label: 'Bildirimler', icon: Mail },
-    { id: 'security', label: 'Güvenlik', icon: Shield },
-    { id: 'print', label: 'Yazdırma', icon: Printer },
-    { id: 'backup', label: 'Yedekleme', icon: Database }
-];
 
 function SettingInput({ label, value, onChange, type = 'text', placeholder, description, isPassword }) {
     const [showPassword, setShowPassword] = useState(false);
@@ -371,6 +364,15 @@ export default function Settings() {
     const [printModalOpen, setPrintModalOpen] = useState(false);
     const [printSnapshot, setPrintSnapshot] = useState(() => getPrintSettings());
     const queryClient = useQueryClient();
+    const { t } = useTranslation();
+
+    const settingCategories = [
+        { id: 'general', label: t('settings.categories.general'), icon: Settings2 },
+        { id: 'notification', label: t('settings.categories.notification'), icon: Mail },
+        { id: 'security', label: t('settings.categories.security'), icon: Shield },
+        { id: 'print', label: t('settings.categories.print'), icon: Printer },
+        { id: 'backup', label: t('settings.categories.backup'), icon: Database }
+    ];
 
     // Queries for Options
     const { data: shootTypes } = useQuery({ queryKey: ['shootTypes'], queryFn: () => optionsApi.getShootTypes().then(r => r.data) });
@@ -450,10 +452,10 @@ export default function Settings() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <div><h1 className="text-2xl font-bold">Ayarlar</h1><p className="text-muted-foreground">Sistem yapılandırması</p></div>
+                <div><h1 className="text-2xl font-bold">{t('settings.title')}</h1><p className="text-muted-foreground">{t('settings.subtitle')}</p></div>
                 {activeCategory !== 'options' && (
                     <button onClick={saveSettings} disabled={updateMutation.isPending} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50">
-                        {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Kaydet
+                        {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('common.save')}
                     </button>
                 )}
             </div>
@@ -466,7 +468,7 @@ export default function Settings() {
                         </button>
                     ))}
                     <button onClick={() => setActiveCategory('options')} className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg', activeCategory === 'options' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>
-                        <FolderOpen className="w-4 h-4" /> Seçenekler
+                        <FolderOpen className="w-4 h-4" /> {t('settings.categories.options')}
                     </button>
                 </div>
 

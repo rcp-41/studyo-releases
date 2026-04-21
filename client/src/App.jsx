@@ -22,6 +22,7 @@ import PixonaiSettings from './pages/PixonaiSettings';
 import BotConversations from './pages/BotConversations';
 import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
+import OfflineBanner from './components/OfflineBanner';
 
 import BaseOSLoader from './components/BaseOSLoader';
 
@@ -160,6 +161,7 @@ export default function App() {
 
     return (
         <ErrorBoundary>
+            <OfflineBanner />
             <HashRouter>
                 <LicenseCheck>
                     <Routes>

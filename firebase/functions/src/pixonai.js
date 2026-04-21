@@ -8,13 +8,14 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
+const { APPCHECK_ENABLED } = require('./config');
 
 const FieldValue = admin.firestore.FieldValue;
 
 /**
  * Get all Pixonai configs for the studio
  */
-exports.getConfigs = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getConfigs = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -37,7 +38,7 @@ exports.getConfigs = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Get a single Pixonai config by shootCategoryId
  */
-exports.getConfig = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getConfig = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -72,7 +73,7 @@ exports.getConfig = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Save (create or update) a Pixonai config
  */
-exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
+exports.saveConfig = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -154,7 +155,7 @@ exports.saveConfig = onCall({ enforceAppCheck: false }, async (request) => {
 /**
  * Delete a Pixonai config
  */
-exports.deleteConfig = onCall({ enforceAppCheck: false }, async (request) => {
+exports.deleteConfig = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
