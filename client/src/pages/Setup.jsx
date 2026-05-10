@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { KeyRound, Loader2, CheckCircle2, Clock, XCircle, Monitor } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
 import { toast } from 'sonner';
 
 export default function Setup() {
+    const { t } = useTranslation();
     const [serialKey, setSerialKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [validatedStudio, setValidatedStudio] = useState(null);
@@ -79,13 +81,13 @@ export default function Setup() {
                     }
 
                     if (saveResult.success) {
-                        toast.success(`${data.studioName} stüdyosuna bağlanıldı!`);
+                        toast.success(t('pages.setup.connectionSuccess', { studioName: data.studioName }));
                         setTimeout(() => { navigate('/login'); }, 1500);
                     }
                 } else if (status === 'rejected') {
                     clearInterval(pollingRef.current);
                     pollingRef.current = null;
-                    toast.error('Cihaz isteğiniz reddedildi. Yöneticinizle iletişime geçin.');
+                    toast.error(t('pages.setup.approvalRejectionAdmin'));
                 }
             } catch (error) {
                 // Polling error — will retry on next interval
@@ -101,7 +103,7 @@ export default function Setup() {
         e.preventDefault();
 
         if (!serialKey || serialKey.length !== 19) {
-            toast.error('Lütfen geçerli bir seri numarası girin (XXXX-XXXX-XXXX-XXXX)');
+            toast.error(t('pages.setup.invalidSerialError'));
             return;
         }
 
@@ -116,13 +118,13 @@ export default function Setup() {
             setValidatedStudio({ studioId, studioName });
 
             // Step 2: Get system info (HWID, MAC, IP, hostname)
-            let sysInfo = { hwid: null, macAddress: null, hostname: 'Bilinmeyen', ipAddress: null, deviceInfo: {} };
+            let sysInfo = { hwid: null, macAddress: null, hostname: 'Unknown', ipAddress: null, deviceInfo: {} };
             if (window.electron && window.electron.getSystemInfo) {
                 sysInfo = await window.electron.getSystemInfo();
             }
 
             if (!sysInfo.hwid) {
-                toast.error('Cihaz kimliği alınamadı. Electron uygulamasında çalıştığınızdan emin olun.');
+                toast.error(t('pages.setup.hwError'));
                 setIsLoading(false);
                 return;
             }
@@ -162,7 +164,7 @@ export default function Setup() {
                 }
 
                 if (result.success) {
-                    toast.success(`${studioName} stüdyosuna bağlanıldı!`);
+                    toast.success(t('pages.setup.connectionSuccess', { studioName }));
                     setTimeout(() => { navigate('/login'); }, 1500);
                 }
             } else {
@@ -176,19 +178,19 @@ export default function Setup() {
                 setApprovalStatus('pending');
                 setAwaitingApproval(true);
                 startPolling(data);
-                toast('Cihaz onay isteği gönderildi!', { icon: '📤' });
+                toast(t('pages.setup.requestSent'), { icon: '📤' });
             }
 
         } catch (error) {
             const errorMessage = error.message || '';
             if (errorMessage.includes('not-found') || errorMessage.includes('No studio found')) {
-                toast.error('Bu seri numarasına ait stüdyo bulunamadı');
+                toast.error(t('pages.setup.noStudioFound'));
             } else if (errorMessage.includes('invalid-argument') || errorMessage.includes('Invalid serial key')) {
-                toast.error('Geçersiz seri numarası formatı');
+                toast.error(t('pages.setup.invalidSerialFormat'));
             } else if (errorMessage.includes('does not match')) {
-                toast.error('Lisans anahtarı eşleşmiyor');
+                toast.error(t('pages.setup.licenseMismatch'));
             } else {
-                toast.error('Doğrulama başarısız: ' + errorMessage);
+                toast.error(t('pages.setup.verificationFailed', { error: errorMessage }));
             }
         } finally {
             setIsLoading(false);
@@ -221,16 +223,16 @@ export default function Setup() {
                             )}
                         </div>
                         <h1 className="text-2xl font-bold">
-                            {approvalStatus === 'rejected' ? 'İstek Reddedildi' :
-                                approvalStatus === 'approved' ? 'Cihaz Onaylandı!' :
-                                    'Yönetici Onayı Bekleniyor'}
+                            {approvalStatus === 'rejected' ? t('pages.setup.approvalRejected') :
+                                approvalStatus === 'approved' ? t('pages.setup.approvalApproved') :
+                                    t('pages.setup.approvalWaiting')}
                         </h1>
                         <p className="text-muted-foreground mt-2">
                             {approvalStatus === 'rejected' ?
-                                'Yöneticiniz bu cihazın bağlanmasını reddetti.' :
+                                t('pages.setup.approvalRejectedDesc') :
                                 approvalStatus === 'approved' ?
-                                    'Yönlendiriliyorsunuz...' :
-                                    'Stüdyo yöneticinizin Creator Panel\'den cihazınızı onaylaması gerekiyor.'}
+                                    t('pages.setup.approvalApprovedDesc') :
+                                    t('pages.setup.approvalPendingDesc')}
                         </p>
                     </div>
 
@@ -251,10 +253,10 @@ export default function Setup() {
                             <div className="text-center py-6">
                                 <div className="flex items-center justify-center gap-2 text-amber-500 mb-3">
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span className="text-sm font-medium">Kontrol ediliyor...</span>
+                                    <span className="text-sm font-medium">{t('pages.setup.checking')}</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Her 5 saniyede otomatik kontrol yapılıyor.
+                                    {t('pages.setup.checkingHint')}
                                 </p>
                             </div>
                         )}
@@ -263,8 +265,7 @@ export default function Setup() {
                         {approvalStatus === 'rejected' && (
                             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
                                 <p className="text-sm text-red-500">
-                                    Bu cihaz için bağlantı isteği reddedildi.
-                                    Farklı bir seri numarası ile tekrar deneyin veya yöneticinizle iletişime geçin.
+                                    {t('pages.setup.rejectionMsg')}
                                 </p>
                             </div>
                         )}
@@ -275,13 +276,13 @@ export default function Setup() {
                                 onClick={handleCancel}
                                 className="w-full py-2.5 px-4 border border-border rounded-lg text-sm font-medium hover:bg-muted/50 transition-all mt-2"
                             >
-                                {approvalStatus === 'rejected' ? 'Geri Dön' : 'İptal Et'}
+                                {approvalStatus === 'rejected' ? t('pages.setup.backButton') : t('pages.setup.cancelButton')}
                             </button>
                         )}
                     </div>
 
                     <p className="text-center text-xs text-muted-foreground mt-4">
-                        Yöneticiniz Creator Panel → Stüdyolar → Cihazlar bölümünden onay verebilir.
+                        {t('pages.setup.approvalManualHint')}
                     </p>
                 </div>
             </div>
@@ -296,9 +297,9 @@ export default function Setup() {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
                         <KeyRound className="w-8 h-8 text-primary" />
                     </div>
-                    <h1 className="text-3xl font-bold">Stüdyo Aktivasyonu</h1>
+                    <h1 className="text-3xl font-bold">{t('pages.setup.activation')}</h1>
                     <p className="text-muted-foreground mt-2">
-                        Seri numaranızı girerek cihazı stüdyonuza bağlayın
+                        {t('pages.setup.activationDesc')}
                     </p>
                 </div>
 
@@ -308,20 +309,20 @@ export default function Setup() {
                         {/* Serial Key Input */}
                         <div>
                             <label className="block text-sm font-medium mb-2">
-                                Seri Numarası
+                                {t('pages.setup.serialNumber')}
                             </label>
                             <input
                                 type="text"
                                 value={serialKey}
                                 onChange={handleSerialKeyChange}
                                 className="w-full px-4 py-3 rounded-lg bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono text-lg tracking-wider text-center"
-                                placeholder="XXXX-XXXX-XXXX-XXXX"
+                                placeholder={t('pages.setup.serialNumberPlaceholder')}
                                 disabled={isLoading}
                                 maxLength={19}
                                 autoFocus
                             />
                             <p className="text-xs text-muted-foreground mt-1.5">
-                                Seri numarasını giriniz
+                                {t('pages.setup.enterSerialHint')}
                             </p>
                         </div>
 
@@ -330,7 +331,7 @@ export default function Setup() {
                             <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                                 <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
                                 <div>
-                                    <p className="text-sm font-medium text-green-500">Stüdyo Bulundu</p>
+                                    <p className="text-sm font-medium text-green-500">{t('pages.setup.studioFound')}</p>
                                     <p className="text-sm">{validatedStudio.studioName}</p>
                                 </div>
                             </div>
@@ -345,12 +346,12 @@ export default function Setup() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    Doğrulanıyor...
+                                    {t('pages.setup.verifying')}
                                 </>
                             ) : (
                                 <>
                                     <KeyRound className="w-5 h-5" />
-                                    Aktive Et
+                                    {t('pages.setup.activate')}
                                 </>
                             )}
                         </button>
@@ -359,7 +360,7 @@ export default function Setup() {
 
                 {/* Footer */}
                 <p className="text-center text-sm text-muted-foreground mt-6">
-                    Seri numaranız yoksa stüdyo yöneticinizle iletişime geçin.
+                    {t('pages.setup.contactAdmin')}
                 </p>
             </div>
         </div>

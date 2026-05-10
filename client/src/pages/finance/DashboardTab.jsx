@@ -92,58 +92,58 @@ export default function DashboardTab({ range }) {
                 <div className="bg-card border border-border rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="p-2.5 rounded-lg bg-green-500/10"><TrendingUp className="w-5 h-5 text-green-500" /></div>
-                        <span className="text-sm text-muted-foreground">Toplam Gelir</span>
+                        <span className="text-sm text-muted-foreground">{t('pages.finance.totalRevenue')}</span>
                     </div>
                     <p className="text-2xl font-bold text-green-500">{formatCurrency(totalIncome)}</p>
                     <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
-                        <span>Nakit: {formatCurrency(cashIncome)}</span>
-                        <span>Kart: {formatCurrency(cardIncome)}</span>
+                        <span>{t('pages.finance.cash')}: {formatCurrency(cashIncome)}</span>
+                        <span>{t('pages.finance.creditCard').split(' ')[0]}: {formatCurrency(cardIncome)}</span>
                     </div>
                 </div>
                 <div className="bg-card border border-border rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="p-2.5 rounded-lg bg-red-500/10"><TrendingDown className="w-5 h-5 text-red-500" /></div>
-                        <span className="text-sm text-muted-foreground">Toplam Gider</span>
+                        <span className="text-sm text-muted-foreground">{t('pages.finance.totalExpenses')}</span>
                     </div>
                     <p className="text-2xl font-bold text-red-500">{formatCurrency(totalExpense)}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{expenses.length} gider kaydı</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{t('pages.finance.totalExpenses')}: {expenses.length}</p>
                 </div>
                 <div className="bg-card border border-border rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                         <div className={cn('p-2.5 rounded-lg', profit >= 0 ? 'bg-blue-500/10' : 'bg-orange-500/10')}>
                             <DollarSign className={cn('w-5 h-5', profit >= 0 ? 'text-blue-500' : 'text-orange-500')} />
                         </div>
-                        <span className="text-sm text-muted-foreground">Net Kâr / Zarar</span>
+                        <span className="text-sm text-muted-foreground">{t('pages.finance.netIncome')}</span>
                     </div>
                     <p className={cn('text-2xl font-bold', profit >= 0 ? 'text-blue-500' : 'text-orange-500')}>
                         {profit >= 0 ? '+' : ''}{formatCurrency(profit)}
                     </p>
-                    <p className="mt-2 text-xs text-muted-foreground">{profit >= 0 ? 'Kâr' : 'Zarar'}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{profit >= 0 ? t('pages.finance.revenue') : 'Zarar'}</p>
                 </div>
                 <div className="bg-card border border-border rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="p-2.5 rounded-lg bg-purple-500/10"><Percent className="w-5 h-5 text-purple-500" /></div>
-                        <span className="text-sm text-muted-foreground">Kâr Marjı</span>
+                        <span className="text-sm text-muted-foreground">Profit Margin</span>
                     </div>
                     <p className="text-2xl font-bold text-purple-500">%{margin}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">Gelir-gider oranı</p>
+                    <p className="mt-2 text-xs text-muted-foreground">Revenue-Expense Ratio</p>
                 </div>
                 <div className="bg-card border border-border rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                         <div className={cn('p-2.5 rounded-lg', kasaBalance >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10')}>
                             <Wallet className={cn('w-5 h-5', kasaBalance >= 0 ? 'text-emerald-500' : 'text-red-500')} />
                         </div>
-                        <span className="text-sm text-muted-foreground">Kasa Bakiye</span>
+                        <span className="text-sm text-muted-foreground">Cash Balance</span>
                     </div>
                     <p className={cn('text-2xl font-bold', kasaBalance >= 0 ? 'text-emerald-500' : 'text-red-500')}>{formatCurrency(kasaBalance)}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">Günlük kasa ({formatDate(today)})</p>
+                    <p className="mt-2 text-xs text-muted-foreground">Daily Cash ({formatDate(today)})</p>
                 </div>
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-card border border-border rounded-xl p-5">
-                    <h3 className="text-sm font-semibold mb-4">Gelir / Gider / Kâr</h3>
+                    <h3 className="text-sm font-semibold mb-4">Revenue / Expense / Profit</h3>
                     <ResponsiveContainer width="100%" height={280}>
                         <BarChart data={barData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -168,7 +168,7 @@ export default function DashboardTab({ range }) {
                 </div>
 
                 <div className="bg-card border border-border rounded-xl p-5">
-                    <h3 className="text-sm font-semibold mb-4">Gider Dağılımı</h3>
+                    <h3 className="text-sm font-semibold mb-4">Expense Distribution</h3>
                     {expensePieData.length > 0 ? (
                         <div className="flex items-center">
                             <ResponsiveContainer width="60%" height={280}>
@@ -201,31 +201,31 @@ export default function DashboardTab({ range }) {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center h-[280px] text-muted-foreground">Gider verisi yok</div>
+                        <div className="flex items-center justify-center h-[280px] text-muted-foreground">No expense data</div>
                     )}
                 </div>
             </div>
 
             {/* Payment method breakdown */}
             <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-semibold mb-4">Ödeme Yöntemi Dağılımı</h3>
+                <h3 className="text-sm font-semibold mb-4">Payment Method Distribution</h3>
                 <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-4 rounded-lg bg-green-500/10">
                         <Banknote className="w-6 h-6 text-green-500 mx-auto mb-2" />
                         <p className="text-lg font-bold text-green-500">{formatCurrency(cashIncome)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Nakit</p>
+                        <p className="text-xs text-muted-foreground mt-1">Cash</p>
                         <p className="text-xs text-muted-foreground">{totalIncome > 0 ? ((cashIncome / totalIncome) * 100).toFixed(1) : 0}%</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-blue-500/10">
                         <CreditCard className="w-6 h-6 text-blue-500 mx-auto mb-2" />
                         <p className="text-lg font-bold text-blue-500">{formatCurrency(cardIncome)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Kredi Kartı</p>
+                        <p className="text-xs text-muted-foreground mt-1">Credit Card</p>
                         <p className="text-xs text-muted-foreground">{totalIncome > 0 ? ((cardIncome / totalIncome) * 100).toFixed(1) : 0}%</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-purple-500/10">
                         <ArrowUpDown className="w-6 h-6 text-purple-500 mx-auto mb-2" />
                         <p className="text-lg font-bold text-purple-500">{formatCurrency(transferIncome)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Havale / EFT</p>
+                        <p className="text-xs text-muted-foreground mt-1">Transfer</p>
                         <p className="text-xs text-muted-foreground">{totalIncome > 0 ? ((transferIncome / totalIncome) * 100).toFixed(1) : 0}%</p>
                     </div>
                 </div>

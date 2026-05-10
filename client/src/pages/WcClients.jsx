@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { whatsappApi } from '../services/api';
 import { woocommerceApi } from '../services/api';
 import { format } from 'date-fns';
@@ -12,6 +13,7 @@ import { cn } from '../lib/utils';
 import WooCommerceModal from '../components/WooCommerceModal';
 
 export default function WcClients() {
+    const { t } = useTranslation();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +32,7 @@ export default function WcClients() {
             setClients(data);
         } catch (error) {
             console.error('Error loading WC clients:', error);
-            toast.error('Müşteriler yüklenemedi');
+            toast.error(t('common.failed'));
         }
         setLoading(false);
     };
@@ -39,17 +41,21 @@ export default function WcClients() {
         navigator.clipboard.writeText(link);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
-        toast.success('Link kopyalandı');
+        toast.success(t('woocommerce.copySuccess'));
     };
 
     const sendWhatsApp = async (client) => {
-        const message = `Sayın ${client.fullName},\n\nFotoğraflarınız hazırdır. Aşağıdaki linkten görüntüleyebilir ve sipariş verebilirsiniz:\n\n${client.wcLink}\nŞifre: ${client.wcPassword}\n\nİyi günler dileriz.`;
+        const message = t('woocommerce.messagePrefix', { name: client.fullName }) + '\n\n' +
+                       t('woocommerce.messagePhotosReady') + '\n\n' +
+                       `${client.wcLink}\n` +
+                       t('woocommerce.password') + ' ${client.wcPassword}\n\n' +
+                       t('woocommerce.bestRegards');
 
         try {
             await whatsappApi.send({ phone: client.phone, message });
-            toast.success('Mesaj gönderildi');
+            toast.success(t('woocommerce.sendMessage'));
         } catch (error) {
-            toast.error('Mesaj gönderilemedi');
+            toast.error(t('woocommerce.sendError'));
         }
     };
 
@@ -72,9 +78,9 @@ export default function WcClients() {
                         <Globe className="w-6 h-6 text-purple-500" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">Online Satış</h1>
+                        <h1 className="text-2xl font-bold">{t('nav.onlineSales')}</h1>
                         <p className="text-sm text-muted-foreground">
-                            Seçim linki oluşturulan müşteriler
+                            WooCommerce clients
                         </p>
                     </div>
                 </div>
@@ -84,7 +90,7 @@ export default function WcClients() {
                     className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
                 >
                     <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-                    Yenile
+                    {t('common.refresh')}
                 </button>
             </div>
 
@@ -93,7 +99,7 @@ export default function WcClients() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                     type="text"
-                    placeholder="İsim veya telefon ile ara..."
+                    placeholder="Search by name or phone..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary"
@@ -109,7 +115,7 @@ export default function WcClients() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{clients.length}</p>
-                            <p className="text-sm text-muted-foreground">Aktif Link</p>
+                            <p className="text-sm text-muted-foreground">Active Links</p>
                         </div>
                     </div>
                 </div>
@@ -122,7 +128,7 @@ export default function WcClients() {
                             <p className="text-2xl font-bold">
                                 {clients.filter(c => c.hasOrders).length}
                             </p>
-                            <p className="text-sm text-muted-foreground">Sipariş Var</p>
+                            <p className="text-sm text-muted-foreground">With Orders</p>
                         </div>
                     </div>
                 </div>
@@ -135,7 +141,7 @@ export default function WcClients() {
                             <p className="text-2xl font-bold">
                                 {clients.filter(c => !c.hasOrders).length}
                             </p>
-                            <p className="text-sm text-muted-foreground">Bekleyen</p>
+                            <p className="text-sm text-muted-foreground">Pending</p>
                         </div>
                     </div>
                 </div>
@@ -149,9 +155,9 @@ export default function WcClients() {
             ) : filteredClients.length === 0 ? (
                 <div className="text-center py-12">
                     <Globe className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Henüz müşteri yok</h3>
+                    <h3 className="text-lg font-medium mb-2">{t('pages.wcClients.noClients')}</h3>
                     <p className="text-sm text-muted-foreground">
-                        Arşiv sayfasından bir müşteri için seçim linki oluşturabilirsiniz.
+                        Create selection links from the Archives page.
                     </p>
                 </div>
             ) : (
@@ -173,7 +179,7 @@ export default function WcClients() {
                                                 ? "bg-green-500/10 text-green-500"
                                                 : "bg-yellow-500/10 text-yellow-500"
                                         )}>
-                                            {client.hasOrders ? 'Sipariş Var' : 'Bekliyor'}
+                                            {client.hasOrders ? 'Has Orders' : 'Pending'}
                                         </span>
                                     </div>
 

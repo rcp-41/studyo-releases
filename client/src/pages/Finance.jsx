@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import {
     DollarSign, Wallet, TrendingDown, AlertTriangle, LayoutDashboard
@@ -10,29 +11,30 @@ import CashTab from './finance/CashTab';
 import ExpensesTab from './finance/ExpensesTab';
 import OverdueTab from './finance/OverdueTab';
 
-const tabs = [
-    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { key: 'payments', label: 'Gelirler', icon: DollarSign },
-    { key: 'cash', label: 'Kasa', icon: Wallet },
-    { key: 'expenses', label: 'Giderler', icon: TrendingDown },
-    { key: 'overdue', label: 'Geciken Ödemeler', icon: AlertTriangle }
-];
-
-const dateRanges = [
-    { key: 'today', label: 'Bugün' },
-    { key: 'week', label: 'Bu Hafta' },
-    { key: 'month', label: 'Bu Ay' }
-];
-
 export default function Finance() {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('dashboard');
     const [range, setRange] = useState('month');
+
+    const tabs = [
+        { key: 'dashboard', label: t('pages.finance.dashboard'), icon: LayoutDashboard },
+        { key: 'payments', label: t('pages.finance.payments'), icon: DollarSign },
+        { key: 'cash', label: t('pages.finance.cash'), icon: Wallet },
+        { key: 'expenses', label: t('pages.finance.expenses'), icon: TrendingDown },
+        { key: 'overdue', label: t('pages.finance.overdue'), icon: AlertTriangle }
+    ];
+
+    const dateRanges = [
+        { key: 'today', label: t('pages.finance.today') },
+        { key: 'week', label: t('pages.finance.week') },
+        { key: 'month', label: t('pages.finance.month') }
+    ];
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <DollarSign className="w-7 h-7" /> Finans
+                    <DollarSign className="w-7 h-7" /> {t('pages.finance.title')}
                 </h1>
                 <div className="flex bg-muted rounded-lg p-1">
                     {dateRanges.map(r => (
