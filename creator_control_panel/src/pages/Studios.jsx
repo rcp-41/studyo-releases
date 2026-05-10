@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Plus, Search, Edit, Eye, EyeOff, RefreshCcw, Pause, Play, Trash2, X, Key,
     Settings, Camera, MapPin, User, Save, Globe, Lock, Wifi, WifiOff, Loader2,
@@ -6,6 +6,9 @@ import {
     CheckCircle, XCircle, Clock, Database, Copy, ArrowRightLeft, Download, HardDrive
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { collection, onSnapshot, query, where, getFirestore, Timestamp } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebase';
 import toast from 'react-hot-toast';
 import { creatorApi } from '../services/creatorApi';
 import BotConfigModal from '../components/BotConfigModal';
@@ -156,12 +159,56 @@ export default function Studios() {
         hasStoredSecret: false, secretChanged: false, secretVisible: false
     });
 
+    // E5: Online user counts per studio { [studioId]: count }
+    const [onlineMap, setOnlineMap] = useState({});
+
+    // H4: Update channel modal
+    const [showUpdateChannelModal, setShowUpdateChannelModal] = useState(null);
+    const [updateChannelValue, setUpdateChannelValue] = useState('stable');
+    const [updateMinVersion, setUpdateMinVersion] = useState('');
+    const [savingChannel, setSavingChannel] = useState(false);
+
+    // H2: Remote log modal
+    const [showRemoteLogModal, setShowRemoteLogModal] = useState(null);
+    const [remoteLogRequestId, setRemoteLogRequestId] = useState(null);
+    const [remoteLogStatus, setRemoteLogStatus] = useState(null);
+    const [remoteLogLoading, setRemoteLogLoading] = useState(false);
+
     // Form Data
     const [formData, setFormData] = useState({
         organizationId: '',
         name: '', owner: '', contact: '', email: '', ownerEmail: '',
         wc_url: '', wc_consumer_key: '', wc_consumer_secret: ''
     });
+
+    // E5: Subscribe to onlineUsers subcollections for all loaded studios
+    const onlineUnsubsRef = useRef([]);
+    useEffect(() => {
+        if (studios.length === 0) return;
+        // Unsubscribe previous listeners
+        onlineUnsubsRef.current.forEach(u => u());
+        onlineUnsubsRef.current = [];
+
+        const db = getFirestore();
+        const cutoff = new Date(Date.now() - 60000);
+
+        studios.forEach(s => {
+            if (!s.organizationId || !s.id) return;
+            const onlineRef = collection(
+                db,
+                'organizations', s.organizationId,
+                'studios', s.id,
+                'onlineUsers'
+            );
+            const q = query(onlineRef, where('lastHeartbeatAt', '>=', Timestamp.fromDate(cutoff)));
+            const unsub = onSnapshot(q, snap => {
+                setOnlineMap(prev => ({ ...prev, [s.id]: snap.size }));
+            }, () => {});
+            onlineUnsubsRef.current.push(unsub);
+        });
+
+        return () => { onlineUnsubsRef.current.forEach(u => u()); };
+    }, [studios.length]);
 
     useEffect(() => {
         loadData();
@@ -585,6 +632,12 @@ export default function Studios() {
                                                         <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                                             {studio.info?.name || 'İsimsiz'}
                                                             <PlanBadge tier={studio.plan?.tier || 'basic'} />
+                                                            {onlineMap[studio.id] > 0 && (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#22c55e', fontWeight: 600 }}>
+                                                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                                                                    {onlineMap[studio.id]} online
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                                                             {studio.info?.owner || 'Sahip yok'} · HWID: {studio.license?.hwid_lock ? '🔒 Kayıtlı' : '⏳ Bekliyor'}
@@ -660,6 +713,14 @@ export default function Studios() {
                                                         <button className="btn btn-sm" title="Yedekler & Depolama" onClick={() => setShowBackupPanel(studio)}
                                                             style={{ background: 'rgba(167,139,250,0.1)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }}>
                                                             <Database size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Update Kanalı" onClick={() => { setShowUpdateChannelModal(studio); setUpdateChannelValue(studio.update?.channel || 'stable'); setUpdateMinVersion(studio.update?.minVersion || ''); }}
+                                                            style={{ background: 'rgba(99,102,241,0.1)', color: '#c4b5fd', border: '1px solid rgba(167,139,250,0.3)', fontSize: '11px', padding: '4px 8px' }}>
+                                                            Kanal
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Logları Al" onClick={() => { setShowRemoteLogModal(studio); setRemoteLogRequestId(null); setRemoteLogStatus(null); }}
+                                                            style={{ background: 'rgba(52,211,153,0.1)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.3)', fontSize: '11px', padding: '4px 8px' }}>
+                                                            Log
                                                         </button>
                                                         <button className="btn btn-danger btn-sm" title="Sil" onClick={() => handleDeleteStudio(studio)}>
                                                             <Trash2 size={14} />
@@ -1365,6 +1426,114 @@ export default function Studios() {
                     onClose={() => setShowCouponModal(null)}
                     onSuccess={loadData}
                 />
+            )}
+
+            {/* H4: Update Channel Modal */}
+            {showUpdateChannelModal && (
+                <div className="modal-overlay" onClick={() => setShowUpdateChannelModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Update Kanalı — {showUpdateChannelModal.info?.name}</h2>
+                            <button className="modal-close" onClick={() => setShowUpdateChannelModal(null)}><X size={20} /></button>
+                        </div>
+                        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Kanal</label>
+                                <select className="input" value={updateChannelValue} onChange={e => setUpdateChannelValue(e.target.value)}>
+                                    <option value="stable">stable (Kararlı)</option>
+                                    <option value="beta">beta</option>
+                                    <option value="canary">canary (Erken Erişim)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Minimum Versiyon (opsiyonel)</label>
+                                <input className="input" placeholder="örn: 1.2.0" value={updateMinVersion} onChange={e => setUpdateMinVersion(e.target.value)} />
+                            </div>
+                            <button className="btn btn-primary" disabled={savingChannel} onClick={async () => {
+                                setSavingChannel(true);
+                                try {
+                                    const fn = httpsCallable(functions, 'setup-setStudioUpdateChannel');
+                                    await fn({ studioId: showUpdateChannelModal.id, organizationId: showUpdateChannelModal.organizationId, channel: updateChannelValue, minVersion: updateMinVersion || undefined });
+                                    toast.success('Update kanalı güncellendi');
+                                    setShowUpdateChannelModal(null);
+                                    loadData();
+                                } catch (err) {
+                                    toast.error(err.message || 'Hata');
+                                } finally {
+                                    setSavingChannel(false);
+                                }
+                            }}>
+                                {savingChannel ? 'Kaydediliyor...' : 'Kaydet'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* H2: Remote Log Modal */}
+            {showRemoteLogModal && (
+                <div className="modal-overlay" onClick={() => setShowRemoteLogModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Logları Al — {showRemoteLogModal.info?.name}</h2>
+                            <button className="modal-close" onClick={() => setShowRemoteLogModal(null)}><X size={20} /></button>
+                        </div>
+                        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            {!remoteLogRequestId ? (
+                                <button className="btn btn-primary" disabled={remoteLogLoading} onClick={async () => {
+                                    setRemoteLogLoading(true);
+                                    try {
+                                        const fn = httpsCallable(functions, 'setup-requestRemoteLogs');
+                                        const res = await fn({ studioId: showRemoteLogModal.id });
+                                        setRemoteLogRequestId(res.data.requestId);
+                                        toast.success('Log isteği oluşturuldu. Client yükleyince indirme linki belirecek.');
+                                    } catch (err) {
+                                        toast.error(err.message || 'Hata');
+                                    } finally {
+                                        setRemoteLogLoading(false);
+                                    }
+                                }}>
+                                    {remoteLogLoading ? 'İstek Oluşturuluyor...' : 'Log İste'}
+                                </button>
+                            ) : (
+                                <div>
+                                    <p style={{ fontSize: '13px', marginBottom: '12px', color: 'var(--text-muted)' }}>
+                                        Request ID: <code>{remoteLogRequestId}</code><br />
+                                        Client uygulama bu isteği algıladığında logları yükleyecek.
+                                    </p>
+                                    <button className="btn btn-secondary" disabled={remoteLogLoading} onClick={async () => {
+                                        setRemoteLogLoading(true);
+                                        try {
+                                            const fn = httpsCallable(functions, 'setup-getRemoteLogStatus');
+                                            const res = await fn({ requestId: remoteLogRequestId });
+                                            setRemoteLogStatus(res.data);
+                                        } catch (err) {
+                                            toast.error(err.message || 'Hata');
+                                        } finally {
+                                            setRemoteLogLoading(false);
+                                        }
+                                    }}>
+                                        Durumu Kontrol Et
+                                    </button>
+                                    {remoteLogStatus && (
+                                        <div style={{ marginTop: '12px', fontSize: '13px' }}>
+                                            <b>Durum:</b> {remoteLogStatus.status}<br />
+                                            {remoteLogStatus.downloadUrl && (
+                                                <a href={remoteLogStatus.downloadUrl} target="_blank" rel="noreferrer"
+                                                    className="btn btn-primary" style={{ display: 'inline-flex', marginTop: '8px', textDecoration: 'none' }}>
+                                                    Log Dosyasını İndir
+                                                </a>
+                                            )}
+                                            {remoteLogStatus.status === 'pending' && (
+                                                <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Client henüz yüklemedi. 1-2 dakika bekleyin.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

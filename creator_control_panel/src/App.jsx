@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
-import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle, Bot, Shield, Tag, Smartphone, Users, Bell, Search } from 'lucide-react';
+import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle, Bot, Shield, Tag, Smartphone, Users, Bell, Search, Layers, Ticket, Flag, ListChecks } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 
@@ -18,6 +18,9 @@ import Versioning from './pages/Versioning';
 import UserSearch from './pages/UserSearch';
 import CreatorTeam from './pages/CreatorTeam';
 import Announcements from './pages/Announcements';
+import BulkOperations from './pages/BulkOperations';
+import SupportTickets from './pages/SupportTickets';
+import FeatureFlags from './pages/FeatureFlags';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -88,6 +91,18 @@ function Sidebar({ onLogout }) {
                 <NavLink to="/announcements" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Bell />
                     Duyurular
+                </NavLink>
+                <NavLink to="/bulk-operations" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Layers />
+                    Toplu Islemler
+                </NavLink>
+                <NavLink to="/support-tickets" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Ticket />
+                    Destek Ticketlari
+                </NavLink>
+                <NavLink to="/feature-flags" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Flag />
+                    Feature Flags
                 </NavLink>
                 <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Settings />
@@ -182,6 +197,9 @@ export default function App() {
                                 <Route path="/user-search" element={<ProtectedRoute user={user}><UserSearch /></ProtectedRoute>} />
                                 <Route path="/creator-team" element={<ProtectedRoute user={user}><CreatorTeam /></ProtectedRoute>} />
                                 <Route path="/announcements" element={<ProtectedRoute user={user}><Announcements /></ProtectedRoute>} />
+                                <Route path="/bulk-operations" element={<ProtectedRoute user={user}><BulkOperations /></ProtectedRoute>} />
+                                <Route path="/support-tickets" element={<ProtectedRoute user={user}><SupportTickets /></ProtectedRoute>} />
+                                <Route path="/feature-flags" element={<ProtectedRoute user={user}><FeatureFlags /></ProtectedRoute>} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Routes>
                         </main>

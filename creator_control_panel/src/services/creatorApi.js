@@ -882,5 +882,177 @@ export const creatorApi = {
         } catch (error) {
             handleApiError(error, 'Get Build History');
         }
+    },
+
+    // ============================================
+    // Faz 5 — D3 Bulk Operations
+    // ============================================
+    bulkOperation: async (operation, studioIds, params = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-bulkOperation');
+            const result = await func({ operation, studioIds, params });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Bulk Operation');
+        }
+    },
+    listBulkJobs: async () => {
+        try {
+            const func = httpsCallable(functions, 'setup-listBulkJobs');
+            const result = await func({});
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'List Bulk Jobs');
+        }
+    },
+
+    // ============================================
+    // Faz 5 — E5 Online Users
+    // ============================================
+    getOnlineUsers: async (studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getOnlineUsers');
+            const result = await func({ studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Online Users');
+        }
+    },
+
+    // ============================================
+    // Faz 5 — E6 Revenue Dashboard
+    // ============================================
+    getRevenueDashboard: async (params = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getRevenueDashboard');
+            const result = await func(params);
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Revenue Dashboard');
+        }
+    },
+
+    // ============================================
+    // Faz 5 — H1 Support Tickets
+    // ============================================
+    createTicket: async (data) => {
+        try {
+            const func = httpsCallable(functions, 'setup-createTicket');
+            const result = await func(data);
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Create Ticket');
+        }
+    },
+    listTickets: async (filters = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-listTickets');
+            const result = await func(filters);
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'List Tickets');
+        }
+    },
+    replyTicket: async (ticketId, message) => {
+        try {
+            const func = httpsCallable(functions, 'setup-replyTicket');
+            const result = await func({ ticketId, message });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Reply Ticket');
+        }
+    },
+    updateTicketStatus: async (ticketId, status, assignedTo) => {
+        try {
+            const func = httpsCallable(functions, 'setup-updateTicketStatus');
+            const result = await func({ ticketId, status, assignedTo });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update Ticket Status');
+        }
+    },
+
+    // ============================================
+    // Faz 5 — H2 Remote Logs
+    // ============================================
+    requestRemoteLogs: async (studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-requestRemoteLogs');
+            const result = await func({ studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Request Remote Logs');
+        }
+    },
+    getRemoteLogStatus: async (requestId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getRemoteLogStatus');
+            const result = await func({ requestId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Remote Log Status');
+        }
+    },
+
+    // ============================================
+    // Faz 5 — H3 Feature Flags
+    // ============================================
+    listFeatureFlags: async () => {
+        try {
+            const func = httpsCallable(functions, 'setup-listFeatureFlags');
+            const result = await func({});
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'List Feature Flags');
+        }
+    },
+    setFeatureFlag: async (key, defaultValue, description) => {
+        try {
+            const func = httpsCallable(functions, 'setup-setFeatureFlag');
+            const result = await func({ key, defaultValue, description });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Set Feature Flag');
+        }
+    },
+    setStudioFlagOverride: async (studioId, key, value) => {
+        try {
+            const func = httpsCallable(functions, 'setup-setStudioFlagOverride');
+            const result = await func({ studioId, key, value });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Set Studio Flag Override');
+        }
+    },
+    getStudioFlags: async (studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getStudioFlags');
+            const result = await func({ studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Studio Flags');
+        }
+    },
+
+    // ============================================
+    // Faz 5 — H4 Update Channel
+    // ============================================
+    setStudioUpdateChannel: async (studioId, organizationId, channel, minVersion) => {
+        try {
+            const func = httpsCallable(functions, 'setup-setStudioUpdateChannel');
+            const result = await func({ studioId, organizationId, channel, minVersion });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Set Studio Update Channel');
+        }
+    },
+    getUpdateConfig: async (studioId, organizationId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getUpdateConfig');
+            const result = await func({ studioId, organizationId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Update Config');
+        }
     }
 };

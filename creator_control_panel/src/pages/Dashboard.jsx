@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Building2, Users, DollarSign, Wifi, AlertCircle, TrendingUp, Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebase';
 import { creatorApi } from '../services/creatorApi';
 
 function MiniBar({ value, max, color = '#6366f1' }) {
@@ -22,10 +25,20 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [recentStudios, setRecentStudios] = useState([]);
     const [error, setError] = useState(null);
+    const [revenue, setRevenue] = useState(null);
 
     useEffect(() => {
         loadStats();
+        loadRevenue();
     }, []);
+
+    async function loadRevenue() {
+        try {
+            const fn = httpsCallable(functions, 'setup-getRevenueDashboard');
+            const res = await fn({ groupBy: 'month' });
+            setRevenue(res.data);
+        } catch (_) { /* Revenue not critical */ }
+    }
 
     async function loadStats() {
         try {
@@ -203,6 +216,50 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* E6: Real Revenue Chart */}
+            {revenue && (
+                <div className="card" style={{ marginTop: '24px' }}>
+                    <div className="card-header">
+                        <h2 className="card-title"><TrendingUp size={20} /> Gerçek Gelir (payments koleksiyonu)</h2>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                            Toplam: ₺{(revenue.total || 0).toLocaleString('tr-TR')}
+                            {revenue.growthPercent !== null && revenue.growthPercent !== undefined && (
+                                <span style={{ marginLeft: '12px', color: revenue.growthPercent >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                                    {revenue.growthPercent >= 0 ? '+' : ''}{revenue.growthPercent}% (önceki ay)
+                                </span>
+                            )}
+                        </span>
+                    </div>
+                    <div style={{ padding: '8px 20px 20px' }}>
+                        {Object.keys(revenue.monthly || {}).length === 0 ? (
+                            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px' }}>Henüz ödeme verisi yok</p>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={220}>
+                                <BarChart data={Object.entries(revenue.monthly || {}).sort((a, b) => a[0].localeCompare(b[0])).map(([month, amount]) => ({ month, amount }))}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                    <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={v => `₺${v.toLocaleString('tr-TR')}`} />
+                                    <Tooltip formatter={v => [`₺${v.toLocaleString('tr-TR')}`, 'Gelir']} />
+                                    <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                        {/* Top 10 studios */}
+                        {(revenue.top10Studios || []).length > 0 && (
+                            <div style={{ marginTop: '16px' }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>En Yüksek Gelirli 10 Stüdyo</div>
+                                {revenue.top10Studios.map((s, i) => (
+                                    <div key={s.studioId} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <span>{i + 1}. {s.studioId}</span>
+                                        <span style={{ fontWeight: 600 }}>₺{s.amount.toLocaleString('tr-TR')}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Studio Performance Table */}
             <div className="card" style={{ marginTop: '24px' }}>

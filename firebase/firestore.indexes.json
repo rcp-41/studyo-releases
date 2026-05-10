@@ -4,129 +4,74 @@
             "collectionGroup": "archives",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
             ]
         },
         {
             "collectionGroup": "archives",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "shootDate",
-                    "order": "DESCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "shootDate", "order": "DESCENDING" }
             ]
         },
         {
             "collectionGroup": "archives",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "workflowStatus",
-                    "order": "ASCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "workflowStatus", "order": "ASCENDING" }
             ]
         },
         {
             "collectionGroup": "appointments",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "appointmentDate",
-                    "order": "ASCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "appointmentDate", "order": "ASCENDING" }
             ]
         },
         {
             "collectionGroup": "appointments",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "appointmentDate",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "timeSlot",
-                    "order": "ASCENDING"
-                }
+                { "fieldPath": "appointmentDate", "order": "ASCENDING" },
+                { "fieldPath": "timeSlot", "order": "ASCENDING" }
             ]
         },
         {
             "collectionGroup": "appointments",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "date",
-                    "order": "DESCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "date", "order": "DESCENDING" }
             ]
         },
         {
             "collectionGroup": "payments",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "date",
-                    "order": "DESCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "date", "order": "DESCENDING" }
             ]
         },
         {
             "collectionGroup": "payments",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
             ]
         },
         {
             "collectionGroup": "customers",
             "queryScope": "COLLECTION",
             "fields": [
-                {
-                    "fieldPath": "studioId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "phone",
-                    "order": "ASCENDING"
-                }
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "phone", "order": "ASCENDING" }
             ]
-        }
-    ],
+        },
         {
             "collectionGroup": "users",
             "queryScope": "COLLECTION_GROUP",
@@ -177,6 +122,52 @@
             "fields": [
                 { "fieldPath": "actorUid", "order": "ASCENDING" },
                 { "fieldPath": "timestamp", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "bulkJobs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "supportTickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "supportTickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "payments",
+            "queryScope": "COLLECTION_GROUP",
+            "fields": [
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "onlineUsers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "lastHeartbeatAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "remoteLogRequests",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "studioId", "order": "ASCENDING" },
+                { "fieldPath": "requestedAt", "order": "DESCENDING" }
             ]
         }
     ],

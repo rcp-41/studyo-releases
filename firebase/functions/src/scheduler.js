@@ -12,6 +12,10 @@ const { checkSubscriptions } = require('./scheduled/checkSubscriptions');
 exports.checkSuspensions = checkSuspensions;
 exports.checkSubscriptions = checkSubscriptions;
 
+// Faz 5 — D3 bulk operations processor
+const { processBulkJobs } = require('./admin/bulkOperations');
+exports.processBulkJobs = processBulkJobs;
+
 /**
  * Check and expire studios with expired licenses
  * Runs every 24 hours, scans all organizations
