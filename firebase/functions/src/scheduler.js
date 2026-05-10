@@ -12,6 +12,10 @@ const { checkSubscriptions } = require('./scheduled/checkSubscriptions');
 exports.checkSuspensions = checkSuspensions;
 exports.checkSubscriptions = checkSubscriptions;
 
+// F3 — Broadcast dispatch
+const { processBroadcasts } = require('./scheduled/processBroadcasts');
+exports.processBroadcasts = processBroadcasts;
+
 // Faz 5 — D3 bulk operations processor
 const { processBulkJobs } = require('./admin/bulkOperations');
 exports.processBulkJobs = processBulkJobs;

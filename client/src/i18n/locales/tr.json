@@ -67,7 +67,8 @@
     "logout": "Çıkış Yap",
     "darkMode": "Koyu Mod",
     "lightMode": "Açık Mod",
-    "checkUpdates": "Güncellemeleri Denetle"
+    "checkUpdates": "Güncellemeleri Denetle",
+    "support": "Destek Talebi"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -823,5 +824,46 @@
     "splashScreen": {
       "updating": "Güncelleme indiriliyor — v{{version}}"
     }
+  },
+  "announcement": {
+    "dismiss": "Kapat"
+  },
+  "support": {
+    "title": "Destek Talepleri",
+    "newTicket": "Yeni Talep",
+    "noTickets": "Henüz destek talebiniz yok",
+    "listError": "Talepler yüklenemedi",
+    "createSuccess": "Destek talebiniz oluşturuldu",
+    "createError": "Talep oluşturulamadı",
+    "replyError": "Yanıt gönderilemedi",
+    "replyPlaceholder": "Yanıtınızı yazın... (Enter ile gönder)",
+    "send": "Gönder",
+    "form": {
+      "subject": "Konu",
+      "subjectPlaceholder": "Talebinizin konusunu yazın",
+      "priority": "Öncelik",
+      "body": "Açıklama",
+      "bodyPlaceholder": "Sorununuzu veya talebinizi detaylı açıklayın",
+      "submit": "Talebi Gönder"
+    },
+    "validation": {
+      "subjectRequired": "Konu zorunludur",
+      "bodyRequired": "Açıklama zorunludur"
+    },
+    "status": {
+      "open": "Açık",
+      "pending": "Beklemede",
+      "resolved": "Çözüldü",
+      "closed": "Kapatıldı"
+    },
+    "priority": {
+      "low": "Düşük",
+      "medium": "Orta",
+      "high": "Yüksek"
+    }
+  },
+  "ipc": {
+    "forceLogout": "Oturumunuz başka bir yerden sonlandırıldı",
+    "impersonationBanner": "Destek modu aktif — Yetkili: {{creator}} — Başlangıç: {{startedAt}} — {{remaining}} kalan süre"
   }
 }

@@ -5,12 +5,13 @@ import useAuthStore from '../../store/authStore';
 import { cn } from '../../lib/utils';
 import {
     LayoutDashboard, Archive, Calendar, Camera, UsersRound, Wallet,
-    Globe, Settings, Users, LogOut, Menu, X, Moon, Sun, ChevronDown, DollarSign, BarChart3, RefreshCw
+    Globe, Settings, Users, LogOut, Menu, X, Moon, Sun, ChevronDown, DollarSign, BarChart3, RefreshCw, LifeBuoy
 } from 'lucide-react';
 import Breadcrumb from '../Breadcrumb';
 import NotificationCenter from '../NotificationCenter';
 import AutoUpdater from '../AutoUpdater';
 import LanguageSwitcher from '../LanguageSwitcher';
+import AnnouncementBanner from '../AnnouncementBanner';
 
 const NAV_ITEMS = [
     { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
@@ -210,6 +211,10 @@ export default function AppLayout({ children }) {
                                             {t('nav.checkUpdates')}
                                         </button>
                                     )}
+                                    <Link to="/support" onClick={() => setUserMenuOpen(false)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted text-sm">
+                                        <LifeBuoy className="w-4 h-4" />
+                                        {t('nav.support')}
+                                    </Link>
                                     <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted text-sm text-destructive">
                                         <LogOut className="w-4 h-4" />
                                         {t('nav.logout')}
@@ -293,6 +298,9 @@ export default function AppLayout({ children }) {
                             <RefreshCw className="w-4 h-4" /> {t('nav.checkUpdates')}
                         </button>
                     )}
+                    <Link to="/support" onClick={() => setMobileMenuOpen(false)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg text-sm">
+                        <LifeBuoy className="w-4 h-4" /> {t('nav.support')}
+                    </Link>
                     <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg text-sm text-destructive">
                         <LogOut className="w-4 h-4" /> {t('nav.logout')}
                     </button>
@@ -315,6 +323,9 @@ export default function AppLayout({ children }) {
                         <NotificationCenter />
                     </div>
                 </header>
+
+                {/* Announcement banners */}
+                <AnnouncementBanner />
 
                 {/* Page content */}
                 <div className="flex-1 overflow-auto p-4 sm:p-6">

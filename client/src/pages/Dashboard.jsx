@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useFlag } from '../lib/featureFlags';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, botApi } from '../services/api';
 import { formatCurrency, formatDateTime, getStatusLabel, getShootTypeLabel } from '../lib/utils';
@@ -366,6 +367,9 @@ const safeFormat = (dateVal, fallback = '-') => {
 export default function Dashboard() {
     const { t } = useTranslation();
     const [dateRange, setDateRange] = useState('today');
+    // Feature flag gate örneği — 'advancedAnalytics' flag'i aktif edildiğinde
+    // gelişmiş analitik bileşenlerini gösterir (şu an varsayılan: false)
+    const showAdvancedAnalytics = useFlag('advancedAnalytics', false);
     const DATE_RANGES = getDateRanges(t);
 
     // Always-fresh summary (daily cash, weekly appointments, pending payments)

@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import useAuthStore from './store/authStore';
+import { FlagsProvider } from './lib/featureFlags';
 
 // Critical routes — NOT lazy (always needed on first load)
 import Login from './pages/Login';
@@ -23,11 +24,13 @@ const Reports = lazy(() => import('./pages/Reports'));
 const CashRegister = lazy(() => import('./pages/CashRegister'));
 const PixonaiSettings = lazy(() => import('./pages/PixonaiSettings'));
 const BotConversations = lazy(() => import('./pages/BotConversations'));
+const SupportTicket = lazy(() => import('./pages/SupportTicket'));
 
 import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineBanner from './components/OfflineBanner';
 import BaseOSLoader from './components/BaseOSLoader';
+import IpcListeners from './components/IpcListeners';
 
 function PageLoader() {
     return (
@@ -152,38 +155,42 @@ function LicenseCheck({ children }) {
 export default function App() {
     return (
         <ErrorBoundary>
-            <OfflineBanner />
-            <HashRouter>
-                <LicenseCheck>
-                    <Routes>
-                        <Route path="/setup" element={<Setup />} />
-                        <Route path="/login" element={<Login />} />
+            <FlagsProvider>
+                <OfflineBanner />
+                <HashRouter>
+                    <LicenseCheck>
+                        <Routes>
+                            <Route path="/setup" element={<Setup />} />
+                            <Route path="/login" element={<Login />} />
 
-                        <Route element={<ProtectedRoute />}>
-                            <Route index element={<Navigate to="/dashboard" replace />} />
-                            <Route path="dashboard" element={<DashboardRouter />} />
-                            <Route path="archives" element={<Archives />} />
-                            <Route path="archives/search" element={<Suspense fallback={<PageLoader />}><ArchiveSearch /></Suspense>} />
-                            <Route path="appointments" element={<Suspense fallback={<PageLoader />}><Appointments /></Suspense>} />
-                            <Route path="customers" element={<Suspense fallback={<PageLoader />}><Customers /></Suspense>} />
-                            <Route path="customers/detail" element={<Suspense fallback={<PageLoader />}><CustomerDetail /></Suspense>} />
-                            <Route path="customers/:id" element={<Suspense fallback={<PageLoader />}><CustomerDetail /></Suspense>} />
-                            <Route path="shoots" element={<Suspense fallback={<PageLoader />}><Shoots /></Suspense>} />
-                            <Route path="shoots/:id" element={<Suspense fallback={<PageLoader />}><ShootDetail /></Suspense>} />
-                            <Route path="finance" element={<AdminRoute><Suspense fallback={<PageLoader />}><Finance /></Suspense></AdminRoute>} />
-                            <Route path="reports" element={<AdminRoute><Suspense fallback={<PageLoader />}><Reports /></Suspense></AdminRoute>} />
-                            <Route path="cash-register" element={<Suspense fallback={<PageLoader />}><CashRegister /></Suspense>} />
-                            <Route path="settings" element={<AdminRoute><Suspense fallback={<PageLoader />}><Settings /></Suspense></AdminRoute>} />
-                            <Route path="users" element={<AdminRoute><Suspense fallback={<PageLoader />}><Users /></Suspense></AdminRoute>} />
-                            <Route path="wc-clients" element={<AdminRoute><Suspense fallback={<PageLoader />}><WcClients /></Suspense></AdminRoute>} />
-                            <Route path="pixonai-settings" element={<AdminRoute><Suspense fallback={<PageLoader />}><PixonaiSettings /></Suspense></AdminRoute>} />
-                            <Route path="bot-conversations" element={<Suspense fallback={<PageLoader />}><BotConversations /></Suspense>} />
-                        </Route>
+                            <Route element={<ProtectedRoute />}>
+                                <Route index element={<Navigate to="/dashboard" replace />} />
+                                <Route path="dashboard" element={<DashboardRouter />} />
+                                <Route path="archives" element={<Archives />} />
+                                <Route path="archives/search" element={<Suspense fallback={<PageLoader />}><ArchiveSearch /></Suspense>} />
+                                <Route path="appointments" element={<Suspense fallback={<PageLoader />}><Appointments /></Suspense>} />
+                                <Route path="customers" element={<Suspense fallback={<PageLoader />}><Customers /></Suspense>} />
+                                <Route path="customers/detail" element={<Suspense fallback={<PageLoader />}><CustomerDetail /></Suspense>} />
+                                <Route path="customers/:id" element={<Suspense fallback={<PageLoader />}><CustomerDetail /></Suspense>} />
+                                <Route path="shoots" element={<Suspense fallback={<PageLoader />}><Shoots /></Suspense>} />
+                                <Route path="shoots/:id" element={<Suspense fallback={<PageLoader />}><ShootDetail /></Suspense>} />
+                                <Route path="finance" element={<AdminRoute><Suspense fallback={<PageLoader />}><Finance /></Suspense></AdminRoute>} />
+                                <Route path="reports" element={<AdminRoute><Suspense fallback={<PageLoader />}><Reports /></Suspense></AdminRoute>} />
+                                <Route path="cash-register" element={<Suspense fallback={<PageLoader />}><CashRegister /></Suspense>} />
+                                <Route path="settings" element={<AdminRoute><Suspense fallback={<PageLoader />}><Settings /></Suspense></AdminRoute>} />
+                                <Route path="users" element={<AdminRoute><Suspense fallback={<PageLoader />}><Users /></Suspense></AdminRoute>} />
+                                <Route path="wc-clients" element={<AdminRoute><Suspense fallback={<PageLoader />}><WcClients /></Suspense></AdminRoute>} />
+                                <Route path="pixonai-settings" element={<AdminRoute><Suspense fallback={<PageLoader />}><PixonaiSettings /></Suspense></AdminRoute>} />
+                                <Route path="bot-conversations" element={<Suspense fallback={<PageLoader />}><BotConversations /></Suspense>} />
+                                <Route path="support" element={<Suspense fallback={<PageLoader />}><SupportTicket /></Suspense>} />
+                            </Route>
 
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </LicenseCheck>
-            </HashRouter>
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </LicenseCheck>
+                </HashRouter>
+                <IpcListeners />
+            </FlagsProvider>
         </ErrorBoundary>
     );
 }

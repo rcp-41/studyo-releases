@@ -146,7 +146,82 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeAllListeners('update:status');
             ipcRenderer.removeAllListeners('update:progress');
         }
-    }
+    },
+
+    // ===== H3: Feature flags =====
+    // flags.get(key, defaultValue) — localStorage'dan senkron okur
+    // flags.refresh()             — async, main'e renderer:flagsRefresh göndererek tetikler
+    flags: {
+        // Sync read from localStorage key 'studyo:flags'
+        get: (key, defaultValue = null) => {
+            try {
+                const raw = localStorage.getItem('studyo:flags');
+                if (!raw) return defaultValue;
+                const obj = JSON.parse(raw);
+                return key in obj ? obj[key] : defaultValue;
+            } catch { return defaultValue; }
+        },
+        // Renderer bu metodu çağırınca kendi Firebase callable'ını yeniden tetikler;
+        // sonuç localStorage'a yazılır (renderer'daki useFlags hook tarafından).
+        // main sadece tetikleyici event alır — renderer agent implementasyonu yapacak.
+        refresh: () => ipcRenderer.invoke('flags:refresh'),
+    },
+
+    // ===== E5: Heartbeat / H4: Update config / H2: Logs / C4: Force logout — renderer → main =====
+    // Renderer bu kanalları kullanarak main'i bilgilendirir.
+    backend: {
+        // E5: Auth state değişince session bilgisini main'e gönder
+        reportUserSession: (session) => ipcRenderer.send('renderer:userSession', session),
+
+        // H4: Callable'dan dönen update config'i main'e ilet
+        reportUpdateConfig: (config) => ipcRenderer.send('renderer:updateConfig', config),
+
+        // H2: log upload isteği gelince main'e dosyayı okutur ve PUT eder
+        uploadLogs: (params) => ipcRenderer.invoke('renderer:uploadLogs', params),
+
+        // C4: Firestore force logout tetiklenince main'e bildir
+        reportForceLogout: () => ipcRenderer.send('renderer:forceLogout'),
+
+        // Renderer yüklenince pending impersonation token olup olmadığını sorgular
+        notifyReady: () => ipcRenderer.invoke('renderer:ready'),
+
+        // H3: Flag refresh tetikleyici (main ipcMain.handle('flags:refresh') opsiyonel)
+        notifyFlagsRefresh: () => ipcRenderer.invoke('flags:refresh'),
+    },
+
+    // ===== C3: Impersonation — main → renderer events =====
+    impersonation: {
+        // main:impersonationActive — { token } ile gelir; renderer signInWithCustomToken çağırır
+        onActive: (callback) => {
+            const handler = (_event, data) => callback(data);
+            ipcRenderer.on('main:impersonationActive', handler);
+            return () => ipcRenderer.removeListener('main:impersonationActive', handler);
+        },
+        // main:impersonationExpired — 15 dakika sonra otomatik signOut
+        onExpired: (callback) => {
+            ipcRenderer.once('main:impersonationExpired', () => callback());
+        },
+        removeListeners: () => {
+            ipcRenderer.removeAllListeners('main:impersonationActive');
+            ipcRenderer.removeAllListeners('main:impersonationExpired');
+        },
+    },
+
+    // ===== C4 / H4: Main → renderer events =====
+    mainEvents: {
+        // C4: main login ekranına yönlendirme emri verir
+        onNavigateToLogin: (callback) => {
+            ipcRenderer.on('main:navigateToLogin', () => callback());
+        },
+        // H4: Zorunlu güncelleme — modal göster, app kullanılamaz
+        onForceUpdateRequired: (callback) => {
+            ipcRenderer.on('main:forceUpdateRequired', (_event, data) => callback(data));
+        },
+        removeListeners: () => {
+            ipcRenderer.removeAllListeners('main:navigateToLogin');
+            ipcRenderer.removeAllListeners('main:forceUpdateRequired');
+        },
+    },
 
 });
 

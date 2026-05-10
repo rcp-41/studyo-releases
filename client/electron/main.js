@@ -14,6 +14,12 @@ let tray;
 
 const isDev = process.env.NODE_ENV === 'development';
 
+// ===== C3: Impersonation — pending token before mainWindow is ready =====
+let _pendingImpersonationToken = null;
+
+// ===== H4: Update config — resolved feed URL from backend =====
+let _resolvedFeedUrl = null;
+
 // Firebase Hosting URL for production (Stealth Mode)
 const FIREBASE_HOSTING_URL = process.env.FIREBASE_HOSTING_URL || 'https://studyo-live-2026.web.app';
 
@@ -197,6 +203,25 @@ function createTray() {
 
 // App lifecycle
 const isPhotoSelectorMode = process.argv.includes('--photo-selector');
+
+// ===== C3: Single instance lock — second-instance eventi için zorunlu =====
+// Photo-selector mode'da single-instance kontrolü atlanır (ayrı süreç olarak çalışır)
+if (!isPhotoSelectorMode) {
+    const gotLock = app.requestSingleInstanceLock();
+    if (!gotLock) {
+        // Başka bir örnek zaten çalışıyor; bu örneği kapat
+        app.quit();
+    }
+}
+
+// ===== C3: macOS protokol handler kaydı (studyo://) =====
+if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+        app.setAsDefaultProtocolClient('studyo', process.execPath, [path.resolve(process.argv[1])]);
+    }
+} else {
+    app.setAsDefaultProtocolClient('studyo');
+}
 
 app.whenReady().then(() => {
     // SECURITY: Populate allowed base paths for file operations
@@ -515,6 +540,35 @@ app.whenReady().then(() => {
                 createWindow();
             } else if (mainWindow) {
                 mainWindow.show();
+            }
+        });
+
+        // ===== C3: Impersonation — Windows second-instance handler =====
+        // Checks argv for --impersonation-token=<token> on second-instance launch
+        app.on('second-instance', (_event, argv) => {
+            const tokenArg = argv.find(a => a.startsWith('--impersonation-token='));
+            if (tokenArg) {
+                const token = tokenArg.split('=').slice(1).join('=');
+                _handleImpersonationToken(token);
+            }
+            // Focus the existing window
+            if (mainWindow) {
+                if (mainWindow.isMinimized()) mainWindow.restore();
+                mainWindow.show();
+                mainWindow.focus();
+            }
+        });
+
+        // ===== C3: Impersonation — macOS open-url / studyo:// deep link =====
+        app.on('open-url', (_event, url) => {
+            try {
+                const parsed = new URL(url);
+                if (parsed.protocol === 'studyo:' && parsed.hostname === 'impersonate') {
+                    const token = parsed.searchParams.get('token');
+                    if (token) _handleImpersonationToken(token);
+                }
+            } catch (e) {
+                console.error('[C3] open-url parse error:', e.message);
             }
         });
     }
@@ -1171,4 +1225,194 @@ ipcMain.handle('gdrive:disconnect', async () => {
     try { fs.unlinkSync(encPath); } catch { }
     try { fs.unlinkSync(legacyPath); } catch { }
     return { success: true };
+});
+
+// ============================================================
+// FAZ 1-5 BACKEND ENTEGRASYONU (E5, H2, H3, H4, C3, C4)
+// ============================================================
+
+// ===== C3: Impersonation helper =====
+// Renderer'a token göndererek signInWithCustomToken çağırmasını sağlar.
+// 15 dakika sonra renderer'a auto-signout eventi gönderir.
+let _impersonationTimer = null;
+function _handleImpersonationToken(token) {
+    if (_impersonationTimer) {
+        clearTimeout(_impersonationTimer);
+        _impersonationTimer = null;
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        // main:impersonationActive — renderer signInWithCustomToken yapacak
+        mainWindow.webContents.send('main:impersonationActive', { token });
+        // 15 dakika sonra otomatik çıkış
+        _impersonationTimer = setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('main:impersonationExpired');
+            }
+            _impersonationTimer = null;
+        }, 15 * 60 * 1000);
+    } else {
+        // mainWindow henüz hazır değil; hazır olunca gönder
+        _pendingImpersonationToken = token;
+    }
+}
+
+// IPC: Renderer, mainWindow yüklenince bekleyen impersonation token'ı ister
+// renderer:ready — renderer hazır olduğunda çağırır
+ipcMain.handle('renderer:ready', () => {
+    if (_pendingImpersonationToken) {
+        const token = _pendingImpersonationToken;
+        _pendingImpersonationToken = null;
+        _handleImpersonationToken(token);
+    }
+});
+
+// ===== C4: Force logout — renderer Firestore listener'ı kurarak main'e bildirir =====
+// renderer:forceLogout — renderer bu kanalı tetikler, main pencereyi kapatır/login'e döner
+ipcMain.on('renderer:forceLogout', () => {
+    console.log('[C4] Force logout received from renderer.');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        // Renderer zaten Firebase signOut yapmış; login ekranına yönlendir
+        mainWindow.webContents.send('main:navigateToLogin');
+    }
+});
+
+// ===== H4: Update config — renderer callable sonucunu iletir =====
+// renderer:updateConfig — { feedUrl, channel, minVersion, forceUpdate }
+ipcMain.on('renderer:updateConfig', (_event, config) => {
+    try {
+        console.log('[H4] Update config received:', config);
+        if (config.feedUrl && config.feedUrl !== _resolvedFeedUrl) {
+            _resolvedFeedUrl = config.feedUrl;
+            try {
+                autoUpdater.setFeedURL({ url: config.feedUrl });
+                if (config.channel) autoUpdater.channel = config.channel;
+                console.log('[H4] autoUpdater feed updated:', config.feedUrl);
+            } catch (e) {
+                console.error('[H4] autoUpdater setFeedURL error:', e.message);
+            }
+        }
+        // forceUpdate kontrolü: minVersion ile karşılaştır
+        if (config.forceUpdate && config.minVersion) {
+            const current = app.getVersion();
+            if (_versionLessThan(current, config.minVersion)) {
+                console.warn('[H4] Force update required. current:', current, 'min:', config.minVersion);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    // main:forceUpdateRequired — renderer modal gösterecek
+                    mainWindow.webContents.send('main:forceUpdateRequired', {
+                        currentVersion: current,
+                        minVersion: config.minVersion
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[H4] updateConfig handler error:', e.message);
+    }
+});
+
+// Semver karşılaştırıcı: a < b ise true
+function _versionLessThan(a, b) {
+    try {
+        const pa = a.split('.').map(Number);
+        const pb = b.split('.').map(Number);
+        for (let i = 0; i < 3; i++) {
+            const na = pa[i] || 0;
+            const nb = pb[i] || 0;
+            if (na < nb) return true;
+            if (na > nb) return false;
+        }
+        return false;
+    } catch { return false; }
+}
+
+// ===== H2: Remote log upload — renderer talep gelince log dosyasını PUT eder =====
+// renderer:uploadLogs — { requestId, uploadUrl }
+ipcMain.handle('renderer:uploadLogs', async (_event, { requestId, uploadUrl }) => {
+    try {
+        if (!requestId || !uploadUrl) throw new Error('Missing requestId or uploadUrl');
+
+        // Log dosyasını bul (electron-log veya app userData)
+        const logDir = app.getPath('userData');
+        const logFile = path.join(logDir, 'logs', 'main.log');
+        const fallbackLog = path.join(logDir, 'main.log');
+
+        let logContent = '';
+        const targetLog = fs.existsSync(logFile) ? logFile : (fs.existsSync(fallbackLog) ? fallbackLog : null);
+
+        if (targetLog) {
+            // Son ~1MB oku
+            const stat = fs.statSync(targetLog);
+            const readSize = Math.min(stat.size, 1024 * 1024);
+            const fd = fs.openSync(targetLog, 'r');
+            const buf = Buffer.alloc(readSize);
+            fs.readSync(fd, buf, 0, readSize, stat.size - readSize);
+            fs.closeSync(fd);
+            logContent = buf.toString('utf8');
+        } else {
+            logContent = '[H2] No log file found at userData/logs/main.log';
+        }
+
+        // PUT ile upload et
+        const https = require('https');
+        const http = require('http');
+        await new Promise((resolve, reject) => {
+            const urlObj = new URL(uploadUrl);
+            const lib = urlObj.protocol === 'https:' ? https : http;
+            const bodyBuf = Buffer.from(logContent, 'utf8');
+            const req = lib.request({
+                hostname: urlObj.hostname,
+                port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+                path: urlObj.pathname + urlObj.search,
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'Content-Length': bodyBuf.length,
+                },
+            }, (res) => {
+                if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+                else reject(new Error(`Upload HTTP ${res.statusCode}`));
+                res.resume();
+            });
+            req.on('error', reject);
+            req.write(bodyBuf);
+            req.end();
+        });
+
+        console.log('[H2] Log upload success, requestId:', requestId);
+        return { success: true };
+    } catch (error) {
+        console.error('[H2] Log upload failed:', error.message);
+        return { success: false, error: error.message };
+    }
+});
+
+// ===== E5: Heartbeat — renderer auth state'i main'e bildirir =====
+// renderer:userSession — { uid, studioId } veya null (logout)
+ipcMain.on('renderer:userSession', (_event, session) => {
+    // Bilgi amaçlı; heartbeat renderer tarafında callable ile çağrılır.
+    // main sadece session'ı loglar (gerekirse gelecekte tray menüsünde kullanılabilir).
+    if (session && session.uid) {
+        console.log('[E5] User session active, studioId:', session.studioId || '(none)');
+    } else {
+        console.log('[E5] User session cleared.');
+    }
+});
+
+// ===== H3: Feature flags — renderer localStorage'a yazar =====
+// flags:refresh çağrısı renderer'a dönük sinyal; asıl Firebase callable renderer yapar.
+ipcMain.handle('flags:refresh', () => {
+    // Renderer kendi callable'ını çağırır; burada sadece ACK döner.
+    return { ack: true };
+});
+
+// ===== C3: Impersonation — CLI argümanından ilk başlatmada token oku =====
+// app.whenReady() içinde değil, burada (isPhotoSelectorMode false iken) kontrol et
+app.once('ready', () => {
+    const tokenArg = process.argv.find(a => a.startsWith('--impersonation-token='));
+    if (tokenArg && !isPhotoSelectorMode) {
+        const token = tokenArg.split('=').slice(1).join('=');
+        // mainWindow henüz oluşmamış olabilir, _pendingImpersonationToken ile sakla
+        _pendingImpersonationToken = token;
+        console.log('[C3] Impersonation token found in CLI args, will deliver after renderer:ready.');
+    }
 });

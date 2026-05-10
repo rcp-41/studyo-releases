@@ -67,7 +67,8 @@
     "logout": "Log Out",
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
-    "checkUpdates": "Check for Updates"
+    "checkUpdates": "Check for Updates",
+    "support": "Support Ticket"
   },
   "auth": {
     "login": "Log In",
@@ -826,5 +827,46 @@
     "splashScreen": {
       "updating": "Downloading update — v{{version}}"
     }
+  },
+  "announcement": {
+    "dismiss": "Dismiss"
+  },
+  "support": {
+    "title": "Support Tickets",
+    "newTicket": "New Ticket",
+    "noTickets": "You have no support tickets yet",
+    "listError": "Failed to load tickets",
+    "createSuccess": "Support ticket created successfully",
+    "createError": "Failed to create ticket",
+    "replyError": "Failed to send reply",
+    "replyPlaceholder": "Write your reply... (Enter to send)",
+    "send": "Send",
+    "form": {
+      "subject": "Subject",
+      "subjectPlaceholder": "Enter the subject of your request",
+      "priority": "Priority",
+      "body": "Description",
+      "bodyPlaceholder": "Describe your issue or request in detail",
+      "submit": "Submit Ticket"
+    },
+    "validation": {
+      "subjectRequired": "Subject is required",
+      "bodyRequired": "Description is required"
+    },
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
+  },
+  "ipc": {
+    "forceLogout": "Your session was terminated from another location",
+    "impersonationBanner": "Support mode active — Agent: {{creator}} — Started: {{startedAt}} — {{remaining}} remaining"
   }
 }
