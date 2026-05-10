@@ -128,11 +128,31 @@ app.post('/build', verifyFirebaseToken, (req, res) => {
 
             console.log('Upload complete, signed URL generated');
 
-            // Save to Firestore
+            // Get file size for build history
+            let fileSize = 0;
+            try {
+                const stat = fs.statSync(localFilePath);
+                fileSize = stat.size;
+            } catch { /* ignore */ }
+
+            // Save to Firestore — top-level studio doc + buildHistory subcollection (H5)
             const db = getFirestore();
             await db.collection('studios').doc(studioId).update({
                 downloadUrl: signedUrl,
                 lastBuildDate: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            // H5: Record build in buildHistory subcollection
+            const buildHistoryRef = db.collection('studios').doc(studioId).collection('buildHistory').doc();
+            await buildHistoryRef.set({
+                buildId: buildHistoryRef.id,
+                version: '2.0.0',
+                builtAt: admin.firestore.FieldValue.serverTimestamp(),
+                builtBy: req.user?.uid || 'unknown',
+                downloadUrl: signedUrl,
+                fileSize,
+                fileName: exeFile,
+                storagePath: remoteFilePath
             });
 
             res.json({ success: true, downloadUrl: signedUrl });

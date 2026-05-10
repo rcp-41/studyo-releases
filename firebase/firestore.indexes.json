@@ -127,6 +127,59 @@
             ]
         }
     ],
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION_GROUP",
+            "fields": [
+                { "fieldPath": "email", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION_GROUP",
+            "fields": [
+                { "fieldPath": "phone", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION_GROUP",
+            "fields": [
+                { "fieldPath": "displayName", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "buildHistory",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "builtAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "announcements",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "active", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "impersonationSessions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "creatorUid", "order": "ASCENDING" },
+                { "fieldPath": "startedAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "creatorAuditLogs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "actorUid", "order": "ASCENDING" },
+                { "fieldPath": "timestamp", "order": "DESCENDING" }
+            ]
+        }
+    ],
     "fieldOverrides": [
         {
             "collectionGroup": "studios",

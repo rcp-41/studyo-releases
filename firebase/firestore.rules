@@ -371,5 +371,63 @@ service cloud.firestore {
     match /activityLogs/{logId} {
       allow read, write: if false;
     }
+
+    // ============================================
+    // FAZ 4 — KULLANICI YONETIMI & GUVENLIK
+    // ============================================
+
+    // Build history subcollection (H5) — admin SDK only via Cloud Functions
+    match /studios/{studioId}/buildHistory/{buildId} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Impersonation sessions — creator read, Cloud Functions write
+    match /impersonationSessions/{sessionId} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Force logout signals — client reads own doc (C4 TODO)
+    match /forceLogoutTokens/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Blocked devices — creator read only, Cloud Functions write
+    match /blockedDevices/{hwid} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // AppCheck overrides — creator read, Cloud Functions write
+    match /appCheckOverrides/{studioId} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Creator users (G4 RBAC profiles)
+    match /creator_users/{uid} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Announcements — creator read/write via callable, no direct client writes
+    match /announcements/{announcementId} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Broadcast queue — Cloud Functions only
+    match /broadcastQueue/{queueId} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Creator audit logs — creator read, Cloud Functions write
+    match /creatorAuditLogs/{logId} {
+      allow read: if isCreator();
+      allow write: if false; // Cloud Functions only
+    }
   }
 }

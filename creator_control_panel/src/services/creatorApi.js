@@ -688,5 +688,199 @@ export const creatorApi = {
         } catch (error) {
             handleApiError(error, 'Get Error Logs Advanced');
         }
+    },
+
+    // ============================================
+    // C1 — Global kullanici arama
+    // ============================================
+
+    searchUsers: async ({ query, type = 'email', limit = 20 } = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-searchUsers');
+            const result = await func({ query, type, limit });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Search Users');
+        }
+    },
+
+    // C2 — Password reset
+    sendPasswordReset: async (uid) => {
+        try {
+            const func = httpsCallable(functions, 'setup-sendPasswordReset');
+            const result = await func({ uid });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Send Password Reset');
+        }
+    },
+
+    // C3 — Impersonation
+    startImpersonation: async (targetUid, reason) => {
+        try {
+            const func = httpsCallable(functions, 'setup-startImpersonation');
+            const result = await func({ targetUid, reason });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Start Impersonation');
+        }
+    },
+
+    endImpersonation: async (sessionId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-endImpersonation');
+            const result = await func({ sessionId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'End Impersonation');
+        }
+    },
+
+    // C4 — Oturum sonlandirma
+    revokeUserSessions: async (uid) => {
+        try {
+            const func = httpsCallable(functions, 'setup-revokeUserSessions');
+            const result = await func({ uid });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Revoke User Sessions');
+        }
+    },
+
+    // G1 — Cihaz blok
+    blockDevice: async (deviceId, reason, organizationId, studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-blockDevice');
+            const result = await func({ deviceId, reason, organizationId, studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Block Device');
+        }
+    },
+
+    unblockDevice: async (deviceId, organizationId, studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-unblockDevice');
+            const result = await func({ deviceId, organizationId, studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Unblock Device');
+        }
+    },
+
+    // G2 — IP Whitelist
+    updateIpWhitelist: async (organizationId, studioId, cidrs) => {
+        try {
+            const func = httpsCallable(functions, 'setup-updateIpWhitelist');
+            const result = await func({ organizationId, studioId, cidrs });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update IP Whitelist');
+        }
+    },
+
+    // G3 — AppCheck Override
+    grantAppCheckOverride: async (studioId, durationMinutes, reason) => {
+        try {
+            const func = httpsCallable(functions, 'setup-grantAppCheckOverride');
+            const result = await func({ studioId, durationMinutes, reason });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Grant AppCheck Override');
+        }
+    },
+
+    revokeAppCheckOverride: async (studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-revokeAppCheckOverride');
+            const result = await func({ studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Revoke AppCheck Override');
+        }
+    },
+
+    // G4 — RBAC
+    setCreatorRole: async (targetUid, newRole) => {
+        try {
+            const func = httpsCallable(functions, 'setup-setCreatorRole');
+            const result = await func({ targetUid, newRole });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Set Creator Role');
+        }
+    },
+
+    listCreatorUsers: async () => {
+        try {
+            const func = httpsCallable(functions, 'setup-listCreatorUsers');
+            const result = await func({});
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'List Creator Users');
+        }
+    },
+
+    inviteCreator: async (email, role) => {
+        try {
+            const func = httpsCallable(functions, 'setup-inviteCreator');
+            const result = await func({ email, role });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Invite Creator');
+        }
+    },
+
+    // F1/F2 — Announcements
+    createAnnouncement: async (data) => {
+        try {
+            const func = httpsCallable(functions, 'setup-createAnnouncement');
+            const result = await func(data);
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Create Announcement');
+        }
+    },
+
+    listAnnouncements: async (activeOnly = false) => {
+        try {
+            const func = httpsCallable(functions, 'setup-listAnnouncements');
+            const result = await func({ activeOnly });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'List Announcements');
+        }
+    },
+
+    deleteAnnouncement: async (id) => {
+        try {
+            const func = httpsCallable(functions, 'setup-deleteAnnouncement');
+            const result = await func({ id });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Delete Announcement');
+        }
+    },
+
+    // F3 — Broadcast
+    broadcastMessage: async ({ channel, target, targetIds, subject, body, templateId } = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-broadcastMessage');
+            const result = await func({ channel, target, targetIds, subject, body, templateId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Broadcast Message');
+        }
+    },
+
+    // H5 — Build History
+    getBuildHistory: async (studioId, limit = 20) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getBuildHistory');
+            const result = await func({ studioId, limit });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Build History');
+        }
     }
 };

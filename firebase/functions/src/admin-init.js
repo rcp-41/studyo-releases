@@ -6,4 +6,5 @@ module.exports = {
     ...require('./admin/license'),
     ...require('./admin/twofactor'),
     ...require('./admin/integrations'),
+    ...require('./admin/user-management'),
 };

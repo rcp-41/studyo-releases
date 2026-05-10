@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
-import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle, Bot, Shield, Tag, Smartphone } from 'lucide-react';
+import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle, Bot, Shield, Tag, Smartphone, Users, Bell, Search } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 
@@ -15,6 +15,9 @@ import AuditLogs from './pages/AuditLogs';
 import SettingsPage from './pages/Settings';
 import Coupons from './pages/Coupons';
 import Versioning from './pages/Versioning';
+import UserSearch from './pages/UserSearch';
+import CreatorTeam from './pages/CreatorTeam';
+import Announcements from './pages/Announcements';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -73,6 +76,18 @@ function Sidebar({ onLogout }) {
                 <NavLink to="/versioning" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Smartphone />
                     Sürüm
+                </NavLink>
+                <NavLink to="/user-search" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Search />
+                    Kullanici Ara
+                </NavLink>
+                <NavLink to="/creator-team" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Users />
+                    Creator Takim
+                </NavLink>
+                <NavLink to="/announcements" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Bell />
+                    Duyurular
                 </NavLink>
                 <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Settings />
@@ -164,6 +179,9 @@ export default function App() {
                                 <Route path="/settings" element={<ProtectedRoute user={user}><SettingsPage /></ProtectedRoute>} />
                                 <Route path="/coupons" element={<ProtectedRoute user={user}><Coupons /></ProtectedRoute>} />
                                 <Route path="/versioning" element={<ProtectedRoute user={user}><Versioning /></ProtectedRoute>} />
+                                <Route path="/user-search" element={<ProtectedRoute user={user}><UserSearch /></ProtectedRoute>} />
+                                <Route path="/creator-team" element={<ProtectedRoute user={user}><CreatorTeam /></ProtectedRoute>} />
+                                <Route path="/announcements" element={<ProtectedRoute user={user}><Announcements /></ProtectedRoute>} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Routes>
                         </main>
