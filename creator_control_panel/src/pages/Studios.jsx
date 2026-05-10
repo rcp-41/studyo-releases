@@ -3,7 +3,8 @@ import {
     Plus, Search, Edit, Eye, EyeOff, RefreshCcw, Pause, Play, Trash2, X, Key,
     Settings, Camera, MapPin, User, Save, Globe, Lock, Wifi, WifiOff, Loader2,
     Building, Shield, RotateCcw, ChevronDown, ChevronRight, Monitor, Bell,
-    CheckCircle, XCircle, Clock, Database, Copy, ArrowRightLeft, Download, HardDrive
+    CheckCircle, XCircle, Clock, Database, Copy, ArrowRightLeft, Download, HardDrive,
+    KeyRound, History
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, onSnapshot, query, where, getFirestore, Timestamp } from 'firebase/firestore';
@@ -21,6 +22,10 @@ import CloneStudioModal from '../components/CloneStudioModal';
 import MoveStudioModal from '../components/MoveStudioModal';
 import ExportModal from '../components/ExportModal';
 import BackupPanel from '../components/BackupPanel';
+import DevicesModal from '../components/DevicesModal';
+import IpWhitelistModal from '../components/IpWhitelistModal';
+import AppCheckOverrideModal from '../components/AppCheckOverrideModal';
+import BuildHistoryModal from '../components/BuildHistoryModal';
 
 const SECRET_MASK = '••••••••';
 
@@ -148,6 +153,20 @@ export default function Studios() {
     const [showExportModal, setShowExportModal] = useState(null);
     const [showBackupPanel, setShowBackupPanel] = useState(null);
     const [resetTotpCode, setResetTotpCode] = useState('');
+
+    // G1 — Cihaz Blok Modal
+    const [showDevicesModal, setShowDevicesModal] = useState(null);
+    const [devicesModalList, setDevicesModalList] = useState([]);
+    const [devicesModalLoading, setDevicesModalLoading] = useState(false);
+
+    // G2 — IP Whitelist Modal
+    const [showIpWhitelistModal, setShowIpWhitelistModal] = useState(null);
+
+    // G3 — AppCheck Override Modal
+    const [showAppCheckModal, setShowAppCheckModal] = useState(null);
+
+    // H5 — Build History Modal
+    const [showBuildHistoryModal, setShowBuildHistoryModal] = useState(null);
 
     // Confirm Dialog state
     const [confirmState, setConfirmState] = useState(null);
@@ -450,6 +469,33 @@ export default function Studios() {
         }
     }, [deviceModalPending]);
 
+    const openDevicesModal = useCallback(async (studio) => {
+        setShowDevicesModal(studio);
+        setDevicesModalLoading(true);
+        setDevicesModalList([]);
+        try {
+            const result = await creatorApi.getStudioDevices(studio.organizationId, studio.id);
+            setDevicesModalList(result?.devices || []);
+        } catch (error) {
+            toast.error('Cihaz listesi yüklenemedi');
+        } finally {
+            setDevicesModalLoading(false);
+        }
+    }, []);
+
+    const refreshDevicesModal = useCallback(async () => {
+        if (!showDevicesModal) return;
+        setDevicesModalLoading(true);
+        try {
+            const result = await creatorApi.getStudioDevices(showDevicesModal.organizationId, showDevicesModal.id);
+            setDevicesModalList(result?.devices || []);
+        } catch (error) {
+            toast.error('Cihaz listesi yenilenemedi');
+        } finally {
+            setDevicesModalLoading(false);
+        }
+    }, [showDevicesModal]);
+
     function handleDeleteStudio(studio) {
         setConfirmState({
             kind: 'deleteStudio',
@@ -717,6 +763,22 @@ export default function Studios() {
                                                         <button className="btn btn-sm" title="Update Kanalı" onClick={() => { setShowUpdateChannelModal(studio); setUpdateChannelValue(studio.update?.channel || 'stable'); setUpdateMinVersion(studio.update?.minVersion || ''); }}
                                                             style={{ background: 'rgba(99,102,241,0.1)', color: '#c4b5fd', border: '1px solid rgba(167,139,250,0.3)', fontSize: '11px', padding: '4px 8px' }}>
                                                             Kanal
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Cihaz Blok Yönetimi" onClick={() => openDevicesModal(studio)}
+                                                            style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                                            <Monitor size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="IP Whitelist" onClick={() => setShowIpWhitelistModal(studio)}
+                                                            style={{ background: 'rgba(14,165,233,0.1)', color: '#38bdf8', border: '1px solid rgba(14,165,233,0.3)' }}>
+                                                            <Shield size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="AppCheck Destek Geçidi" onClick={() => setShowAppCheckModal(studio)}
+                                                            style={{ background: 'rgba(168,85,247,0.1)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.3)' }}>
+                                                            <KeyRound size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Build Geçmişi" onClick={() => setShowBuildHistoryModal(studio)}
+                                                            style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}>
+                                                            <History size={14} />
                                                         </button>
                                                         <button className="btn btn-sm" title="Logları Al" onClick={() => { setShowRemoteLogModal(studio); setRemoteLogRequestId(null); setRemoteLogStatus(null); }}
                                                             style={{ background: 'rgba(52,211,153,0.1)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.3)', fontSize: '11px', padding: '4px 8px' }}>
@@ -1534,6 +1596,40 @@ export default function Studios() {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* G1 — Cihaz Blok Modal */}
+            {showDevicesModal && (
+                <DevicesModal
+                    studio={showDevicesModal}
+                    devices={devicesModalList}
+                    loading={devicesModalLoading}
+                    onClose={() => setShowDevicesModal(null)}
+                    onRefresh={refreshDevicesModal}
+                />
+            )}
+
+            {/* G2 — IP Whitelist Modal */}
+            {showIpWhitelistModal && (
+                <IpWhitelistModal
+                    studio={showIpWhitelistModal}
+                    onClose={() => setShowIpWhitelistModal(null)}
+                />
+            )}
+
+            {/* G3 — AppCheck Override Modal */}
+            {showAppCheckModal && (
+                <AppCheckOverrideModal
+                    studio={showAppCheckModal}
+                    onClose={() => setShowAppCheckModal(null)}
+                />
+            )}
+
+            {/* H5 — Build History Modal */}
+            {showBuildHistoryModal && (
+                <BuildHistoryModal
+                    studio={showBuildHistoryModal}
+                    onClose={() => setShowBuildHistoryModal(null)}
+                />
             )}
         </div>
     );
