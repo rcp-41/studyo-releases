@@ -90,12 +90,12 @@ export default function PaymentsTab({ range }) {
                 <table className="w-full text-sm">
                     <thead className="bg-muted/50">
                         <tr>
-                            <th className="text-left px-4 py-2.5 font-medium">Tarih</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Müşteri</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Arşiv No</th>
-                            <th className="text-right px-4 py-2.5 font-medium">Tutar</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Yöntem</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Açıklama</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.finance.date')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.archives.customerName')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.archives.archiveNumber')}</th>
+                            <th className="text-right px-4 py-2.5 font-medium">{t('pages.finance.amount')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.finance.method')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.finance.description')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -110,14 +110,14 @@ export default function PaymentsTab({ range }) {
                                         p.method === 'cash' ? 'bg-green-500/10 text-green-600' :
                                             p.method === 'credit_card' ? 'bg-blue-500/10 text-blue-600' :
                                                 'bg-purple-500/10 text-purple-600')}>
-                                        {p.method === 'cash' ? 'Nakit' : p.method === 'credit_card' ? 'Kart' : 'Havale'}
+                                        {p.method === 'cash' ? t('pages.finance.cash') : p.method === 'credit_card' ? t('pages.finance.card') : t('pages.finance.transferShort')}
                                     </span>
                                 </td>
                                 <td className="px-4 py-2.5 text-muted-foreground">{p.note || '-'}</td>
                             </tr>
                         ))}
                         {filtered.length === 0 && (
-                            <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">Ödeme kaydı bulunamadı</td></tr>
+                            <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">{t('pages.finance.paymentNotFound')}</td></tr>
                         )}
                     </tbody>
                 </table>

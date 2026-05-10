@@ -82,17 +82,17 @@ function AddExpenseModal({ onClose, onSave }) {
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
             <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold">Yeni Gider</h2>
+                    <h2 className="text-xl font-semibold">{t('common.new')} {t('pages.finance.expense')}</h2>
                     <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Tarih</label>
+                        <label className="block text-sm font-medium mb-1">{t('pages.finance.date')}</label>
                         <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Kategori</label>
+                        <label className="block text-sm font-medium mb-1">{t('pages.archives.status')}</label>
                         <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value, subCategory: '' })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none">
                             {expenseCategories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
@@ -100,38 +100,38 @@ function AddExpenseModal({ onClose, onSave }) {
                     </div>
                     {formData.category === 'utilities' && (
                         <div>
-                            <label className="block text-sm font-medium mb-1">Alt Kategori</label>
+                            <label className="block text-sm font-medium mb-1">{t('pages.finance.subCategory')}</label>
                             <select value={formData.subCategory} onChange={e => setFormData({ ...formData, subCategory: e.target.value })}
                                 className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none">
-                                <option value="">Seçiniz</option>
+                                <option value="">{t('common.select')}</option>
                                 {utilitySubCategories.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                             </select>
                         </div>
                     )}
                     {formData.category === 'other' && (
                         <div>
-                            <label className="block text-sm font-medium mb-1">Açıklama <span className="text-destructive">*</span></label>
+                            <label className="block text-sm font-medium mb-1">{t('pages.finance.description')} <span className="text-destructive">*</span></label>
                             <input type="text" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                placeholder="Giderin ne olduğunu belirtin..."
+                                placeholder={t('pages.finance.expenseDescriptionPlaceholder')}
                                 className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none" />
                         </div>
                     )}
                     <div>
-                        <label className="block text-sm font-medium mb-1">Tutar (₺)</label>
+                        <label className="block text-sm font-medium mb-1">{t('pages.finance.amount')} (₺)</label>
                         <input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })}
                             min={0} className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Not</label>
+                        <label className="block text-sm font-medium mb-1">{t('pages.finance.note')}</label>
                         <textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })}
-                            rows={2} placeholder="Opsiyonel not..."
+                            rows={2} placeholder={t('pages.finance.optionalNote')}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none resize-none" />
                     </div>
                     <div className="flex gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted">İptal</button>
+                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted">{t('common.cancel')}</button>
                         <button type="submit" disabled={mutation.isPending}
                             className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-                            {mutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Kaydet
+                            {mutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} {t('common.save')}
                         </button>
                     </div>
                 </form>
@@ -141,6 +141,7 @@ function AddExpenseModal({ onClose, onSave }) {
 }
 
 export default function ExpensesTab({ range }) {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [showAdd, setShowAdd] = useState(false);
 
@@ -158,12 +159,12 @@ export default function ExpensesTab({ range }) {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div className="bg-destructive/10 rounded-lg px-4 py-2">
-                    <span className="text-sm text-muted-foreground mr-2">Toplam Gider:</span>
+                    <span className="text-sm text-muted-foreground mr-2">{t('pages.finance.totalExpenses')}:</span>
                     <span className="font-bold text-destructive">{formatCurrency(total)}</span>
                 </div>
                 <button onClick={() => setShowAdd(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
-                    <Plus className="w-4 h-4" /> Yeni Gider
+                    <Plus className="w-4 h-4" /> {t('common.new')} {t('pages.finance.expense')}
                 </button>
             </div>
 
@@ -171,11 +172,11 @@ export default function ExpensesTab({ range }) {
                 <table className="w-full text-sm">
                     <thead className="bg-muted/50">
                         <tr>
-                            <th className="text-left px-4 py-2.5 font-medium">Tarih</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Kategori</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Açıklama</th>
-                            <th className="text-right px-4 py-2.5 font-medium">Tutar</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Not</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.finance.date')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.archives.status')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.finance.description')}</th>
+                            <th className="text-right px-4 py-2.5 font-medium">{t('pages.finance.amount')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.finance.note')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -196,7 +197,7 @@ export default function ExpensesTab({ range }) {
                             </tr>
                         ))}
                         {expenses.length === 0 && (
-                            <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">Gider kaydı bulunamadı</td></tr>
+                            <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">{t('pages.finance.expenseNotFound')}</td></tr>
                         )}
                     </tbody>
                 </table>

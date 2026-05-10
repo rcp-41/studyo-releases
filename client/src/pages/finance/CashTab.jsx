@@ -47,7 +47,7 @@ export default function CashTab() {
 
                 <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                        <span className="font-medium">{t('pages.cashRegister.opening')} (Opsiyonel)</span>
+                        <span className="font-medium">{t('pages.cashRegister.opening')} ({t('pages.finance.optional')})</span>
                         {editBalance ? (
                             <div className="flex items-center gap-2">
                                 <input type="number" value={newBalance} onChange={e => setNewBalance(Number(e.target.value))}
@@ -60,37 +60,37 @@ export default function CashTab() {
                             <div className="flex items-center gap-2">
                                 <span className="text-xl font-bold">{formatCurrency(cash.openingBalance || 0)}</span>
                                 <button onClick={() => { setNewBalance(cash.openingBalance || 0); setEditBalance(true); }}
-                                    className="text-xs px-2 py-1 bg-muted rounded hover:bg-muted/80">Değiştir</button>
+                                    className="text-xs px-2 py-1 bg-muted rounded hover:bg-muted/80">{t('common.edit')}</button>
                             </div>
                         )}
                     </div>
 
                     <div className="space-y-2">
-                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Gelirler</h4>
+                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('pages.finance.income')}</h4>
                         <div className="flex justify-between px-4 py-2">
-                            <span className="flex items-center gap-2"><Banknote className="w-4 h-4 text-green-600" /> Nakit Tahsilat</span>
+                            <span className="flex items-center gap-2"><Banknote className="w-4 h-4 text-green-600" /> {t('pages.finance.cashIncome')}</span>
                             <span className="text-green-600 font-medium">+{formatCurrency(cash.cashIncome || 0)}</span>
                         </div>
                         <div className="flex justify-between px-4 py-2">
-                            <span className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-blue-600" /> Kart Tahsilat</span>
+                            <span className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-blue-600" /> {t('pages.finance.cardIncome')}</span>
                             <span className="text-blue-600 font-medium">+{formatCurrency(cash.cardIncome || 0)}</span>
                         </div>
                         <div className="flex justify-between px-4 py-2">
-                            <span className="flex items-center gap-2"><ArrowUpDown className="w-4 h-4 text-purple-600" /> Havale Tahsilat</span>
+                            <span className="flex items-center gap-2"><ArrowUpDown className="w-4 h-4 text-purple-600" /> {t('pages.finance.transferIncome')}</span>
                             <span className="text-purple-600 font-medium">+{formatCurrency(cash.transferIncome || 0)}</span>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Giderler</h4>
+                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('pages.finance.expenses')}</h4>
                         <div className="flex justify-between px-4 py-2">
-                            <span className="flex items-center gap-2"><TrendingDown className="w-4 h-4 text-destructive" /> Toplam Gider</span>
+                            <span className="flex items-center gap-2"><TrendingDown className="w-4 h-4 text-destructive" /> {t('pages.finance.totalExpenses')}</span>
                             <span className="text-destructive font-medium">-{formatCurrency(cash.totalExpenses || 0)}</span>
                         </div>
                     </div>
 
                     <div className="border-t-2 border-border pt-4 flex justify-between items-center">
-                        <span className="text-lg font-bold">Kasa Bakiye</span>
+                        <span className="text-lg font-bold">{t('pages.finance.cashBalance')}</span>
                         <span className={cn('text-2xl font-bold', closingBalance >= 0 ? 'text-green-600' : 'text-destructive')}>
                             {formatCurrency(closingBalance)}
                         </span>
@@ -99,14 +99,14 @@ export default function CashTab() {
                     <div className="flex gap-2 pt-2">
                         <button onClick={() => { setNewBalance(cash.openingBalance || 0); setEditBalance(true); }}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-muted rounded-lg hover:bg-muted/80">
-                            Açılış Bakiyesini Değiştir
+                            {t('pages.finance.changeOpeningBalance')}
                         </button>
                         <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-muted rounded-lg hover:bg-muted/80">
-                            <FileText className="w-4 h-4" /> PDF İndir
+                            <FileText className="w-4 h-4" /> {t('pages.finance.downloadPDF')}
                         </button>
                         <button onClick={() => window.print()}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-muted rounded-lg hover:bg-muted/80">
-                            <Printer className="w-4 h-4" /> Yazdır
+                            <Printer className="w-4 h-4" /> {t('pages.finance.print')}
                         </button>
                     </div>
                 </div>

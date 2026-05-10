@@ -80,7 +80,7 @@ export default function WcClients() {
                     <div>
                         <h1 className="text-2xl font-bold">{t('nav.onlineSales')}</h1>
                         <p className="text-sm text-muted-foreground">
-                            WooCommerce clients
+                            {t('pages.wcClients.title')}
                         </p>
                     </div>
                 </div>
@@ -99,7 +99,7 @@ export default function WcClients() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                     type="text"
-                    placeholder="Search by name or phone..."
+                    placeholder={t('pages.wcClients.searchPlaceholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary"
@@ -115,7 +115,7 @@ export default function WcClients() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{clients.length}</p>
-                            <p className="text-sm text-muted-foreground">Active Links</p>
+                            <p className="text-sm text-muted-foreground">{t('pages.finance.activeLinks')}</p>
                         </div>
                     </div>
                 </div>
@@ -128,7 +128,7 @@ export default function WcClients() {
                             <p className="text-2xl font-bold">
                                 {clients.filter(c => c.hasOrders).length}
                             </p>
-                            <p className="text-sm text-muted-foreground">With Orders</p>
+                            <p className="text-sm text-muted-foreground">{t('pages.finance.withOrders')}</p>
                         </div>
                     </div>
                 </div>
@@ -141,7 +141,7 @@ export default function WcClients() {
                             <p className="text-2xl font-bold">
                                 {clients.filter(c => !c.hasOrders).length}
                             </p>
-                            <p className="text-sm text-muted-foreground">Pending</p>
+                            <p className="text-sm text-muted-foreground">{t('pages.finance.pending')}</p>
                         </div>
                     </div>
                 </div>
@@ -157,7 +157,7 @@ export default function WcClients() {
                     <Globe className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
                     <h3 className="text-lg font-medium mb-2">{t('pages.wcClients.noClients')}</h3>
                     <p className="text-sm text-muted-foreground">
-                        Create selection links from the Archives page.
+                        {t('pages.wcClients.createLinks')}
                     </p>
                 </div>
             ) : (
@@ -179,7 +179,7 @@ export default function WcClients() {
                                                 ? "bg-green-500/10 text-green-500"
                                                 : "bg-yellow-500/10 text-yellow-500"
                                         )}>
-                                            {client.hasOrders ? 'Has Orders' : 'Pending'}
+                                            {client.hasOrders ? t('pages.finance.hasOrders') : t('pages.finance.pending')}
                                         </span>
                                     </div>
 
@@ -210,7 +210,7 @@ export default function WcClients() {
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                         <span>📱 {client.phone}</span>
                                         <span>🔑 {client.wcPassword}</span>
-                                        <span>📅 {client.wcUploadedAt ? format(new Date(client.wcUploadedAt), 'dd MMM yyyy', { locale: tr }) : '-'}</span>
+                                        <span>📅 {client.wcUploadedAt ? format(new Date(client.wcUploadedAt), 'dd MMM yyyy', { locale: tr }) : '-'} ({t('pages.wcClients.uploadedDate')})</span>
                                     </div>
                                 </div>
 

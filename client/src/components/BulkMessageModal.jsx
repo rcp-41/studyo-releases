@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { archivesApi, whatsappApi } from '../services/api';
 import { cn } from '../lib/utils';
@@ -8,16 +9,18 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const messageTemplates = [
-    { key: '', label: 'Şablon Seçin...' },
-    { key: 'appointment', label: 'Randevu Hatırlatma', text: 'Merhaba {{isim}}, {{tarih}} tarihli randevunuzu hatırlatmak isteriz. Stüdyomuzda görüşmek üzere!' },
-    { key: 'photos_ready', label: 'Fotoğraflar Hazır', text: 'Merhaba {{isim}}, fotoğraflarınız hazırlanmıştır. Görüntülemek için stüdyomuza bekleriz. Şifreniz: {{sifre}}' },
-    { key: 'payment', label: 'Ödeme Hatırlatma', text: 'Merhaba {{isim}}, {{tutar}} tutarında ödemeniz bulunmaktadır. Ödemenizi en kısa sürede gerçekleştirmenizi rica ederiz.' },
-    { key: 'promo', label: 'Kampanya Duyurusu', text: 'Merhaba {{isim}}, stüdyomuzda özel kampanya başladı! Detaylar için bize ulaşın.' },
-    { key: 'custom', label: 'Özel Mesaj', text: '' }
-];
-
 export default function BulkMessageModal({ onClose }) {
+    const { t } = useTranslation();
+
+    const messageTemplates = [
+        { key: '', label: t('components.bulkMessage.selectTemplate') },
+        { key: 'appointment', label: t('components.bulkMessage.appointmentReminder'), text: t('components.bulkMessage.appointmentText') },
+        { key: 'photos_ready', label: t('components.bulkMessage.photosReady'), text: t('components.bulkMessage.photosReadyText') },
+        { key: 'payment', label: t('components.bulkMessage.paymentReminder'), text: t('components.bulkMessage.paymentReminderText') },
+        { key: 'promo', label: t('components.bulkMessage.campaignAnnouncement'), text: t('components.bulkMessage.campaignText') },
+        { key: 'custom', label: t('components.bulkMessage.customMessage'), text: '' }
+    ];
+
     const [step, setStep] = useState(1);
     const [search, setSearch] = useState('');
     const [selectedCustomers, setSelectedCustomers] = useState([]);
@@ -37,7 +40,7 @@ export default function BulkMessageModal({ onClose }) {
 
     const addCustomer = (archive) => {
         if (selectedCustomers.find(c => c.phone === archive.phone)) {
-            toast.error('Bu müşteri zaten ekli');
+            toast.error(t('components.bulkMessage.customerAlreadyAdded'));
             return;
         }
         setSelectedCustomers(prev => [...prev, {
@@ -59,8 +62,8 @@ export default function BulkMessageModal({ onClose }) {
     };
 
     const handleSend = async () => {
-        if (!message.trim()) { toast.error('Mesaj boş olamaz'); return; }
-        if (!selectedCustomers.length) { toast.error('Müşteri seçin'); return; }
+        if (!message.trim()) { toast.error(t('components.bulkMessage.messageCannotBeEmpty')); return; }
+        if (!selectedCustomers.length) { toast.error(t('components.bulkMessage.selectCustomers')); return; }
 
         setSending(true);
         setSendProgress({ sent: 0, total: selectedCustomers.length, errors: 0 });

@@ -54,19 +54,19 @@ export default function OverdueTab() {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div className="bg-destructive/10 rounded-lg px-4 py-2">
-                    <span className="text-sm text-muted-foreground mr-2">Toplam Geciken:</span>
+                    <span className="text-sm text-muted-foreground mr-2">{t('pages.finance.totalOverdue')}:</span>
                     <span className="font-bold text-destructive">{formatCurrency(totalOverdue)}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">({overdueList.length} müşteri)</span>
+                    <span className="ml-2 text-xs text-muted-foreground">({overdueList.length} {t('pages.finance.customers')})</span>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={selectAll}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-muted rounded-lg hover:bg-muted/80">
                         {selected.size === overdueList.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                        {selected.size === overdueList.length ? 'Temizle' : 'Tümünü Seç'}
+                        {selected.size === overdueList.length ? t('pages.finance.clearAll') : t('pages.finance.selectAll')}
                     </button>
                     <button onClick={sendWhatsApp} disabled={selected.size === 0}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
-                        <MessageCircle className="w-4 h-4" /> Seçilenlere WhatsApp Gönder
+                        <MessageCircle className="w-4 h-4" /> {t('pages.finance.sendWhatsApp')}
                     </button>
                 </div>
             </div>
@@ -76,13 +76,13 @@ export default function OverdueTab() {
                     <thead className="bg-muted/50">
                         <tr>
                             <th className="w-10 px-3 py-2.5"></th>
-                            <th className="text-left px-4 py-2.5 font-medium">Müşteri</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Telefon</th>
-                            <th className="text-left px-4 py-2.5 font-medium">Arşiv No</th>
-                            <th className="text-right px-4 py-2.5 font-medium">Toplam</th>
-                            <th className="text-right px-4 py-2.5 font-medium">Ödenen</th>
-                            <th className="text-right px-4 py-2.5 font-medium">Kalan</th>
-                            <th className="text-right px-4 py-2.5 font-medium">Gün</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.archives.customerName')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.customers.phone')}</th>
+                            <th className="text-left px-4 py-2.5 font-medium">{t('pages.archives.archiveNumber')}</th>
+                            <th className="text-right px-4 py-2.5 font-medium">{t('pages.cashRegister.total')}</th>
+                            <th className="text-right px-4 py-2.5 font-medium">{t('pages.reports.paidAmount')}</th>
+                            <th className="text-right px-4 py-2.5 font-medium">{t('pages.archives.remaining')}</th>
+                            <th className="text-right px-4 py-2.5 font-medium">{t('pages.reports.days')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -106,13 +106,13 @@ export default function OverdueTab() {
                                         o.daysPassed > 60 ? 'bg-red-500/10 text-red-600' :
                                             o.daysPassed > 30 ? 'bg-orange-500/10 text-orange-600' :
                                                 'bg-yellow-500/10 text-yellow-600')}>
-                                        {o.daysPassed} gün
+                                        {o.daysPassed} {t('pages.reports.days')}
                                     </span>
                                 </td>
                             </tr>
                         ))}
                         {overdueList.length === 0 && (
-                            <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">Geciken ödeme yok</td></tr>
+                            <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">{t('pages.finance.noOverduePayments')}</td></tr>
                         )}
                     </tbody>
                 </table>
