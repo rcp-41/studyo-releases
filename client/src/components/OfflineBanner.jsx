@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { WifiOff, CheckCircle2 } from 'lucide-react';
 import useOnlineStatus from '../hooks/useOnlineStatus';
 
@@ -18,6 +19,7 @@ import useOnlineStatus from '../hooks/useOnlineStatus';
 const RECONNECT_BANNER_MS = 3000;
 
 export default function OfflineBanner() {
+    const { t } = useTranslation();
     const { online } = useOnlineStatus();
     const [showReconnected, setShowReconnected] = useState(false);
     const wasOfflineRef = useRef(!online);
@@ -64,7 +66,7 @@ export default function OfflineBanner() {
                            animate-in slide-in-from-top-2 fade-in duration-200"
             >
                 <WifiOff className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span>İnternet bağlantısı yok — değişiklikler senkronize edilecek</span>
+                <span>{t('connectivity.offline')}</span>
             </div>
         );
     }
@@ -79,7 +81,7 @@ export default function OfflineBanner() {
                            animate-in slide-in-from-top-2 fade-in duration-200"
             >
                 <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span>Senkronize edildi</span>
+                <span>{t('connectivity.synchronized')}</span>
             </div>
         );
     }

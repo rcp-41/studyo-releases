@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { archivesApi, optionsApi, schoolsApi } from '../services/api';
@@ -102,6 +103,7 @@ function SortHeader({ label, field, sortField, sortDir, onSort }) {
 const PAGE_SIZES = [20, 50, 100];
 
 export default function ArchiveSearch() {
+    const { t } = useTranslation();
     // Filters
     const [filters, setFilters] = useState({
         name: '', phone: '', archiveNo: '',
@@ -232,8 +234,8 @@ export default function ArchiveSearch() {
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-bold">Detaylı Arşiv Arama</h1>
-                        <p className="text-sm text-muted-foreground">{filteredArchives.length} sonuç bulundu</p>
+                        <h1 className="text-2xl font-bold">{t('pages.archiveSearch.title')}</h1>
+                        <p className="text-sm text-muted-foreground">{filteredArchives.length} {t('pages.archiveSearch.resultsFound')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 bg-muted rounded-lg p-1">

@@ -379,5 +379,78 @@ export const creatorApi = {
         } catch (error) {
             handleApiError(error, 'Remove Bot');
         }
+    },
+
+    // ============================================
+    // D4 — CREATOR AUDIT LOGS
+    // ============================================
+
+    getCreatorAuditLogs: async ({ organizationId, studioId, action, dateFrom, dateTo, limit } = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getCreatorAuditLogs');
+            const result = await func({ organizationId, studioId, action, dateFrom, dateTo, limit });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Creator Audit Logs');
+        }
+    },
+
+    // ============================================
+    // E1 — RECORD LOGIN
+    // ============================================
+
+    recordLogin: async ({ organizationId, studioId, appVersion } = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-recordLogin');
+            const result = await func({ organizationId, studioId, appVersion });
+            return result.data;
+        } catch (error) {
+            // Non-fatal
+            console.warn('recordLogin error:', error);
+        }
+    },
+
+    getActivityTimeline: async (organizationId, studioId, limitCount = 30) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getActivityTimeline');
+            const result = await func({ organizationId, studioId, limit: limitCount });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Activity Timeline');
+        }
+    },
+
+    // ============================================
+    // G5 — 2FA / TOTP
+    // ============================================
+
+    enable2FA: async () => {
+        try {
+            const func = httpsCallable(functions, 'setup-enable2FA');
+            const result = await func({});
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Enable 2FA');
+        }
+    },
+
+    verifyTotp: async (code) => {
+        try {
+            const func = httpsCallable(functions, 'setup-verifyTotp');
+            const result = await func({ code });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Verify TOTP');
+        }
+    },
+
+    disableTotp: async (code) => {
+        try {
+            const func = httpsCallable(functions, 'setup-disableTotp');
+            const result = await func({ code });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Disable TOTP');
+        }
     }
 };

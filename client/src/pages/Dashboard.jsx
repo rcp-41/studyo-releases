@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, botApi } from '../services/api';
 import { formatCurrency, formatDateTime, getStatusLabel, getShootTypeLabel } from '../lib/utils';
@@ -43,7 +44,7 @@ import { cn } from '../lib/utils';
 import { SkeletonList } from '../components/Skeleton';
 
 // Bot Status Alert Widget for Studio Admin Dashboard
-function BotStatusAlert() {
+function BotStatusAlert({ t }) {
     const { data: botStatus } = useQuery({
         queryKey: ['bot', 'status'],
         queryFn: async () => {
@@ -67,13 +68,13 @@ function BotStatusAlert() {
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Bot className="w-5 h-5 text-purple-500" />
-                    AI Bot Durumu
+                    AI Bot {t('pages.botConversations.title')}
                 </h2>
                 <Link
                     to="/bot-conversations"
                     className="text-sm text-primary hover:underline flex items-center gap-1"
                 >
-                    Konuşmalar <ChevronRight className="w-4 h-4" />
+                    {t('pages.botConversations.title')} <ChevronRight className="w-4 h-4" />
                 </Link>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -85,8 +86,8 @@ function BotStatusAlert() {
                     <div>
                         <p className="font-medium text-sm">WhatsApp</p>
                         <p className="text-xs text-muted-foreground">
-                            {waEnabled ? '✅ Aktif' : '❌ Pasif'}
-                            {botStatus?.whatsapp?.messageCount ? ` · ${botStatus.whatsapp.messageCount} mesaj` : ''}
+                            {waEnabled ? '✅ ' + t('settingsPage.autoOn').split(' ')[2] : '❌ ' + t('settingsPage.autoOff').split(' ')[3]}
+                            {botStatus?.whatsapp?.messageCount ? ` · ${botStatus.whatsapp.messageCount} ${t('pages.botConversations.messages')}` : ''}
                         </p>
                     </div>
                 </div>
@@ -96,18 +97,18 @@ function BotStatusAlert() {
                         <Phone className={`w-5 h-5 ${voiceEnabled ? 'text-purple-500' : 'text-muted-foreground'}`} />
                     </div>
                     <div>
-                        <p className="font-medium text-sm">Sesli Bot</p>
+                        <p className="font-medium text-sm">{t('settingsPage.reminderHours').split(' ')[0]} Bot</p>
                         <p className="text-xs text-muted-foreground">
-                            {voiceEnabled ? '✅ Aktif' : '❌ Pasif'}
-                            {botStatus?.voice?.callCount ? ` · ${botStatus.voice.callCount} arama` : ''}
+                            {voiceEnabled ? '✅ ' + t('settingsPage.autoOn').split(' ')[2] : '❌ ' + t('settingsPage.autoOff').split(' ')[3]}
+                            {botStatus?.voice?.callCount ? ` · ${botStatus.voice.callCount} ${t('components.templateEditor.variables')}` : ''}
                         </p>
                     </div>
                 </div>
             </div>
             {botStatus?.stats && (
                 <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Bugün: {botStatus.stats.todayMessages || 0} mesaj</span>
-                    <span>{botStatus.stats.todayAppointments || 0} randevu · {botStatus.stats.todayComplaints || 0} şikayet</span>
+                    <span>{t('pages.dashboard.todayAppointments').split('Bugün')[0]}: {botStatus.stats.todayMessages || 0} {t('pages.botConversations.messages')}</span>
+                    <span>{botStatus.stats.todayAppointments || 0} {t('appointmentsPage.title').toLowerCase()} · {botStatus.stats.todayComplaints || 0} {t('common.warning').toLowerCase()}</span>
                 </div>
             )}
         </div>
@@ -148,7 +149,7 @@ function SummaryCard({ title, value, subtitle, icon: Icon, trend, color }) {
 }
 
 // Daily Cash Breakdown Card
-function DailyCashBreakdown({ summary }) {
+function DailyCashBreakdown({ summary, t }) {
     const cash = summary?.finance?.dailyCash || 0;
     const card = summary?.finance?.dailyCard || 0;
     const transfer = summary?.finance?.dailyTransfer || 0;
@@ -156,14 +157,14 @@ function DailyCashBreakdown({ summary }) {
 
     return (
         <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Günlük Kasa</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('pages.cashRegister.daily')} {t('pages.finance.cash')}</h2>
             <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-green-500/5 rounded-lg">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-green-500/10">
                             <Banknote className="w-5 h-5 text-green-500" />
                         </div>
-                        <span className="text-sm font-medium">Nakit</span>
+                        <span className="text-sm font-medium">{t('pages.finance.cash')}</span>
                     </div>
                     <span className="font-semibold">{formatCurrency(cash)}</span>
                 </div>
@@ -172,7 +173,7 @@ function DailyCashBreakdown({ summary }) {
                         <div className="p-2 rounded-lg bg-blue-500/10">
                             <CreditCard className="w-5 h-5 text-blue-500" />
                         </div>
-                        <span className="text-sm font-medium">Kredi Kartı</span>
+                        <span className="text-sm font-medium">{t('pages.finance.creditCard')}</span>
                     </div>
                     <span className="font-semibold">{formatCurrency(card)}</span>
                 </div>
@@ -181,12 +182,12 @@ function DailyCashBreakdown({ summary }) {
                         <div className="p-2 rounded-lg bg-purple-500/10">
                             <ArrowRightLeft className="w-5 h-5 text-purple-500" />
                         </div>
-                        <span className="text-sm font-medium">Havale/EFT</span>
+                        <span className="text-sm font-medium">{t('pages.finance.transfer')}</span>
                     </div>
                     <span className="font-semibold">{formatCurrency(transfer)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 border-t border-border pt-4 mt-2">
-                    <span className="font-semibold">TOPLAM</span>
+                    <span className="font-semibold">{t('pages.cashRegister.total').toUpperCase()}</span>
                     <span className="text-xl font-bold text-primary">{formatCurrency(total)}</span>
                 </div>
             </div>
@@ -195,20 +196,13 @@ function DailyCashBreakdown({ summary }) {
 }
 
 // Weekly Appointments Bar Chart
-function WeeklyAppointmentsChart({ summary }) {
-    const weeklyData = summary?.weeklyAppointments || [
-        { day: 'Pzt', count: 0 },
-        { day: 'Sal', count: 0 },
-        { day: 'Çar', count: 0 },
-        { day: 'Per', count: 0 },
-        { day: 'Cum', count: 0 },
-        { day: 'Cmt', count: 0 },
-        { day: 'Paz', count: 0 }
-    ];
+function WeeklyAppointmentsChart({ summary, t }) {
+    const days = [t('appointmentsPage.month').substring(0, 3), 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    const weeklyData = summary?.weeklyAppointments || days.map(d => ({ day: d, count: 0 }));
 
     return (
         <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Haftalık Randevular</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('appointmentsPage.week')} {t('appointmentsPage.title')}</h2>
             <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={weeklyData}>
@@ -221,7 +215,7 @@ function WeeklyAppointmentsChart({ summary }) {
                                 border: '1px solid hsl(var(--border))',
                                 borderRadius: '8px'
                             }}
-                            formatter={(value) => [value, 'Randevu']}
+                            formatter={(value) => [value, t('appointmentsPage.title')]}
                         />
                         <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -232,14 +226,14 @@ function WeeklyAppointmentsChart({ summary }) {
 }
 
 // Personnel Section (leaves, staff status)
-function PersonnelSection({ summary }) {
+function PersonnelSection({ summary, t }) {
     const leaves = summary?.personnelLeaves || [];
 
     return (
         <div className="bg-card border border-border rounded-xl p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <UserX className="w-5 h-5 text-muted-foreground" />
-                İzinli Personel
+                {t('users.leaveType')} {t('auth.staff')}
             </h2>
             {leaves.length > 0 ? (
                 <div className="space-y-3">
@@ -251,24 +245,24 @@ function PersonnelSection({ summary }) {
                                 </div>
                                 <div>
                                     <p className="font-medium text-sm">{leave.name}</p>
-                                    <p className="text-xs text-muted-foreground">{leave.reason || 'İzinli'}</p>
+                                    <p className="text-xs text-muted-foreground">{leave.reason || t('users.leaveType')}</p>
                                 </div>
                             </div>
                             <span className="text-xs px-2 py-1 rounded bg-amber-500/10 text-amber-600 font-medium">
-                                {leave.day || 'Bugün'}
+                                {leave.day || t('pages.cashRegister.daily')}
                             </span>
                         </div>
                     ))}
                 </div>
             ) : (
-                <p className="text-center py-6 text-muted-foreground text-sm">Bu hafta izinli personel yok</p>
+                <p className="text-center py-6 text-muted-foreground text-sm">{t('appointmentsPage.week')} {t('users.leaveType').toLowerCase()} {t('auth.staff')} {t('common.none').toLowerCase()}</p>
             )}
         </div>
     );
 }
 
 // Today's Appointments Component
-function TodayAppointments({ appointments, isLoading }) {
+function TodayAppointments({ appointments, isLoading, t }) {
     if (isLoading) {
         return <SkeletonList count={3} />;
     }
@@ -277,7 +271,7 @@ function TodayAppointments({ appointments, isLoading }) {
         return (
             <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Bugün randevu yok</p>
+                <p>{t('pages.cashRegister.daily')} {t('appointmentsPage.title')} {t('common.none').toLowerCase()}</p>
             </div>
         );
     }
@@ -310,7 +304,7 @@ function TodayAppointments({ appointments, isLoading }) {
 }
 
 // Pending Payments Component
-function PendingPayments({ shoots, isLoading }) {
+function PendingPayments({ shoots, isLoading, t }) {
     if (isLoading) {
         return <SkeletonList count={3} />;
     }
@@ -319,7 +313,7 @@ function PendingPayments({ shoots, isLoading }) {
         return (
             <div className="text-center py-8 text-muted-foreground">
                 <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Bekleyen ödeme yok</p>
+                <p>{t('common.pending')} {t('common.payment').toLowerCase()} {t('common.none').toLowerCase()}</p>
             </div>
         );
     }
@@ -339,7 +333,7 @@ function PendingPayments({ shoots, isLoading }) {
                         <p className="font-medium text-destructive">
                             {formatCurrency(item.remaining || item.remainingAmount || 0)}
                         </p>
-                        <p className="text-xs text-muted-foreground">kalan</p>
+                        <p className="text-xs text-muted-foreground">{t('archives.remaining')}</p>
                     </div>
                 </div>
             ))}
@@ -350,12 +344,12 @@ function PendingPayments({ shoots, isLoading }) {
 // Chart colors
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-// Date range tabs
-const DATE_RANGES = [
-    { key: 'today', label: 'Bugün' },
-    { key: 'week', label: 'Bu Hafta' },
-    { key: 'month', label: 'Bu Ay' },
-    { key: 'year', label: 'Bu Yıl' }
+// Date range tabs - will be initialized in component with t()
+const getDateRanges = (t) => [
+    { key: 'today', label: t('pages.finance.today') },
+    { key: 'week', label: t('pages.finance.week') },
+    { key: 'month', label: t('pages.finance.month') },
+    { key: 'year', label: t('common.year') || 'Bu Yıl' }
 ];
 
 // Safe date formatter — prevents "invalid time value" crash
@@ -370,7 +364,9 @@ const safeFormat = (dateVal, fallback = '-') => {
 
 
 export default function Dashboard() {
+    const { t } = useTranslation();
     const [dateRange, setDateRange] = useState('today');
+    const DATE_RANGES = getDateRanges(t);
 
     // Always-fresh summary (daily cash, weekly appointments, pending payments)
     const { data: summaryRaw, isLoading: summaryLoading } = useQuery({
@@ -420,8 +416,8 @@ export default function Dashboard() {
             {/* Page Header with Date Range Tabs */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Dashboard</h1>
-                    <p className="text-muted-foreground">Stüdyo genel durumu ve istatistikler</p>
+                    <h1 className="text-2xl font-bold">{t('pages.dashboard.title')}</h1>
+                    <p className="text-muted-foreground">{t('auth.studioTitle').toLowerCase()}</p>
                 </div>
                 <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
                     {DATE_RANGES.map(range => (
@@ -444,30 +440,30 @@ export default function Dashboard() {
             {/* Summary Cards Row 1: Customer Counts */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <SummaryCard
-                    title="Bugünkü Müşteri"
+                    title={t('pages.dashboard.todayAppointments').split('Bugünkü')[1] ? t('pages.dashboard.todayAppointments') : t('pages.finance.today')}
                     value={summary?.customers?.daily ?? 0}
-                    subtitle="bugün kayıt"
+                    subtitle={t('pages.finance.today')}
                     icon={Users}
                     color="blue"
                 />
                 <SummaryCard
-                    title="Bu Hafta"
+                    title={t('pages.finance.week')}
                     value={summary?.customers?.weekly ?? 0}
-                    subtitle="bu hafta"
+                    subtitle={t('pages.finance.week').toLowerCase()}
                     icon={Users}
                     color="green"
                 />
                 <SummaryCard
-                    title={`${DATE_RANGES.find(r => r.key === dateRange)?.label || 'Bu Ay'} — Müşteri`}
+                    title={`${DATE_RANGES.find(r => r.key === dateRange)?.label || t('pages.finance.month')} — ${t('pages.customers.title')}`}
                     value={filtered?.customerCount ?? summary?.customers?.monthly ?? 0}
-                    subtitle={`gelir: ${(filtered?.totalRevenue ?? 0).toLocaleString('tr-TR')} ₺`}
+                    subtitle={`${t('pages.finance.revenue').toLowerCase()}: ${(filtered?.totalRevenue ?? 0).toLocaleString('tr-TR')} ₺`}
                     icon={Camera}
                     color="purple"
                 />
                 <SummaryCard
-                    title="Bekleyen Ödeme"
+                    title={t('common.pending') + ' ' + t('common.update').toLowerCase()}
                     value={`${(summary?.finance?.pendingPayments ?? 0).toLocaleString('tr-TR')} ₺`}
-                    subtitle={`${summary?.finance?.pendingPaymentsCount ?? 0} kayıt`}
+                    subtitle={`${summary?.finance?.pendingPaymentsCount ?? 0} ${t('pages.archives.records').toLowerCase()}`}
                     icon={AlertCircle}
                     color="amber"
                 />
@@ -476,12 +472,12 @@ export default function Dashboard() {
             {/* Row 2: Daily Cash + Revenue Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Daily Cash Breakdown */}
-                <DailyCashBreakdown summary={summary} />
+                <DailyCashBreakdown summary={summary} t={t} />
 
                 {/* Revenue Chart (larger) — from filteredStats chartData */}
                 <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold">Kazanç Grafiği</h2>
+                        <h2 className="text-lg font-semibold">{t('pages.finance.revenue')} {t('components.templateEditor.variables')}</h2>
                         <span className="text-sm text-muted-foreground">
                             {DATE_RANGES.find(r => r.key === dateRange)?.label}
                         </span>
@@ -519,7 +515,7 @@ export default function Dashboard() {
                                         }}
                                         formatter={(value, name) => [
                                             name === 'revenue' ? `${value.toLocaleString('tr-TR')} ₺` : value,
-                                            name === 'revenue' ? 'Ciro' : 'Müşteri'
+                                            name === 'revenue' ? t('pages.finance.revenue') : t('pages.customers.title')
                                         ]}
                                     />
                                     <Area
@@ -543,7 +539,7 @@ export default function Dashboard() {
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-muted-foreground">
-                                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Henüz veri yok'}
+                                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : t('common.noData')}
                             </div>
                         )}
                     </div>
@@ -552,19 +548,19 @@ export default function Dashboard() {
 
             {/* Row 3: Weekly Appointments + Personnel */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <WeeklyAppointmentsChart summary={summary} />
-                <PersonnelSection summary={summary} />
+                <WeeklyAppointmentsChart summary={summary} t={t} />
+                <PersonnelSection summary={summary} t={t} />
             </div>
 
             {/* Row 3.5: Bot Status Alert (only shown if bot is configured) */}
-            <BotStatusAlert />
+            <BotStatusAlert t={t} />
 
             {/* Row 4: Shoot Types + Today's Schedule + Pending */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Shoot Types Pie Chart */}
                 <div className="bg-card border border-border rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold">Çekim Türleri</h2>
+                        <h2 className="text-lg font-semibold">{t('shoots.shootTypes')}</h2>
                         <span className="text-sm text-muted-foreground">{DATE_RANGES.find(r => r.key === dateRange)?.label}</span>
                     </div>
                     <div className="h-52 flex items-center justify-center">
@@ -589,7 +585,7 @@ export default function Dashboard() {
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="text-muted-foreground">Henüz veri yok</div>
+                            <div className="text-muted-foreground">{t('common.noData')}</div>
                         )}
                     </div>
                 </div>
@@ -597,12 +593,12 @@ export default function Dashboard() {
                 {/* Online Satışlar */}
                 <div className="bg-card border border-border rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold">Online Satışlar</h2>
+                        <h2 className="text-lg font-semibold">{t('nav.onlineSales')}</h2>
                         <Link
                             to="/wc-clients"
                             className="text-sm text-primary hover:underline flex items-center gap-1"
                         >
-                            Tümünü Gör <ChevronRight className="w-4 h-4" />
+                            {t('common.all')} <ChevronRight className="w-4 h-4" />
                         </Link>
                     </div>
                     <div className="flex flex-col items-center justify-center py-6">
@@ -610,7 +606,7 @@ export default function Dashboard() {
                             <ShoppingCart className="w-8 h-8 text-green-500" />
                         </div>
                         <p className="text-3xl font-bold">{filtered?.onlineSalesCount ?? 0}</p>
-                        <p className="text-sm text-muted-foreground mt-1">satış ({DATE_RANGES.find(r => r.key === dateRange)?.label})</p>
+                        <p className="text-sm text-muted-foreground mt-1">{t('common.create').toLowerCase()} ({DATE_RANGES.find(r => r.key === dateRange)?.label})</p>
                     </div>
                 </div>
 
@@ -618,7 +614,7 @@ export default function Dashboard() {
                 <div className="bg-card border border-border rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold flex items-center gap-2">
-                            Bekleyen Ödemeler
+                            {t('common.pending')} {t('common.payment')}
                             {(summary?.finance?.pendingPayments || 0) > 0 && (
                                 <AlertCircle className="w-4 h-4 text-amber-500" />
                             )}
@@ -627,7 +623,7 @@ export default function Dashboard() {
                             to="/archives?status=payment_pending"
                             className="text-sm text-primary hover:underline flex items-center gap-1"
                         >
-                            Tümünü Gör <ChevronRight className="w-4 h-4" />
+                            {t('common.all')} <ChevronRight className="w-4 h-4" />
                         </Link>
                     </div>
                     {(summary?.pendingList || []).length > 0 ? (
@@ -642,7 +638,7 @@ export default function Dashboard() {
                                         <p className="font-medium text-destructive text-sm">
                                             {item.remaining?.toLocaleString('tr-TR')} ₺
                                         </p>
-                                        <p className="text-xs text-muted-foreground">kalan</p>
+                                        <p className="text-xs text-muted-foreground">{t('archives.remaining')}</p>
                                     </div>
                                 </div>
                             ))}
@@ -650,7 +646,7 @@ export default function Dashboard() {
                     ) : (
                         <div className="text-center py-8 text-muted-foreground">
                             <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                            <p>Bekleyen ödeme yok</p>
+                            <p>{t('common.pending')} {t('common.payment').toLowerCase()} {t('common.none').toLowerCase()}</p>
                         </div>
                     )}
                 </div>

@@ -4,6 +4,7 @@
  * Appointment sidebar inline (küçük, mevcut tasarımı korur)
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { archivesApi, appointmentsApi, optionsApi, settingsApi, schoolsApi, whatsappApi } from '../services/api';
 import { format, addDays, subDays } from 'date-fns';
@@ -287,6 +288,7 @@ function WhatsAppModal({ isOpen, onClose, archive }) {
 
 // ==================== MAIN ORCHESTRATOR ====================
 export default function Archives() {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [selectedArchive, setSelectedArchive] = useState(null);
@@ -429,7 +431,7 @@ export default function Archives() {
             <div className="flex-1 flex flex-col min-w-0 pr-0">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4 flex-1">
-                        <h1 className="text-2xl font-bold">Arşiv</h1>
+                        <h1 className="text-2xl font-bold">{t('pages.archives.title')}</h1>
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input

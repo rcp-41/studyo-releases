@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -66,7 +67,8 @@ function CustomerCard({ customer }) {
             <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
-                    <span>{customer._count?.shoots || 0} çekim</span>
+                    {/* TODO: i18n - plural form for shoots count */}
+                    <span>{customer._count?.shoots || 0}</span>
                 </div>
                 <span className="text-muted-foreground">
                     {formatDate(customer.createdAt)}
@@ -78,6 +80,7 @@ function CustomerCard({ customer }) {
 
 // Add Customer Modal
 function AddCustomerModal({ isOpen, onClose }) {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         fullName: '',
         phone: '',
@@ -94,18 +97,18 @@ function AddCustomerModal({ isOpen, onClose }) {
         mutationFn: (data) => customersApi.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['customers'] });
-            notify.success('Müşteri oluşturuldu');
+            notify.success(t('pages.customers.customerCreated'));
             onClose();
         },
         onError: (error) => {
-            notify.error(error.response?.data?.error || 'Hata oluştu');
+            notify.error(error.response?.data?.error || t('pages.customers.error'));
         }
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.fullName || !formData.phone) {
-            notify.error('Ad ve telefon zorunludur');
+            notify.error(t('pages.customers.nameAndPhoneRequired'));
             return;
         }
         createMutation.mutate(formData);
@@ -118,7 +121,7 @@ function AddCustomerModal({ isOpen, onClose }) {
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
             <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6 animate-fade-in">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold">Yeni Müşteri</h2>
+                    <h2 className="text-xl font-semibold">{t('pages.customers.newCustomer')}</h2>
                     <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
@@ -126,7 +129,7 @@ function AddCustomerModal({ isOpen, onClose }) {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Ad Soyad *</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.customers.fullName')} *</label>
                         <input
                             type="text"
                             value={formData.fullName}
@@ -137,7 +140,7 @@ function AddCustomerModal({ isOpen, onClose }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Telefon *</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.customers.phone')} *</label>
                         <input
                             type="tel"
                             value={formData.phone}
@@ -148,7 +151,7 @@ function AddCustomerModal({ isOpen, onClose }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">E-posta</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.customers.email')}</label>
                         <input
                             type="email"
                             value={formData.email}
@@ -160,29 +163,29 @@ function AddCustomerModal({ isOpen, onClose }) {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1.5">Müşteri Tipi</label>
+                            <label className="block text-sm font-medium mb-1.5">{t('pages.customers.customerType')}</label>
                             <select
                                 value={formData.customerType}
                                 onChange={(e) => setFormData({ ...formData, customerType: e.target.value })}
                                 className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                             >
-                                <option value="individual">Bireysel</option>
-                                <option value="corporate">Kurumsal</option>
+                                <option value="individual">{t('pages.customers.individual')}</option>
+                                <option value="corporate">{t('pages.customers.corporate')}</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1.5">Kaynak</label>
+                            <label className="block text-sm font-medium mb-1.5">{t('pages.customers.source')}</label>
                             <select
                                 value={formData.source}
                                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                                 className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                             >
-                                <option value="walk_in">Yürüyen Müşteri</option>
-                                <option value="referral">Referans</option>
-                                <option value="instagram">Instagram</option>
-                                <option value="google">Google</option>
-                                <option value="website">Website</option>
+                                <option value="walk_in">{t('pages.customers.walkIn')}</option>
+                                <option value="referral">{t('pages.customers.referral')}</option>
+                                <option value="instagram">{t('pages.customers.instagram')}</option>
+                                <option value="google">{t('pages.customers.google')}</option>
+                                <option value="website">{t('pages.customers.website')}</option>
                             </select>
                         </div>
                     </div>
@@ -195,17 +198,17 @@ function AddCustomerModal({ isOpen, onClose }) {
                             onChange={(e) => setFormData({ ...formData, isVip: e.target.checked })}
                             className="w-4 h-4 rounded border-input"
                         />
-                        <label htmlFor="isVip" className="text-sm">VIP Müşteri</label>
+                        <label htmlFor="isVip" className="text-sm">{t('pages.customers.isVip')}</label>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Notlar</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.customers.notes')}</label>
                         <textarea
                             value={formData.notes}
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none resize-none"
                             rows={3}
-                            placeholder="Ek notlar..."
+                            placeholder={t('pages.customers.additionalNotes')}
                         />
                     </div>
 
@@ -215,7 +218,7 @@ function AddCustomerModal({ isOpen, onClose }) {
                             onClick={onClose}
                             className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
                         >
-                            İptal
+                            {t('pages.customers.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -223,7 +226,7 @@ function AddCustomerModal({ isOpen, onClose }) {
                             className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Kaydet
+                            {t('pages.customers.save')}
                         </button>
                     </div>
                 </form>
@@ -233,6 +236,7 @@ function AddCustomerModal({ isOpen, onClose }) {
 }
 
 export default function Customers() {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
@@ -264,14 +268,14 @@ export default function Customers() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Müşteriler</h1>
+                    <h1 className="text-2xl font-bold">{t('pages.customers.title')}</h1>
                     <p className="text-muted-foreground">
-                        {pagination.total} müşteri kayıtlı
+                        {pagination.total} {t('pages.customers.customersCount')}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-700">
-                        <span>ℹ️ Müşteriler arşiv kayıtlarından otomatik oluşturulur</span>
+                        <span>{t('pages.customers.autoCreatedInfo')}</span>
                     </div>
                 </div>
             </div>
@@ -287,7 +291,7 @@ export default function Customers() {
                             setSearch(e.target.value);
                             setPage(1);
                         }}
-                        placeholder="Müşteri ara... (ad, telefon, email)"
+                        placeholder={t('pages.customers.search')}
                         className="w-full pl-10 pr-4 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                     />
                 </div>
@@ -301,7 +305,7 @@ export default function Customers() {
                     )}
                 >
                     <Filter className="w-5 h-5" />
-                    Filtrele
+                    {t('common.filter')}
                     {activeFilterCount > 0 && (
                         <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                             {activeFilterCount}
@@ -314,26 +318,26 @@ export default function Customers() {
             {showFilters && (
                 <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap items-end gap-4">
                     <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Müşteri Tipi</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">{t('pages.customers.customerType')}</label>
                         <select value={filters.customerType}
                             onChange={e => setFilters({ ...filters, customerType: e.target.value })}
                             className="px-3 py-2 rounded-lg bg-background border border-input text-sm outline-none">
-                            <option value="">Tümü</option>
-                            <option value="individual">Bireysel</option>
-                            <option value="corporate">Kurumsal</option>
+                            <option value="">{t('common.all')}</option>
+                            <option value="individual">{t('pages.customers.individual')}</option>
+                            <option value="corporate">{t('pages.customers.corporate')}</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Kaynak</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">{t('pages.customers.source')}</label>
                         <select value={filters.source}
                             onChange={e => setFilters({ ...filters, source: e.target.value })}
                             className="px-3 py-2 rounded-lg bg-background border border-input text-sm outline-none">
-                            <option value="">Tümü</option>
-                            <option value="walk-in">Yürüyen Müşteri</option>
-                            <option value="referral">Referans</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="google">Google</option>
-                            <option value="website">Website</option>
+                            <option value="">{t('common.all')}</option>
+                            <option value="walk-in">{t('pages.customers.walkIn')}</option>
+                            <option value="referral">{t('pages.customers.referral')}</option>
+                            <option value="instagram">{t('pages.customers.instagram')}</option>
+                            <option value="google">{t('pages.customers.google')}</option>
+                            <option value="website">{t('pages.customers.website')}</option>
                         </select>
                     </div>
                     <div>
@@ -341,16 +345,16 @@ export default function Customers() {
                         <select value={filters.isVip}
                             onChange={e => setFilters({ ...filters, isVip: e.target.value })}
                             className="px-3 py-2 rounded-lg bg-background border border-input text-sm outline-none">
-                            <option value="">Tümü</option>
+                            <option value="">{t('common.all')}</option>
                             <option value="true">VIP</option>
-                            <option value="false">Normal</option>
+                            <option value="false">{t('common.none')}</option>
                         </select>
                     </div>
                     <button
                         onClick={() => setFilters({ customerType: '', source: '', isVip: '' })}
                         className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
                     >
-                        Temizle
+                        {t('common.reset')}
                     </button>
                 </div>
             )}
@@ -363,7 +367,7 @@ export default function Customers() {
                     <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                         <Search className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <p className="text-lg font-medium">Müşteri bulunamadı</p>
+                    <p className="text-lg font-medium">{t('pages.customers.noCustomers')}</p>
                     <p className="text-muted-foreground">
                         {search ? 'Farklı arama kriterleri deneyin' : 'Yeni müşteri ekleyin'}
                     </p>

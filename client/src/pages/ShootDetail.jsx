@@ -2,19 +2,23 @@ import { useState } from 'react';
 import notify from '../lib/notify';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { shootsApi, optionsApi, settingsApi } from '../services/api';
-import { formatDate, formatDateTime, formatCurrency, getStatusLabel, getShootTypeLabel, getInitials, cn } from '../lib/utils';
+import { shootsApi } from '../services/api';
+import { formatDate, formatDateTime, formatCurrency, getStatusLabel, getShootTypeLabel } from '../lib/utils';
 import {
-    ArrowLeft, Camera, Calendar, MapPin, DollarSign, User, Package, Clock,
-    Edit, Trash2, CheckCircle, Loader2, Play, Pause, AlertCircle, X,
-    Undo2, UserCog, Image, FolderOpen, ChevronDown, Printer
+    ArrowLeft, Camera, DollarSign, User, Package, Clock,
+    Edit, CheckCircle, Loader2, Play, Undo2
 } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonCard } from '../components/Skeleton';
 import useF2Print from '../hooks/useF2Print';
 import { printTemplate, isPrintAvailable } from '../lib/printService';
 import { getPrintSettings } from '../lib/printSettings';
+
+import PhotographerSelector from './shoot-detail/PhotographerSelector';
+import PhotoGallery from './shoot-detail/PhotoGallery';
+import { EditShootModal, PaymentModal } from './shoot-detail/ShootModals';
 
 const workflowStages = [
     { key: 'confirmed', label: 'Onay', icon: CheckCircle },
@@ -25,209 +29,6 @@ const workflowStages = [
     { key: 'delivered', label: 'Teslim', icon: Package }
 ];
 
-// ==================== PHOTOGRAPHER SELECTOR ====================
-function PhotographerSelector({ currentPhotographer, onSelect }) {
-    const [open, setOpen] = useState(false);
-    const { data: photographers } = useQuery({
-        queryKey: ['photographers'],
-        queryFn: () => optionsApi.getPhotographers().then(r => r.data),
-        enabled: open
-    });
-
-    return (
-        <div className="relative inline-block">
-            <button
-                onClick={() => setOpen(!open)}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-sm rounded hover:bg-muted transition-colors"
-                title="Fotoğrafçı Değiştir"
-            >
-                <span className="font-medium">{currentPhotographer?.fullName || 'Atanmadı'}</span>
-                <UserCog className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
-            {open && (
-                <div className="absolute z-20 top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[180px]">
-                    {photographers?.map(p => (
-                        <button
-                            key={p.id}
-                            onClick={() => { onSelect(p.id); setOpen(false); }}
-                            className={cn(
-                                'w-full text-left px-3 py-1.5 text-sm hover:bg-muted',
-                                currentPhotographer?.id === p.id && 'bg-muted font-medium'
-                            )}
-                        >
-                            {p.name || p.fullName}
-                        </button>
-                    ))}
-                    {!photographers?.length && (
-                        <p className="px-3 py-2 text-xs text-muted-foreground">Fotoğrafçı yok</p>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ==================== PHOTO GALLERY ====================
-function PhotoGallery({ archiveNumber, photoSelectionData }) {
-    const [photos, setPhotos] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [lightbox, setLightbox] = useState(null);
-
-    const { data: settings } = useQuery({
-        queryKey: ['settings'],
-        queryFn: () => settingsApi.getAll().then(r => r.data)
-    });
-
-    const basePath = settings?.general?.archiveFolderPath || '';
-
-    const loadPhotos = async () => {
-        if (!basePath || !archiveNumber) {
-            notify.error('Arşiv klasör yolu ayarlanmamış');
-            return;
-        }
-        setLoading(true);
-        try {
-            const folderPath = `${basePath}\\${archiveNumber}`;
-            if (window.electron?.listPhotos) {
-                const result = await window.electron.listPhotos(folderPath);
-                if (result.success) {
-                    setPhotos(result.files || []);
-                    if (!result.files?.length) toast('Klasörde fotoğraf bulunamadı');
-                } else {
-                    notify.error(result.error || 'Fotoğraflar yüklenemedi');
-                }
-            } else {
-                // Fallback: open folder
-                if (window.electron?.openFolder) {
-                    await window.electron.openFolder(folderPath);
-                }
-            }
-        } catch (e) {
-            notify.error('Fotoğraf yükleme hatası');
-        }
-        setLoading(false);
-    };
-
-    return (
-        <div className="bg-card border border-border rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Image className="w-5 h-5" /> Fotoğraflar
-                </h2>
-                <div className="flex gap-2">
-                    <button
-                        onClick={loadPhotos}
-                        disabled={loading}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-muted rounded-lg hover:bg-muted/80"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                        Fotoğrafları Yükle
-                    </button>
-                    {basePath && (
-                        <button
-                            onClick={async () => {
-                                const folderPath = `${basePath}\\${archiveNumber}`;
-                                if (window.electron?.openFolder) await window.electron.openFolder(folderPath);
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-muted rounded-lg hover:bg-muted/80"
-                        >
-                            <FolderOpen className="w-4 h-4" /> Klasörü Aç
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {photos.length > 0 ? (
-                <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                    {photos.map((photo, i) => {
-                        const fileName = photo.name || photo.path?.split(/[/\\]/).pop();
-                        const selectedInfo = photoSelectionData?.selectedPhotos?.find(
-                            sp => String(sp.photoId) === fileName || String(sp.photoId) === String(i)
-                        );
-                        const isNumbered = selectedInfo && !selectedInfo.isCancelled;
-
-                        return (
-                            <div
-                                key={i}
-                                className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all ${isNumbered ? 'ring-2 ring-amber-400' : 'hover:ring-2 hover:ring-primary'}`}
-                                onClick={() => setLightbox(photo)}
-                            >
-                                <img src={photo.thumbnail || photo.path} alt="" className="w-full h-full object-cover" />
-                                {isNumbered && (
-                                    <div className="absolute top-1.5 right-1.5 bg-amber-500 text-black font-bold text-xs w-6 h-6 flex items-center justify-center rounded-full shadow border-2 border-neutral-900 shadow-black/50">
-                                        {selectedInfo.orderNumber}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            ) : (
-                <p className="text-center py-6 text-muted-foreground text-sm">
-                    "Fotoğrafları Yükle" butonuna tıklayarak klasördeki fotoğrafları görüntüleyin
-                </p>
-            )}
-
-            {/* Lightbox */}
-            {lightbox && (
-                <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-                    onClick={() => setLightbox(null)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Escape') setLightbox(null);
-                        if (e.key === 'ArrowRight') {
-                            const idx = photos.findIndex(p => p.path === lightbox.path);
-                            if (idx < photos.length - 1) setLightbox(photos[idx + 1]);
-                        }
-                        if (e.key === 'ArrowLeft') {
-                            const idx = photos.findIndex(p => p.path === lightbox.path);
-                            if (idx > 0) setLightbox(photos[idx - 1]);
-                        }
-                    }}
-                    tabIndex={0}
-                    ref={(el) => el?.focus()}
-                >
-                    <button className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-lg z-10"
-                        onClick={(e) => { e.stopPropagation(); setLightbox(null); }}>
-                        <X className="w-6 h-6" />
-                    </button>
-                    {/* Prev button */}
-                    {photos.findIndex(p => p.path === lightbox.path) > 0 && (
-                        <button
-                            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white hover:bg-white/20 rounded-full z-10"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                const idx = photos.findIndex(p => p.path === lightbox.path);
-                                setLightbox(photos[idx - 1]);
-                            }}
-                        >
-                            <ChevronDown className="w-8 h-8 -rotate-90" />
-                        </button>
-                    )}
-                    {/* Next button */}
-                    {photos.findIndex(p => p.path === lightbox.path) < photos.length - 1 && (
-                        <button
-                            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white hover:bg-white/20 rounded-full z-10"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                const idx = photos.findIndex(p => p.path === lightbox.path);
-                                setLightbox(photos[idx + 1]);
-                            }}
-                        >
-                            <ChevronDown className="w-8 h-8 rotate-90" />
-                        </button>
-                    )}
-                    <img src={lightbox.path} alt="" className="max-w-[90vw] max-h-[90vh] object-contain select-none" draggable={false} />
-                    {/* Counter */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
-                        {photos.findIndex(p => p.path === lightbox.path) + 1} / {photos.length}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ==================== MAIN COMPONENT ====================
 export default function ShootDetail() {
     const { id } = useParams();
     const queryClient = useQueryClient();
@@ -310,10 +111,7 @@ export default function ShootDetail() {
     };
 
     const rollbackStage = () => {
-        const currentIdx = getStageIndex();
-        if (currentIdx > 0) {
-            setConfirmRollback(true);
-        }
+        if (getStageIndex() > 0) setConfirmRollback(true);
     };
 
     const performRollback = () => {
@@ -365,7 +163,6 @@ export default function ShootDetail() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* Rollback Button */}
                     {currentStageIdx > 0 && (
                         <button
                             onClick={rollbackStage}
@@ -376,7 +173,6 @@ export default function ShootDetail() {
                             Geri Al
                         </button>
                     )}
-                    {/* Advance Button */}
                     {currentStageIdx < workflowStages.length - 1 && (
                         <button
                             onClick={advanceStage}
@@ -423,8 +219,7 @@ export default function ShootDetail() {
                                     </div>
                                     {idx < workflowStages.length - 1 && (
                                         <div
-                                            className={`flex-1 h-1 mx-2 rounded ${idx < currentStageIdx ? 'bg-green-600' : 'bg-muted'
-                                                }`}
+                                            className={`flex-1 h-1 mx-2 rounded ${idx < currentStageIdx ? 'bg-green-600' : 'bg-muted'}`}
                                         />
                                     )}
                                 </div>
@@ -438,7 +233,6 @@ export default function ShootDetail() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Info */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Details Card */}
                     <div className="bg-card border border-border rounded-xl p-6">
@@ -484,7 +278,6 @@ export default function ShootDetail() {
                         )}
                     </div>
 
-                    {/* Photo Gallery */}
                     <PhotoGallery archiveNumber={shoot.archiveNumber || shoot.shootCode} photoSelectionData={shoot.photoSelectionData} />
                 </div>
 
@@ -517,7 +310,6 @@ export default function ShootDetail() {
                         </div>
                     </div>
 
-                    {/* Payment History */}
                     {shoot.payments?.length > 0 && (
                         <div className="bg-card border border-border rounded-xl p-6">
                             <h2 className="text-sm font-semibold mb-3">Ödeme Geçmişi</h2>
@@ -541,7 +333,6 @@ export default function ShootDetail() {
                 </div>
             </div>
 
-            {/* Edit Modal */}
             {showEdit && (
                 <EditShootModal
                     shoot={shoot}
@@ -550,7 +341,6 @@ export default function ShootDetail() {
                 />
             )}
 
-            {/* Payment Modal */}
             {showPayment && (
                 <PaymentModal
                     shoot={shoot}
@@ -570,116 +360,6 @@ export default function ShootDetail() {
                 onConfirm={performRollback}
                 loading={statusMutation.isPending}
             />
-        </div>
-    );
-}
-
-// ==================== EDIT SHOOT MODAL ====================
-function EditShootModal({ shoot, onClose, onSave }) {
-    const [formData, setFormData] = useState({
-        location: shoot.location || '',
-        notes: shoot.notes || '',
-        totalAmount: shoot.totalAmount || 0
-    });
-
-    const updateMutation = useMutation({
-        mutationFn: (data) => shootsApi.update(shoot.id, data),
-        onSuccess: () => { notify.success('Çekim güncellendi'); onSave(); },
-        onError: () => notify.error('Güncelleme başarısız')
-    });
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-            <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold">Çekim Düzenle</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-                <form onSubmit={e => { e.preventDefault(); updateMutation.mutate(formData); }} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Lokasyon</label>
-                        <input type="text" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Toplam Tutar (₺)</label>
-                        <input type="number" value={formData.totalAmount} onChange={e => setFormData({ ...formData, totalAmount: Number(e.target.value) })}
-                            className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Notlar</label>
-                        <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none resize-none" rows={3} />
-                    </div>
-                    <div className="flex gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted">İptal</button>
-                        <button type="submit" disabled={updateMutation.isPending}
-                            className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-                            {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Güncelle
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
-// ==================== PAYMENT MODAL ====================
-function PaymentModal({ shoot, onClose, onSave }) {
-    const [amount, setAmount] = useState(shoot.remainingAmount || 0);
-    const [method, setMethod] = useState('cash');
-    const [note, setNote] = useState('');
-
-    const paymentMutation = useMutation({
-        mutationFn: (data) => shootsApi.addPayment(shoot.id, data),
-        onSuccess: () => { notify.success('Ödeme kaydedildi'); onSave(); },
-        onError: () => notify.error('Ödeme kaydedilemedi')
-    });
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-            <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold">Ödeme Al</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-                <div className="mb-4 p-3 bg-muted rounded-lg text-sm">
-                    <div className="flex justify-between"><span>Toplam:</span><span className="font-medium">{formatCurrency(shoot.totalAmount)}</span></div>
-                    <div className="flex justify-between"><span>Ödenen:</span><span className="text-green-600">{formatCurrency(shoot.paidAmount)}</span></div>
-                    <div className="flex justify-between border-t border-border pt-2 mt-2"><span>Kalan:</span><span className="font-semibold text-destructive">{formatCurrency(shoot.remainingAmount)}</span></div>
-                </div>
-                <form onSubmit={e => { e.preventDefault(); paymentMutation.mutate({ amount, method, note }); }} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Tutar (₺)</label>
-                        <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))}
-                            max={shoot.remainingAmount}
-                            className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Ödeme Yöntemi</label>
-                        <select value={method} onChange={e => setMethod(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none">
-                            <option value="cash">Nakit</option>
-                            <option value="credit_card">Kredi Kartı</option>
-                            <option value="transfer">Havale/EFT</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Not</label>
-                        <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Ödeme notu..."
-                            className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none" />
-                    </div>
-                    <div className="flex gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted">İptal</button>
-                        <button type="submit" disabled={paymentMutation.isPending}
-                            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">
-                            {paymentMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Ödemeyi Kaydet
-                        </button>
-                    </div>
-                </form>
-            </div>
         </div>
     );
 }

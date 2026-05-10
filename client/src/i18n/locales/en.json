@@ -46,7 +46,9 @@
     "processing": "Processing",
     "error": "An error occurred",
     "warning": "Warning",
-    "info": "Information"
+    "info": "Information",
+    "payment": "Payment",
+    "year": "This Year"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -83,7 +85,24 @@
     "studioTitle": "Studio Management System",
     "resetStudio": "Reset Studio",
     "resetStudioHint": "Super Admin password is required to switch to a different studio.",
-    "loadingApp": "Loading..."
+    "loadingApp": "Loading...",
+    "studioNotConfigured": "Studio configuration not found. Please perform setup with serial number first.",
+    "enterSuperAdminPassword": "Please enter Super Admin password",
+    "superAdminNotConfigured": "Super Admin is not configured. Please contact administrator.",
+    "deleteFailed": "Delete failed",
+    "studioReset": "Studio reset! Redirecting to setup...",
+    "wrongPassword": "Super Admin password is incorrect",
+    "accountNotFound": "Super Admin account not found",
+    "tooManyAttempts": "Too many attempts. Please wait a moment",
+    "resetFailed": "Reset failed",
+    "resetModalTitle": "Reset Studio",
+    "resetWarning": "This will remove the current studio connection. You will need to set up with a new studio ID.",
+    "currentStudio": "Current Studio",
+    "superAdminPassword": "Super Admin Password",
+    "superAdminPasswordHint": "Password for the Super Admin account",
+    "cancel": "Cancel",
+    "verifying": "Verifying...",
+    "reset": "Reset"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -427,6 +446,10 @@
       "status": "Status",
       "notes": "Notes"
     },
+    "archiveSearch": {
+      "title": "Advanced Archive Search",
+      "resultsFound": "results found"
+    },
     "customers": {
       "title": "Customers",
       "newCustomer": "New Customer",
@@ -437,7 +460,27 @@
       "notes": "Notes",
       "noCustomers": "No customers found",
       "created": "Created",
-      "lastContact": "Last Contact"
+      "lastContact": "Last Contact",
+      "customerCreated": "Customer created",
+      "error": "An error occurred",
+      "nameAndPhoneRequired": "Name and phone are required",
+      "shoots": "shoot",
+      "customersCount": "customers registered",
+      "autoCreatedInfo": "ℹ️ Customers are automatically created from archive records",
+      "search": "Search customers... (name, phone, email)",
+      "customerType": "Customer Type",
+      "individual": "Individual",
+      "corporate": "Corporate",
+      "source": "Source",
+      "walkIn": "Walk-in",
+      "referral": "Referral",
+      "instagram": "Instagram",
+      "google": "Google",
+      "website": "Website",
+      "isVip": "VIP Customer",
+      "cancel": "Cancel",
+      "save": "Save",
+      "additionalNotes": "Additional notes..."
     },
     "shoots": {
       "title": "Shoots",
@@ -449,7 +492,42 @@
       "noShoots": "No shoots found",
       "date": "Date",
       "time": "Time",
-      "location": "Location"
+      "location": "Location",
+      "statusNew": "New",
+      "statusConfirmed": "Confirmed",
+      "statusShootDone": "Shoot Done",
+      "statusEditing": "Editing",
+      "statusClientSelection": "Client Selection",
+      "statusPaymentPending": "Payment Pending",
+      "statusPaymentComplete": "Payment Complete",
+      "statusDelivered": "Delivered",
+      "remaining": "remaining",
+      "customer": "Customer",
+      "searchCustomer": "Search customer...",
+      "shootType": "Shoot Type",
+      "typeWedding": "Wedding",
+      "typeEngagement": "Engagement",
+      "typeBaby": "Baby",
+      "typePortrait": "Portrait",
+      "typeCorporate": "Corporate",
+      "typeProduct": "Product",
+      "typeEvent": "Event",
+      "typeOther": "Other",
+      "package": "Package",
+      "packageSelectOptional": "Select package (optional)",
+      "shootDate": "Shoot Date",
+      "locationPlaceholder": "Studio / Outdoor",
+      "totalAmount": "Total Amount",
+      "advancePayment": "Advance Payment",
+      "notes": "Notes",
+      "recordsCount": "shoot records",
+      "searchShoot": "Search shoot...",
+      "dateFilter": "Date Filter",
+      "dateFrom": "From",
+      "dateTo": "To",
+      "page": "Page",
+      "shootCreated": "Shoot created",
+      "customerDateAmountRequired": "Customer, date and amount are required"
     },
     "reports": {
       "title": "Reports",
@@ -459,7 +537,44 @@
       "revenue": "Revenue",
       "expenses": "Expenses",
       "from": "Start Date",
-      "to": "End Date"
+      "to": "End Date",
+      "income": "Income",
+      "shootType": "Shoot Type",
+      "photographer": "Photographer",
+      "source": "Customer Source",
+      "overdue": "Overdue Payments",
+      "date": "Date",
+      "cash": "Cash",
+      "card": "Card",
+      "transfer": "Transfer",
+      "total": "Total",
+      "totalRevenue": "Total Revenue",
+      "incomeChart": "Income Trend",
+      "count": "Count",
+      "percentage": "Percentage (%)",
+      "distribution": "Distribution",
+      "shoots": "shoots",
+      "unspecified": "Unspecified",
+      "items": "items",
+      "photographerPerformance": "Photographer Performance",
+      "shootCount": "Shoot Count",
+      "avgRevenue": "Avg. Revenue",
+      "sourceDistribution": "Customer Source Distribution",
+      "customer": "Customer",
+      "phone": "Phone",
+      "archiveNumber": "Archive No",
+      "paidAmount": "Paid Amount",
+      "remaining": "Remaining",
+      "daysPassed": "Days Passed",
+      "customerCount": "Customer Count",
+      "totalOverdue": "Total Overdue",
+      "avgDelay": "Avg. Delay",
+      "days": "days",
+      "records": "records",
+      "excel": "Excel",
+      "pdf": "PDF",
+      "noData": "No data found",
+      "createdAt": "Created"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -617,6 +732,45 @@
       "selectNumberingType": "Select Shoot Type",
       "selectFolderType": "Select Folder",
       "pixonaiConfig": "{{count}} packages · {{type}}"
+    }
+  },
+  "breadcrumb": {
+    "dashboard": "Dashboard",
+    "archives": "Archives",
+    "appointments": "Appointments",
+    "shoots": "Shoots",
+    "customers": "Customers",
+    "finance": "Finance",
+    "reports": "Reports",
+    "wcClients": "Online Sales",
+    "settings": "Settings",
+    "users": "Users"
+  },
+  "appointmentsPage": {
+    "title": "Appointments",
+    "subtitle": "Appointment calendar and management"
+  },
+  "connectivity": {
+    "offline": "No internet connection — changes will be synced",
+    "synchronized": "Synchronized"
+  },
+  "pages": {
+    "botConversations": {
+      "title": "Bot Conversations",
+      "subtitle": "Conversation history with AI Bot",
+      "filterAll": "All",
+      "filterWhatsApp": "WhatsApp",
+      "filterVoice": "Voice",
+      "search": "Search...",
+      "noConversations": "No conversations yet.",
+      "unknown": "Unknown",
+      "messages": "message",
+      "noMessages": "No messages."
+    }
+  },
+  "components": {
+    "splashScreen": {
+      "updating": "Downloading update — v{{version}}"
     }
   }
 }

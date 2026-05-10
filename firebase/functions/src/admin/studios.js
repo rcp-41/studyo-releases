@@ -55,6 +55,9 @@ exports.createStudio = onCall({ enforceAppCheck: false }, async (request) => {
         const studioRef = orgRef.collection('studios').doc();
         const studioId = studioRef.id;
 
+        // B6: Always generate license key server-side (ignore any client-supplied key)
+        const generatedLicenseKey = DatabaseHandler.generateLicenseKey();
+
         const studioData = {
             info: {
                 name,
@@ -65,7 +68,7 @@ exports.createStudio = onCall({ enforceAppCheck: false }, async (request) => {
             },
             license: {
                 hwid_lock: hwidLock || false,
-                license_key: licenseKey || DatabaseHandler.generateLicenseKey(),
+                license_key: generatedLicenseKey,
                 max_users: 5,
                 hwid_registered: false,
                 expires_at: null,
@@ -141,6 +144,7 @@ exports.createStudio = onCall({ enforceAppCheck: false }, async (request) => {
             success: true,
             studioId: studioId,
             organizationId: organizationId,
+            licenseKey: generatedLicenseKey,
             message: 'Studio created with Admin and User accounts'
         };
     } catch (error) {
@@ -470,6 +474,65 @@ exports.getAuditLogs = onCall({ enforceAppCheck: false }, async (request) => {
     }
 });
 
+// D4: Creator-wide audit log endpoint — supports date range, studio, action filters
+exports.getCreatorAuditLogs = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator')
+        throw new HttpsError('permission-denied', 'Only Creator');
+
+    const {
+        organizationId,
+        studioId,
+        action: filterAction,
+        dateFrom,
+        dateTo,
+        limit: rawLimit = 50,
+        startAfter: startAfterId
+    } = request.data || {};
+
+    const maxLimit = Math.min(parseInt(rawLimit) || 50, 200);
+
+    try {
+        if (organizationId && studioId) {
+            // Single studio query
+            let query = db.collection('organizations').doc(organizationId)
+                .collection('studios').doc(studioId)
+                .collection('auditLogs')
+                .orderBy('createdAt', 'desc');
+            if (filterAction) query = query.where('action', '==', filterAction);
+            if (dateFrom) query = query.where('createdAt', '>=', new Date(dateFrom));
+            if (dateTo) query = query.where('createdAt', '<=', new Date(dateTo));
+            query = query.limit(maxLimit);
+
+            const snap = await query.get();
+            const logs = snap.docs.map(doc => ({
+                id: doc.id, ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+            }));
+            return { success: true, logs };
+        }
+
+        // Cross-studio: collectionGroup query
+        let query = db.collectionGroup('auditLogs').orderBy('createdAt', 'desc');
+        if (filterAction) query = query.where('action', '==', filterAction);
+        if (organizationId) query = query.where('organizationId', '==', organizationId);
+        if (dateFrom) query = query.where('createdAt', '>=', new Date(dateFrom));
+        if (dateTo) query = query.where('createdAt', '<=', new Date(dateTo));
+        query = query.limit(maxLimit);
+
+        const snap = await query.get();
+        const logs = snap.docs.map(doc => ({
+            id: doc.id, ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+        }));
+
+        return { success: true, logs };
+    } catch (error) {
+        console.error('getCreatorAuditLogs error:', error);
+        throw new HttpsError('internal', 'Audit logları alınamadı');
+    }
+});
+
 exports.getErrorLogs = onCall({ enforceAppCheck: false }, async (request) => {
     if (request.auth?.token?.role !== 'creator') {
         throw new HttpsError('permission-denied', 'Yetkisiz erişim');
@@ -484,4 +547,85 @@ exports.getErrorLogs = onCall({ enforceAppCheck: false }, async (request) => {
     }
     const snap = await query.get();
     return { data: snap.docs.map(d => ({ id: d.id, ...d.data() })) };
+});
+
+// E1: Get activity timeline for a studio (last 30 days)
+exports.getActivityTimeline = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator')
+        throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { organizationId, studioId, limit: rawLimit = 30 } = request.data || {};
+    if (!organizationId || !studioId)
+        throw new HttpsError('invalid-argument', 'organizationId and studioId required');
+
+    const limitNum = Math.min(parseInt(rawLimit) || 30, 100);
+
+    try {
+        const snap = await db.collection('organizations').doc(organizationId)
+            .collection('studios').doc(studioId)
+            .collection('activityTimeline')
+            .orderBy('createdAt', 'desc')
+            .limit(limitNum)
+            .get();
+
+        const events = snap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+        }));
+
+        return { success: true, events };
+    } catch (error) {
+        console.error('getActivityTimeline error:', error);
+        throw new HttpsError('internal', 'Aktivite verisi alınamadı');
+    }
+});
+
+// E1: Record login activity - called by Electron client on each login
+exports.recordLogin = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const { organizationId, studioId, appVersion } = request.data || {};
+    const uid = request.auth.uid;
+    const ip = request.rawRequest?.ip || null;
+
+    // Use claims as fallback for org/studio ids
+    const orgId = organizationId || request.auth.token?.organizationId;
+    const sId = studioId || request.auth.token?.studioId;
+
+    if (!orgId || !sId) {
+        // For creator users (no studioId claim) just return success — nothing to record
+        return { success: true };
+    }
+
+    try {
+        const now = admin.firestore.FieldValue.serverTimestamp();
+        await db.collection('organizations').doc(orgId)
+            .collection('studios').doc(sId).update({
+                'activity.last_login_at': now,
+                'activity.last_login_ip': ip,
+                'activity.last_app_version': appVersion || null,
+                updatedAt: now
+            });
+
+        // Append to activity timeline (last 30 days retention via TTL-like query in UI)
+        await db.collection('organizations').doc(orgId)
+            .collection('studios').doc(sId)
+            .collection('activityTimeline').add({
+                event: 'login',
+                uid,
+                ip,
+                appVersion: appVersion || null,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+        return { success: true };
+    } catch (error) {
+        console.error('recordLogin error:', error);
+        // Non-fatal — don't block client login
+        return { success: false };
+    }
 });

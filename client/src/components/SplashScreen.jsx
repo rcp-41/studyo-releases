@@ -3,8 +3,10 @@
  * During video playback: checks for updates. If update found → mandatory progress bar.
  */
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function SplashScreen({ onComplete }) {
+    const { t } = useTranslation();
     const [phase, setPhase] = useState('animating'); // animating | updating | done
     const [updateProgress, setUpdateProgress] = useState(0);
     const [updateVersion, setUpdateVersion] = useState('');
@@ -145,7 +147,7 @@ export default function SplashScreen({ onComplete }) {
             {phase === 'updating' && (
                 <div className="update-section">
                     <div className="update-label">
-                        Güncelleme indiriliyor — v{updateVersion}
+                        {t('components.splashScreen.updating', { version: updateVersion })}
                     </div>
                     <div className="update-bar-bg">
                         <div

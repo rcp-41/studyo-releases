@@ -79,7 +79,7 @@ export default function Login() {
         }
 
         if (!studioConfig?.studioId) {
-            notify.error('Stüdyo yapılandırması bulunamadı. Lütfen önce seri numarası ile kurulum yapın.');
+            notify.error(t('auth.studioNotConfigured'));
             navigate('/setup');
             return;
         }
@@ -101,7 +101,7 @@ export default function Login() {
 
     const handleResetStudio = async () => {
         if (!resetPassword) {
-            notify.error('Lütfen Super Admin şifresini girin');
+            notify.error(t('auth.enterSuperAdminPassword'));
             return;
         }
 
@@ -112,7 +112,7 @@ export default function Login() {
             const superAdminEmail = import.meta.env.VITE_SUPER_ADMIN_EMAIL;
             if (!superAdminEmail) {
                 console.warn('[Login] VITE_SUPER_ADMIN_EMAIL is not configured; studio reset is disabled.');
-                notify.error('Super Admin yapılandırılmamış. Yönetici ile iletişime geçin.');
+                notify.error(t('auth.superAdminNotConfigured'));
                 setResetLoading(false);
                 return;
             }
@@ -122,7 +122,7 @@ export default function Login() {
             if (window.electron && window.electron.clearLicenseConfig) {
                 const result = await window.electron.clearLicenseConfig();
                 if (!result.success) {
-                    throw new Error(result.error || 'Silme başarısız');
+                    throw new Error(result.error || t('auth.deleteFailed'));
                 }
             } else {
                 // Fallback for web/dev mode
@@ -132,7 +132,7 @@ export default function Login() {
             // Sign out the super admin
             await auth.signOut();
 
-            notify.success('Stüdyo sıfırlandı! Yeni kuruluma yönlendiriliyorsunuz...');
+            notify.success(t('auth.studioReset'));
             setShowResetModal(false);
             setResetPassword('');
 
@@ -143,13 +143,13 @@ export default function Login() {
         } catch (error) {
             console.error('Reset error:', error);
             if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                notify.error('Super Admin şifresi yanlış');
+                notify.error(t('auth.wrongPassword'));
             } else if (error.code === 'auth/user-not-found') {
-                notify.error('Super Admin hesabı bulunamadı');
+                notify.error(t('auth.accountNotFound'));
             } else if (error.code === 'auth/too-many-requests') {
-                notify.error('Çok fazla deneme. Lütfen biraz bekleyin');
+                notify.error(t('auth.tooManyAttempts'));
             } else {
-                notify.error(error.message || 'Sıfırlama başarısız');
+                notify.error(error.message || t('auth.resetFailed'));
             }
         } finally {
             setResetLoading(false);
@@ -279,7 +279,7 @@ export default function Login() {
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2 text-destructive">
                                 <ShieldAlert className="w-5 h-5" />
-                                <h3 className="text-lg font-semibold">Stüdyo Sıfırla</h3>
+                                <h3 className="text-lg font-semibold">{t('auth.resetModalTitle')}</h3>
                             </div>
                             <button
                                 onClick={() => {
@@ -295,24 +295,23 @@ export default function Login() {
                         {/* Warning */}
                         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
                             <p className="text-sm text-destructive">
-                                Bu işlem mevcut stüdyo bağlantısını kaldıracak.
-                                Yeni bir stüdyo ID ile kurulum yapmanız gerekecek.
+                                {t('auth.resetWarning')}
                             </p>
                         </div>
 
                         {/* Current Studio Info */}
                         <div className="bg-muted/50 rounded-lg p-3 mb-4">
-                            <p className="text-xs text-muted-foreground">Mevcut Stüdyo</p>
+                            <p className="text-xs text-muted-foreground">{t('auth.currentStudio')}</p>
                             <p className="text-sm font-medium">{studioConfig?.studioName}</p>
                         </div>
 
                         {/* Super Admin Password */}
                         <div className="mb-4">
                             <label className="block text-sm font-medium mb-2">
-                                Super Admin Şifresi
+                                {t('auth.superAdminPassword')}
                             </label>
                             <p className="text-xs text-muted-foreground mb-2">
-                                Super Admin hesabının şifresi
+                                {t('auth.superAdminPasswordHint')}
                             </p>
                             <PasswordInput
                                 value={resetPassword}
@@ -335,7 +334,7 @@ export default function Login() {
                                 disabled={resetLoading}
                                 className="flex-1 py-2.5 px-4 border border-border rounded-lg text-sm font-medium hover:bg-muted/50 transition-all disabled:opacity-50"
                             >
-                                İptal
+                                {t('auth.cancel')}
                             </button>
                             <button
                                 onClick={handleResetStudio}
@@ -345,12 +344,12 @@ export default function Login() {
                                 {resetLoading ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Doğrulanıyor...
+                                        {t('auth.verifying')}
                                     </>
                                 ) : (
                                     <>
                                         <RotateCcw className="w-4 h-4" />
-                                        Sıfırla
+                                        {t('auth.reset')}
                                     </>
                                 )}
                             </button>

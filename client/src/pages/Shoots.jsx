@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -20,20 +21,22 @@ import {
 
 import { SkeletonList } from '../components/Skeleton';
 
-const statusFilters = [
-    { value: '', label: 'Tümü' },
-    { value: 'new', label: 'Yeni' },
-    { value: 'confirmed', label: 'Onaylı' },
-    { value: 'shot_done', label: 'Çekim Tamam' },
-    { value: 'editing', label: 'Düzenleniyor' },
-    { value: 'client_selection', label: 'Müşteri Seçimi' },
-    { value: 'payment_pending', label: 'Ödeme Bekliyor' },
-    { value: 'payment_complete', label: 'Ödeme Tamamlandı' },
-    { value: 'delivered', label: 'Teslim Edildi' }
-];
+function getStatusFilterOptions(t) {
+    return [
+        { value: '', label: t('common.all') },
+        { value: 'new', label: t('pages.shoots.statusNew') },
+        { value: 'confirmed', label: t('pages.shoots.statusConfirmed') },
+        { value: 'shot_done', label: t('pages.shoots.statusShootDone') },
+        { value: 'editing', label: t('pages.shoots.statusEditing') },
+        { value: 'client_selection', label: t('pages.shoots.statusClientSelection') },
+        { value: 'payment_pending', label: t('pages.shoots.statusPaymentPending') },
+        { value: 'payment_complete', label: t('pages.shoots.statusPaymentComplete') },
+        { value: 'delivered', label: t('pages.shoots.statusDelivered') }
+    ];
+}
 
 // Shoot Card
-function ShootCard({ shoot }) {
+function ShootCard({ shoot, t }) {
     return (
         <Link
             to={`/shoots/${shoot.id}`}
@@ -65,7 +68,7 @@ function ShootCard({ shoot }) {
                     <span>{formatCurrency(shoot.totalAmount)}</span>
                     {shoot.remainingAmount > 0 && (
                         <span className="text-destructive">
-                            ({formatCurrency(shoot.remainingAmount)} kalan)
+                            ({formatCurrency(shoot.remainingAmount)} {t('pages.shoots.remaining')})
                         </span>
                     )}
                 </div>
@@ -83,7 +86,7 @@ function ShootCard({ shoot }) {
 }
 
 // Add Shoot Modal
-function AddShootModal({ isOpen, onClose }) {
+function AddShootModal({ isOpen, onClose, t }) {
     const [formData, setFormData] = useState({
         customerId: '',
         packageId: '',
@@ -119,11 +122,11 @@ function AddShootModal({ isOpen, onClose }) {
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['shoots'] });
-            notify.success('Çekim oluşturuldu');
+            notify.success(t('pages.shoots.shootCreated'));
             onClose();
         },
         onError: (error) => {
-            notify.error(error.response?.data?.error || 'Hata oluştu');
+            notify.error(error.response?.data?.error || t('common.error'));
         }
     });
 
@@ -143,7 +146,7 @@ function AddShootModal({ isOpen, onClose }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.customerId || !formData.shootDate || !formData.totalAmount) {
-            notify.error('Müşteri, tarih ve tutar zorunludur');
+            notify.error(t('pages.shoots.customerDateAmountRequired'));
             return;
         }
         createMutation.mutate(formData);
@@ -156,7 +159,7 @@ function AddShootModal({ isOpen, onClose }) {
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
             <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 animate-fade-in">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold">Yeni Çekim</h2>
+                    <h2 className="text-xl font-semibold">{t('pages.shoots.newShoot')}</h2>
                     <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
@@ -165,12 +168,12 @@ function AddShootModal({ isOpen, onClose }) {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Customer Search */}
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Müşteri *</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.customer')} *</label>
                         <input
                             type="text"
                             value={customerSearch}
                             onChange={(e) => setCustomerSearch(e.target.value)}
-                            placeholder="Müşteri ara..."
+                            placeholder={t('pages.shoots.searchCustomer')}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                         />
                         {customers?.length > 0 && (
@@ -194,32 +197,32 @@ function AddShootModal({ isOpen, onClose }) {
 
                     {/* Shoot Type */}
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Çekim Türü *</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.shootType')} *</label>
                         <select
                             value={formData.shootType}
                             onChange={(e) => setFormData({ ...formData, shootType: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                         >
-                            <option value="wedding">Düğün</option>
-                            <option value="engagement">Nişan</option>
-                            <option value="baby">Bebek</option>
-                            <option value="portrait">Portre</option>
-                            <option value="corporate">Kurumsal</option>
-                            <option value="product">Ürün</option>
-                            <option value="event">Etkinlik</option>
-                            <option value="other">Diğer</option>
+                            <option value="wedding">{t('pages.shoots.typeWedding')}</option>
+                            <option value="engagement">{t('pages.shoots.typeEngagement')}</option>
+                            <option value="baby">{t('pages.shoots.typeBaby')}</option>
+                            <option value="portrait">{t('pages.shoots.typePortrait')}</option>
+                            <option value="corporate">{t('pages.shoots.typeCorporate')}</option>
+                            <option value="product">{t('pages.shoots.typeProduct')}</option>
+                            <option value="event">{t('pages.shoots.typeEvent')}</option>
+                            <option value="other">{t('pages.shoots.typeOther')}</option>
                         </select>
                     </div>
 
                     {/* Package */}
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Paket</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.package')}</label>
                         <select
                             value={formData.packageId}
                             onChange={(e) => handlePackageSelect(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                         >
-                            <option value="">Paket seçin (isteğe bağlı)</option>
+                            <option value="">{t('pages.shoots.packageSelectOptional')}</option>
                             {packages?.data?.map((pkg) => (
                                 <option key={pkg.id} value={pkg.id}>
                                     {pkg.name} - {formatCurrency(pkg.basePrice)}
@@ -230,7 +233,7 @@ function AddShootModal({ isOpen, onClose }) {
 
                     {/* Date */}
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Çekim Tarihi *</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.shootDate')} *</label>
                         <input
                             type="datetime-local"
                             value={formData.shootDate}
@@ -241,12 +244,12 @@ function AddShootModal({ isOpen, onClose }) {
 
                     {/* Location */}
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Lokasyon</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.location')}</label>
                         <input
                             type="text"
                             value={formData.location}
                             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                            placeholder="Stüdyo / Dış Mekan"
+                            placeholder={t('pages.shoots.locationPlaceholder')}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                         />
                     </div>
@@ -254,7 +257,7 @@ function AddShootModal({ isOpen, onClose }) {
                     {/* Amount */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1.5">Toplam Tutar *</label>
+                            <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.totalAmount')} *</label>
                             <input
                                 type="number"
                                 value={formData.totalAmount}
@@ -264,7 +267,7 @@ function AddShootModal({ isOpen, onClose }) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1.5">Kapora</label>
+                            <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.advancePayment')}</label>
                             <input
                                 type="number"
                                 value={formData.advancePayment}
@@ -277,7 +280,7 @@ function AddShootModal({ isOpen, onClose }) {
 
                     {/* Notes */}
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Notlar</label>
+                        <label className="block text-sm font-medium mb-1.5">{t('pages.shoots.notes')}</label>
                         <textarea
                             value={formData.notes}
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -292,7 +295,7 @@ function AddShootModal({ isOpen, onClose }) {
                             onClick={onClose}
                             className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted"
                         >
-                            İptal
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -300,7 +303,7 @@ function AddShootModal({ isOpen, onClose }) {
                             className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Kaydet
+                            {t('common.save')}
                         </button>
                     </div>
                 </form>
@@ -310,6 +313,7 @@ function AddShootModal({ isOpen, onClose }) {
 }
 
 export default function Shoots() {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
@@ -325,20 +329,21 @@ export default function Shoots() {
 
     const shoots = data?.data || [];
     const pagination = data?.pagination || { total: 0, pages: 1 };
+    const statusFilters = getStatusFilterOptions(t);
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Çekimler</h1>
-                    <p className="text-muted-foreground">{pagination.total} çekim kaydı</p>
+                    <h1 className="text-2xl font-bold">{t('pages.shoots.title')}</h1>
+                    <p className="text-muted-foreground">{pagination.total} {t('pages.shoots.recordsCount')}</p>
                 </div>
                 <button
                     onClick={() => setShowAddModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                 >
                     <Plus className="w-5 h-5" />
-                    Yeni Çekim
+                    {t('pages.shoots.newShoot')}
                 </button>
             </div>
 
@@ -351,7 +356,7 @@ export default function Shoots() {
                             type="text"
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                            placeholder="Çekim ara..."
+                            placeholder={t('pages.shoots.searchShoot')}
                             className="w-full pl-10 pr-4 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none"
                         />
                     </div>
@@ -362,17 +367,17 @@ export default function Shoots() {
                             showDateFilter ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
                         )}
                     >
-                        <CalendarRange className="w-4 h-4" /> Tarih Filtresi
+                        <CalendarRange className="w-4 h-4" /> {t('pages.shoots.dateFilter')}
                     </button>
                 </div>
 
                 {/* Date filter row */}
                 {showDateFilter && (
                     <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <label className="text-sm text-muted-foreground">Başlangıç:</label>
+                        <label className="text-sm text-muted-foreground">{t('pages.shoots.dateFrom')}:</label>
                         <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }}
                             className="px-3 py-1.5 text-sm rounded-lg bg-background border border-input focus:border-primary outline-none" />
-                        <label className="text-sm text-muted-foreground">Bitiş:</label>
+                        <label className="text-sm text-muted-foreground">{t('pages.shoots.dateTo')}:</label>
                         <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }}
                             className="px-3 py-1.5 text-sm rounded-lg bg-background border border-input focus:border-primary outline-none" />
                         {(dateFrom || dateTo) && (
@@ -407,12 +412,12 @@ export default function Shoots() {
             ) : shoots.length === 0 ? (
                 <div className="text-center py-12">
                     <Camera className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-lg font-medium">Çekim bulunamadı</p>
+                    <p className="text-lg font-medium">{t('pages.shoots.noShoots')}</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {shoots.map((shoot) => (
-                        <ShootCard key={shoot.id} shoot={shoot} />
+                        <ShootCard key={shoot.id} shoot={shoot} t={t} />
                     ))}
                 </div>
             )}
@@ -428,7 +433,7 @@ export default function Shoots() {
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     <span className="px-4 py-2 text-sm">
-                        Sayfa {page} / {pagination.pages}
+                        {t('pages.shoots.page')} {page} / {pagination.pages}
                     </span>
                     <button
                         onClick={() => setPage(Math.min(pagination.pages, page + 1))}
@@ -440,7 +445,7 @@ export default function Shoots() {
                 </div>
             )}
 
-            <AddShootModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+            <AddShootModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} t={t} />
         </div>
     );
 }

@@ -46,7 +46,9 @@
     "processing": "İşleniyor",
     "error": "Hata oluştu",
     "warning": "Uyarı",
-    "info": "Bilgi"
+    "info": "Bilgi",
+    "payment": "Ödeme",
+    "year": "Bu Yıl"
   },
   "nav": {
     "dashboard": "Anasayfa",
@@ -83,7 +85,24 @@
     "studioTitle": "Stüdyo Yönetim Sistemi",
     "resetStudio": "Stüdyo Sıfırla",
     "resetStudioHint": "Farklı bir stüdyoya geçmek için Super Admin şifresi gereklidir.",
-    "loadingApp": "Yükleniyor..."
+    "loadingApp": "Yükleniyor...",
+    "studioNotConfigured": "Stüdyo yapılandırması bulunamadı. Lütfen önce seri numarası ile kurulum yapın.",
+    "enterSuperAdminPassword": "Lütfen Super Admin şifresini girin",
+    "superAdminNotConfigured": "Super Admin yapılandırılmamış. Yönetici ile iletişime geçin.",
+    "deleteFailed": "Silme başarısız",
+    "studioReset": "Stüdyo sıfırlandı! Yeni kuruluma yönlendiriliyorsunuz...",
+    "wrongPassword": "Super Admin şifresi yanlış",
+    "accountNotFound": "Super Admin hesabı bulunamadı",
+    "tooManyAttempts": "Çok fazla deneme. Lütfen biraz bekleyin",
+    "resetFailed": "Sıfırlama başarısız",
+    "resetModalTitle": "Stüdyo Sıfırla",
+    "resetWarning": "Bu işlem mevcut stüdyo bağlantısını kaldıracak. Yeni bir stüdyo ID ile kurulum yapmanız gerekecek.",
+    "currentStudio": "Mevcut Stüdyo",
+    "superAdminPassword": "Super Admin Şifresi",
+    "superAdminPasswordHint": "Super Admin hesabının şifresi",
+    "cancel": "İptal",
+    "verifying": "Doğrulanıyor...",
+    "reset": "Sıfırla"
   },
   "dashboard": {
     "title": "Anasayfa",
@@ -427,6 +446,10 @@
       "status": "Durum",
       "notes": "Notlar"
     },
+    "archiveSearch": {
+      "title": "Detaylı Arşiv Arama",
+      "resultsFound": "sonuç bulundu"
+    },
     "customers": {
       "title": "Müşteriler",
       "newCustomer": "Yeni Müşteri",
@@ -437,7 +460,27 @@
       "notes": "Notlar",
       "noCustomers": "Müşteri bulunamadı",
       "created": "Oluşturuldu",
-      "lastContact": "Son İletişim"
+      "lastContact": "Son İletişim",
+      "customerCreated": "Müşteri oluşturuldu",
+      "error": "Hata oluştu",
+      "nameAndPhoneRequired": "Ad ve telefon zorunludur",
+      "shoots": "çekim",
+      "customersCount": "müşteri kayıtlı",
+      "autoCreatedInfo": "ℹ️ Müşteriler arşiv kayıtlarından otomatik oluşturulur",
+      "search": "Müşteri ara... (ad, telefon, email)",
+      "customerType": "Müşteri Tipi",
+      "individual": "Bireysel",
+      "corporate": "Kurumsal",
+      "source": "Kaynak",
+      "walkIn": "Yürüyen Müşteri",
+      "referral": "Referans",
+      "instagram": "Instagram",
+      "google": "Google",
+      "website": "Website",
+      "isVip": "VIP Müşteri",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "additionalNotes": "Ek notlar..."
     },
     "shoots": {
       "title": "Çekimler",
@@ -449,7 +492,42 @@
       "noShoots": "Çekim bulunamadı",
       "date": "Tarih",
       "time": "Saat",
-      "location": "Çekim Yeri"
+      "location": "Çekim Yeri",
+      "statusNew": "Yeni",
+      "statusConfirmed": "Onaylı",
+      "statusShootDone": "Çekim Tamam",
+      "statusEditing": "Düzenleniyor",
+      "statusClientSelection": "Müşteri Seçimi",
+      "statusPaymentPending": "Ödeme Bekliyor",
+      "statusPaymentComplete": "Ödeme Tamamlandı",
+      "statusDelivered": "Teslim Edildi",
+      "remaining": "kalan",
+      "customer": "Müşteri",
+      "searchCustomer": "Müşteri ara...",
+      "shootType": "Çekim Türü",
+      "typeWedding": "Düğün",
+      "typeEngagement": "Nişan",
+      "typeBaby": "Bebek",
+      "typePortrait": "Portre",
+      "typeCorporate": "Kurumsal",
+      "typeProduct": "Ürün",
+      "typeEvent": "Etkinlik",
+      "typeOther": "Diğer",
+      "package": "Paket",
+      "packageSelectOptional": "Paket seçin (isteğe bağlı)",
+      "shootDate": "Çekim Tarihi",
+      "locationPlaceholder": "Stüdyo / Dış Mekan",
+      "totalAmount": "Toplam Tutar",
+      "advancePayment": "Kapora",
+      "notes": "Notlar",
+      "recordsCount": "çekim kaydı",
+      "searchShoot": "Çekim ara...",
+      "dateFilter": "Tarih Filtresi",
+      "dateFrom": "Başlangıç",
+      "dateTo": "Bitiş",
+      "page": "Sayfa",
+      "shootCreated": "Çekim oluşturuldu",
+      "customerDateAmountRequired": "Müşteri, tarih ve tutar zorunludur"
     },
     "reports": {
       "title": "Raporlar",
@@ -459,7 +537,44 @@
       "revenue": "Gelir",
       "expenses": "Giderler",
       "from": "Başlangıç Tarihi",
-      "to": "Bitiş Tarihi"
+      "to": "Bitiş Tarihi",
+      "income": "Gelir",
+      "shootType": "Çekim Türü",
+      "photographer": "Fotoğrafçı",
+      "source": "Müşteri Kaynak",
+      "overdue": "Geciken Ödemeler",
+      "date": "Tarih",
+      "cash": "Nakit",
+      "card": "Kart",
+      "transfer": "Havale",
+      "total": "Toplam",
+      "totalRevenue": "Toplam Gelir",
+      "incomeChart": "Gelir Trendi",
+      "count": "Adet",
+      "percentage": "Oran (%)",
+      "distribution": "Dağılım",
+      "shoots": "çekim",
+      "unspecified": "Belirtilmemiş",
+      "items": "adet",
+      "photographerPerformance": "Fotoğrafçı Performansı",
+      "shootCount": "Çekim Sayısı",
+      "avgRevenue": "Ort. Gelir",
+      "sourceDistribution": "Müşteri Kaynak Dağılımı",
+      "customer": "Müşteri",
+      "phone": "Telefon",
+      "archiveNumber": "Arşiv No",
+      "paidAmount": "Ödenen",
+      "remaining": "Kalan",
+      "daysPassed": "Geçen Gün",
+      "customerCount": "Müşteri Sayısı",
+      "totalOverdue": "Toplam Geciken",
+      "avgDelay": "Ort. Gecikme",
+      "days": "gün",
+      "records": "kayıt",
+      "excel": "Excel",
+      "pdf": "PDF",
+      "noData": "Veri bulunamadı",
+      "createdAt": "Oluşturulma"
     },
     "dashboard": {
       "title": "Anasayfa",
@@ -502,6 +617,7 @@
   },
   "appointmentsPage": {
     "title": "Randevular",
+    "subtitle": "Randevu takvimi ve yönetimi",
     "newAppointment": "Yeni Randevu",
     "month": "Ay",
     "week": "Hafta",
@@ -617,6 +733,41 @@
       "selectNumberingType": "Çekim Türü Seç",
       "selectFolderType": "Klasör Seç",
       "pixonaiConfig": "{{count}} paket · {{type}}"
+    }
+  },
+  "breadcrumb": {
+    "dashboard": "Dashboard",
+    "archives": "Arşiv",
+    "appointments": "Randevular",
+    "shoots": "Çekimler",
+    "customers": "Müşteriler",
+    "finance": "Finans",
+    "reports": "Raporlar",
+    "wcClients": "Online Satış",
+    "settings": "Ayarlar",
+    "users": "Kullanıcılar"
+  },
+  "connectivity": {
+    "offline": "İnternet bağlantısı yok — değişiklikler senkronize edilecek",
+    "synchronized": "Senkronize edildi"
+  },
+  "pages": {
+    "botConversations": {
+      "title": "Bot Konuşmaları",
+      "subtitle": "AI Bot ile yapılan konuşma geçmişi",
+      "filterAll": "Tümü",
+      "filterWhatsApp": "WhatsApp",
+      "filterVoice": "Sesli",
+      "search": "Ara...",
+      "noConversations": "Henüz konuşma yok.",
+      "unknown": "Bilinmeyen",
+      "messages": "mesaj",
+      "noMessages": "Mesaj yok."
+    }
+  },
+  "components": {
+    "splashScreen": {
+      "updating": "Güncelleme indiriliyor — v{{version}}"
     }
   }
 }

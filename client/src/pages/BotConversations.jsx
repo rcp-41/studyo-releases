@@ -3,6 +3,7 @@
  * Studio admins can view bot conversations from the Dashboard link.
  */
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     MessageSquare, Phone, Bot, ArrowLeft, Search,
     Loader2, ChevronRight, MessageCircle
@@ -11,6 +12,7 @@ import { botApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function BotConversations() {
+    const { t } = useTranslation();
     const [conversations, setConversations] = useState([]);
     const [messages, setMessages] = useState([]);
     const [selectedConv, setSelectedConv] = useState(null);
@@ -77,20 +79,20 @@ export default function BotConversations() {
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold flex items-center gap-2"><Bot className="w-6 h-6 text-purple-500" /> Bot Konuşmaları</h1>
-                        <p className="text-muted-foreground text-sm">AI Bot ile yapılan konuşma geçmişi</p>
+                        <h1 className="text-2xl font-bold flex items-center gap-2"><Bot className="w-6 h-6 text-purple-500" /> {t('pages.botConversations.title')}</h1>
+                        <p className="text-muted-foreground text-sm">{t('pages.botConversations.subtitle')}</p>
                     </div>
                 </div>
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-                {filterBtn('all', 'Tümü', <MessageCircle className="w-4 h-4" />)}
-                {filterBtn('whatsapp', 'WhatsApp', <MessageSquare className="w-4 h-4" />)}
-                {filterBtn('voice', 'Sesli', <Phone className="w-4 h-4" />)}
+                {filterBtn('all', t('pages.botConversations.filterAll'), <MessageCircle className="w-4 h-4" />)}
+                {filterBtn('whatsapp', t('pages.botConversations.filterWhatsApp'), <MessageSquare className="w-4 h-4" />)}
+                {filterBtn('voice', t('pages.botConversations.filterVoice'), <Phone className="w-4 h-4" />)}
                 <div className="flex-1" />
                 <div className="relative min-w-[220px]">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <input type="text" placeholder="Ara..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                    <input type="text" placeholder={t('pages.botConversations.search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
                 </div>
             </div>
@@ -103,7 +105,7 @@ export default function BotConversations() {
                     ) : filtered.length === 0 ? (
                         <div className="text-center py-16 text-muted-foreground">
                             <Bot className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p>Henüz konuşma yok.</p>
+                            <p>{t('pages.botConversations.noConversations')}</p>
                         </div>
                     ) : (
                         <div className="max-h-[600px] overflow-y-auto">
@@ -116,10 +118,10 @@ export default function BotConversations() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-medium text-sm">{conv.customerName || conv.phone || 'Bilinmeyen'}</span>
+                                            <span className="font-medium text-sm">{conv.customerName || conv.phone || t('pages.botConversations.unknown')}</span>
                                             {channelIcon(conv.channel)}
                                         </div>
-                                        <p className="text-xs text-muted-foreground truncate">{conv.phone} · {conv.messageCount || 0} mesaj</p>
+                                        <p className="text-xs text-muted-foreground truncate">{conv.phone} · {conv.messageCount || 0} {t('pages.botConversations.messages')}</p>
                                     </div>
                                     <span className="text-xs text-muted-foreground flex-shrink-0">{formatTime(conv.lastMessage)}</span>
                                     <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -137,7 +139,7 @@ export default function BotConversations() {
                                 {(selectedConv.customerName || '?')[0].toUpperCase()}
                             </div>
                             <div>
-                                <p className="font-semibold text-sm">{selectedConv.customerName || 'Bilinmeyen'}</p>
+                                <p className="font-semibold text-sm">{selectedConv.customerName || t('pages.botConversations.unknown')}</p>
                                 <p className="text-xs text-muted-foreground flex items-center gap-1">{channelIcon(selectedConv.channel)} {selectedConv.phone}</p>
                             </div>
                         </div>
@@ -145,7 +147,7 @@ export default function BotConversations() {
                             {msgLoading ? (
                                 <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin" /></div>
                             ) : messages.length === 0 ? (
-                                <p className="text-center text-muted-foreground py-10">Mesaj yok.</p>
+                                <p className="text-center text-muted-foreground py-10">{t('pages.botConversations.noMessages')}</p>
                             ) : messages.map((msg, i) => (
                                 <div key={msg.id || i} className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}>
                                     <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed

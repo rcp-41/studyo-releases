@@ -13,22 +13,21 @@ import ConfirmDialog from '../components/ConfirmDialog';
 
 const SECRET_MASK = '••••••••';
 
-// SECURITY: Generate random license key using crypto.getRandomValues
-function generateLicenseKey() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const segments = 4;
-    const segmentLength = 4;
-    const randomValues = new Uint8Array(segments * segmentLength);
-    crypto.getRandomValues(randomValues);
-    let key = [];
-    for (let s = 0; s < segments; s++) {
-        let segment = '';
-        for (let c = 0; c < segmentLength; c++) {
-            segment += chars.charAt(randomValues[s * segmentLength + c] % chars.length);
-        }
-        key.push(segment);
-    }
-    return key.join('-');
+// E1: Relative time display for last login
+function formatLastLogin(lastLoginAt) {
+    if (!lastLoginAt) return null;
+    // Support both Firestore Timestamp (with toDate) and ISO string
+    const date = lastLoginAt?.toDate ? lastLoginAt.toDate() : new Date(lastLoginAt);
+    if (isNaN(date.getTime())) return null;
+    const diffMs = Date.now() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Az önce';
+    if (diffMin < 60) return `${diffMin} dakika önce`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `${diffH} saat önce`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD < 30) return `${diffD} gün önce`;
+    return date.toLocaleDateString('tr-TR');
 }
 
 export default function Studios() {
@@ -215,7 +214,6 @@ export default function Studios() {
                     return;
                 }
 
-                const licenseKey = generateLicenseKey();
                 const result = await creatorApi.createStudio({
                     organizationId: formData.organizationId,
                     name: formData.name,
@@ -224,12 +222,12 @@ export default function Studios() {
                     phone: formData.contact,
                     adminPassword: formData.adminPassword,
                     userPassword: formData.userPassword,
-                    licenseKey,
                     hwidLock: false
                 });
 
                 if (result?.success) {
-                    toast.success(`Stüdyo oluşturuldu! ID: ${result.studioId}`);
+                    const licenseInfo = result.licenseKey ? ` | Lisans: ${result.licenseKey}` : '';
+                    toast.success(`Stüdyo oluşturuldu! ID: ${result.studioId}${licenseInfo}`, { duration: 8000 });
                     // Update WooCommerce if provided
                     if (formData.wc_url && result.studioId) {
                         await creatorApi.updateIntegration(
@@ -502,6 +500,12 @@ export default function Studios() {
                                                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                                                             {studio.info?.owner || 'Sahip yok'} · HWID: {studio.license?.hwid_lock ? '🔒 Kayıtlı' : '⏳ Bekliyor'}
                                                         </div>
+                                                        {studio.activity?.last_login_at && (
+                                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                                Son giriş: {formatLastLogin(studio.activity.last_login_at)}
+                                                                {studio.activity.last_app_version && ` · v${studio.activity.last_app_version}`}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 

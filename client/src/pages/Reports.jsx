@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { financeApi, statsApi, archivesApi } from '../services/api';
 import { formatCurrency, formatDate, cn } from '../lib/utils';
@@ -17,16 +18,18 @@ import { SkeletonDashboard, SkeletonTable } from '../components/Skeleton';
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#3b82f6', '#f97316'];
 
-const tabs = [
-    { key: 'income', label: 'Gelir', icon: TrendingUp },
-    { key: 'shootType', label: 'Çekim Türü', icon: Camera },
-    { key: 'photographer', label: 'Fotoğrafçı', icon: Users },
-    { key: 'source', label: 'Müşteri Kaynak', icon: Share2 },
-    { key: 'overdue', label: 'Geciken Ödemeler', icon: AlertTriangle }
-];
+function getTabs(t) {
+    return [
+        { key: 'income', label: t('pages.reports.income'), icon: TrendingUp },
+        { key: 'shootType', label: t('pages.reports.shootType'), icon: Camera },
+        { key: 'photographer', label: t('pages.reports.photographer'), icon: Users },
+        { key: 'source', label: t('pages.reports.source'), icon: Share2 },
+        { key: 'overdue', label: t('pages.reports.overdue'), icon: AlertTriangle }
+    ];
+}
 
 // ===================== INCOME REPORT =====================
-function IncomeReport({ startDate, endDate }) {
+function IncomeReport({ startDate, endDate, t }) {
     const { data: raw, isLoading } = useQuery({
         queryKey: ['report-income', startDate, endDate],
         queryFn: async () => {
@@ -45,11 +48,11 @@ function IncomeReport({ startDate, endDate }) {
     }));
 
     const columns = [
-        { key: 'date', label: 'Tarih' },
-        { key: 'cash', label: 'Nakit' },
-        { key: 'card', label: 'Kart' },
-        { key: 'transfer', label: 'Havale' },
-        { key: 'total', label: 'Toplam' }
+        { key: 'date', label: t('pages.reports.date') },
+        { key: 'cash', label: t('pages.reports.cash') },
+        { key: 'card', label: t('pages.reports.card') },
+        { key: 'transfer', label: t('pages.reports.transfer') },
+        { key: 'total', label: t('pages.reports.total') }
     ];
 
     if (isLoading) return <Loading />;
@@ -58,15 +61,15 @@ function IncomeReport({ startDate, endDate }) {
         <div className="space-y-6">
             {/* Summary cards */}
             <div className="grid grid-cols-4 gap-3">
-                <SummaryCard label="Toplam Gelir" value={formatCurrency(stats.totalRevenue || 0)} color="text-green-600" bg="bg-green-500/10" />
-                <SummaryCard label="Nakit" value={formatCurrency(stats.totalCash || 0)} color="text-emerald-600" bg="bg-emerald-500/10" />
-                <SummaryCard label="Kart" value={formatCurrency(stats.totalCard || 0)} color="text-blue-600" bg="bg-blue-500/10" />
-                <SummaryCard label="Havale" value={formatCurrency(stats.totalTransfer || 0)} color="text-purple-600" bg="bg-purple-500/10" />
+                <SummaryCard label={t('pages.reports.totalRevenue')} value={formatCurrency(stats.totalRevenue || 0)} color="text-green-600" bg="bg-green-500/10" />
+                <SummaryCard label={t('pages.reports.cash')} value={formatCurrency(stats.totalCash || 0)} color="text-emerald-600" bg="bg-emerald-500/10" />
+                <SummaryCard label={t('pages.reports.card')} value={formatCurrency(stats.totalCard || 0)} color="text-blue-600" bg="bg-blue-500/10" />
+                <SummaryCard label={t('pages.reports.transfer')} value={formatCurrency(stats.totalTransfer || 0)} color="text-purple-600" bg="bg-purple-500/10" />
             </div>
 
             {/* Chart */}
             <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold mb-4">Gelir Trendi</h3>
+                <h3 className="text-sm font-semibold mb-4">{t('pages.reports.incomeChart')}</h3>
                 <ResponsiveContainer width="100%" height={350}>
                     <LineChart data={chartData} margin={{ top: 30, right: 10, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -79,18 +82,18 @@ function IncomeReport({ startDate, endDate }) {
                             return (
                                 <div style={{ background: 'rgba(15, 15, 30, 0.60)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 16px', fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', minWidth: 160 }}>
                                     <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13, color: '#fff' }}>{label}</div>
-                                    <div style={{ color: '#10b981', marginBottom: 3 }}>Nakit: ₺{(d.cash || 0).toLocaleString('tr-TR')}</div>
-                                    <div style={{ color: '#3b82f6', marginBottom: 3 }}>Kart: ₺{(d.card || 0).toLocaleString('tr-TR')}</div>
-                                    <div style={{ color: '#8b5cf6', marginBottom: 6 }}>Havale: ₺{(d.transfer || 0).toLocaleString('tr-TR')}</div>
-                                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 6, fontWeight: 700, color: '#fff' }}>Toplam: ₺{total.toLocaleString('tr-TR')}</div>
+                                    <div style={{ color: '#10b981', marginBottom: 3 }}>{t('pages.reports.cash')}: ₺{(d.cash || 0).toLocaleString('tr-TR')}</div>
+                                    <div style={{ color: '#3b82f6', marginBottom: 3 }}>{t('pages.reports.card')}: ₺{(d.card || 0).toLocaleString('tr-TR')}</div>
+                                    <div style={{ color: '#8b5cf6', marginBottom: 6 }}>{t('pages.reports.transfer')}: ₺{(d.transfer || 0).toLocaleString('tr-TR')}</div>
+                                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 6, fontWeight: 700, color: '#fff' }}>{t('pages.reports.total')}: ₺{total.toLocaleString('tr-TR')}</div>
                                 </div>
                             );
                         }} />
                         <Legend />
-                        <Line type="monotone" dataKey="cash" name="Nakit" stroke="#10b981" strokeWidth={2} />
-                        <Line type="monotone" dataKey="card" name="Kart" stroke="#3b82f6" strokeWidth={2} />
-                        <Line type="monotone" dataKey="transfer" name="Havale" stroke="#8b5cf6" strokeWidth={2} />
-                        <Line type="monotone" dataKey="total" name="Toplam" stroke="transparent" dot={false} legendType="none">
+                        <Line type="monotone" dataKey="cash" name={t('pages.reports.cash')} stroke="#10b981" strokeWidth={2} />
+                        <Line type="monotone" dataKey="card" name={t('pages.reports.card')} stroke="#3b82f6" strokeWidth={2} />
+                        <Line type="monotone" dataKey="transfer" name={t('pages.reports.transfer')} stroke="#8b5cf6" strokeWidth={2} />
+                        <Line type="monotone" dataKey="total" name={t('pages.reports.total')} stroke="transparent" dot={false} legendType="none">
                             <LabelList dataKey="total" position="top" content={({ x, y, value }) => {
                                 if (!value) return null;
                                 const text = value >= 1000 ? `₺${(value / 1000).toFixed(0)}k` : `₺${value}`;
@@ -108,13 +111,13 @@ function IncomeReport({ startDate, endDate }) {
             </div>
 
             {/* Table */}
-            <DataTable data={chartData} columns={columns} fileName="gelir_raporu" />
+            <DataTable data={chartData} columns={columns} fileName="gelir_raporu" t={t} />
         </div>
     );
 }
 
 // ===================== SHOOT TYPE REPORT =====================
-function ShootTypeReport({ startDate, endDate }) {
+function ShootTypeReport({ startDate, endDate, t }) {
     const { data: raw, isLoading } = useQuery({
         queryKey: ['report-shootType', startDate, endDate],
         queryFn: async () => {
@@ -133,10 +136,10 @@ function ShootTypeReport({ startDate, endDate }) {
     }));
 
     const columns = [
-        { key: 'type', label: 'Çekim Türü' },
-        { key: 'count', label: 'Adet' },
-        { key: 'revenue', label: 'Gelir' },
-        { key: 'percentage', label: 'Oran (%)' }
+        { key: 'type', label: t('pages.reports.shootType') },
+        { key: 'count', label: t('pages.reports.count') },
+        { key: 'revenue', label: t('pages.reports.revenue') },
+        { key: 'percentage', label: t('pages.reports.percentage') }
     ];
 
     if (isLoading) return <Loading />;
@@ -146,7 +149,7 @@ function ShootTypeReport({ startDate, endDate }) {
             <div className="grid grid-cols-2 gap-6">
                 {/* Pie chart */}
                 <div className="bg-card border border-border rounded-xl p-4">
-                    <h3 className="text-sm font-semibold mb-4">Dağılım</h3>
+                    <h3 className="text-sm font-semibold mb-4">{t('pages.reports.distribution')}</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie data={dist} cx="50%" cy="50%" innerRadius={60} outerRadius={110}
@@ -168,7 +171,7 @@ function ShootTypeReport({ startDate, endDate }) {
                                 <span className="text-sm font-medium">{d.type}</span>
                             </div>
                             <div className="text-right">
-                                <span className="text-sm font-bold">{d.count} çekim</span>
+                                <span className="text-sm font-bold">{d.count} {t('pages.reports.shoots')}</span>
                                 <span className="text-xs text-muted-foreground ml-2">({d.percentage}%)</span>
                             </div>
                         </div>
@@ -176,7 +179,7 @@ function ShootTypeReport({ startDate, endDate }) {
                 </div>
             </div>
 
-            <DataTable data={dist} columns={columns} fileName="cekim_turu_raporu" />
+            <DataTable data={dist} columns={columns} fileName="cekim_turu_raporu" t={t} />
         </div>
     );
 }
@@ -184,7 +187,7 @@ function ShootTypeReport({ startDate, endDate }) {
 // ===================== PHOTOGRAPHER REPORT =====================
 const SHOOT_TYPE_COLORS = ['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#84cc16'];
 
-function PhotographerReport({ startDate, endDate }) {
+function PhotographerReport({ startDate, endDate, t }) {
     const { data: raw, isLoading } = useQuery({
         queryKey: ['report-photographer', startDate, endDate],
         queryFn: async () => {
@@ -199,8 +202,8 @@ function PhotographerReport({ startDate, endDate }) {
     const byPhotographer = {};
     const allShootTypes = new Set();
     records.forEach(r => {
-        const name = r.photographerName || r.photographer || 'Belirtilmemiş';
-        const st = r.shootType || 'Belirtilmemiş';
+        const name = r.photographerName || r.photographer || t('pages.reports.unspecified');
+        const st = r.shootType || t('pages.reports.unspecified');
         allShootTypes.add(st);
         if (!byPhotographer[name]) byPhotographer[name] = { total: 0, revenue: 0, types: {} };
         byPhotographer[name].total++;
@@ -237,14 +240,14 @@ function PhotographerReport({ startDate, endDate }) {
                             <span style={{ width: 8, height: 8, borderRadius: 2, background: colorMap[st], display: 'inline-block', flexShrink: 0 }} />
                             <span>{st}</span>
                         </span>
-                        <span style={{ color: '#c4b5fd', whiteSpace: 'nowrap' }}>{d.count} adet</span>
+                        <span style={{ color: '#c4b5fd', whiteSpace: 'nowrap' }}>{d.count} {t('pages.reports.items')}</span>
                         <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: '#67e8f9' }}>₺{d.revenue.toLocaleString('tr-TR')}</span>
                     </div>
                 ))}
                 <div style={{ borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                    <span>Toplam</span>
+                    <span>{t('pages.reports.total')}</span>
                     <span style={{ display: 'flex', gap: 16 }}>
-                        <span style={{ color: '#c4b5fd' }}>{totalCount} adet</span>
+                        <span style={{ color: '#c4b5fd' }}>{totalCount} {t('pages.reports.items')}</span>
                         <span style={{ color: '#67e8f9' }}>₺{totalRev.toLocaleString('tr-TR')}</span>
                     </span>
                 </div>
@@ -265,11 +268,11 @@ function PhotographerReport({ startDate, endDate }) {
     });
 
     const columns = [
-        { key: 'name', label: 'Fotoğrafçı' },
+        { key: 'name', label: t('pages.reports.photographer') },
         ...shootTypes.map(st => ({ key: `st_${st}`, label: st })),
-        { key: 'shootCount', label: 'Toplam' },
-        { key: 'revenue', label: 'Gelir' },
-        { key: 'avgRevenue', label: 'Ort. Gelir' }
+        { key: 'shootCount', label: t('pages.reports.total') },
+        { key: 'revenue', label: t('pages.reports.revenue') },
+        { key: 'avgRevenue', label: t('pages.reports.avgRevenue') }
     ];
 
     if (isLoading) return <Loading />;
@@ -277,7 +280,7 @@ function PhotographerReport({ startDate, endDate }) {
     return (
         <div className="space-y-6">
             <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold mb-4">Fotoğrafçı Performansı</h3>
+                <h3 className="text-sm font-semibold mb-4">{t('pages.reports.photographerPerformance')}</h3>
                 <ResponsiveContainer width="100%" height={380}>
                     <BarChart data={chartData} barGap={8} barCategoryGap="20%" margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -286,7 +289,7 @@ function PhotographerReport({ startDate, endDate }) {
                         <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="#06b6d4" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                         <Legend />
-                        <Bar yAxisId="left" dataKey="shootCount" name="Çekim Sayısı" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
+                        <Bar yAxisId="left" dataKey="shootCount" name={t('pages.reports.shootCount')} fill="#8b5cf6" radius={[4, 4, 0, 0]}>
                             <LabelList dataKey="shootCount" position="top" content={({ x, y, width, value }) => {
                                 const text = `${value}`;
                                 const tw = text.length * 8 + 12;
@@ -298,7 +301,7 @@ function PhotographerReport({ startDate, endDate }) {
                                 );
                             }} />
                         </Bar>
-                        <Bar yAxisId="right" dataKey="revenue" name="Gelir (₺)" fill="#06b6d4" radius={[4, 4, 0, 0]}>
+                        <Bar yAxisId="right" dataKey="revenue" name={t('pages.reports.revenue')} fill="#06b6d4" radius={[4, 4, 0, 0]}>
                             <LabelList dataKey="revenue" position="top" content={({ x, y, width, value }) => {
                                 const text = `₺${value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}`;
                                 const tw = text.length * 7.5 + 12;
@@ -314,7 +317,7 @@ function PhotographerReport({ startDate, endDate }) {
                 </ResponsiveContainer>
             </div>
 
-            <DataTable data={tableData} columns={columns} fileName="fotografci_raporu" />
+            <DataTable data={tableData} columns={columns} fileName="fotografci_raporu" t={t} />
         </div>
     );
 }
@@ -322,7 +325,7 @@ function PhotographerReport({ startDate, endDate }) {
 
 
 // ===================== SOURCE REPORT =====================
-function SourceReport({ startDate, endDate }) {
+function SourceReport({ startDate, endDate, t }) {
     const { data: raw, isLoading } = useQuery({
         queryKey: ['report-source', startDate, endDate],
         queryFn: async () => {
@@ -335,7 +338,7 @@ function SourceReport({ startDate, endDate }) {
     const records = raw?.records || [];
     const bySource = {};
     records.forEach(r => {
-        const src = r.source || r.referralSource || 'Belirtilmemiş';
+        const src = r.source || r.referralSource || t('pages.reports.unspecified');
         bySource[src] = (bySource[src] || 0) + 1;
     });
     const totalCount = records.length || 1;
@@ -346,9 +349,9 @@ function SourceReport({ startDate, endDate }) {
     }));
 
     const columns = [
-        { key: 'source', label: 'Kaynak' },
-        { key: 'count', label: 'Müşteri Sayısı' },
-        { key: 'percentage', label: 'Oran (%)' }
+        { key: 'source', label: t('pages.reports.source') },
+        { key: 'count', label: t('pages.reports.customerCount') },
+        { key: 'percentage', label: t('pages.reports.percentage') }
     ];
 
     if (isLoading) return <Loading />;
@@ -357,7 +360,7 @@ function SourceReport({ startDate, endDate }) {
         <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
                 <div className="bg-card border border-border rounded-xl p-4">
-                    <h3 className="text-sm font-semibold mb-4">Müşteri Kaynak Dağılımı</h3>
+                    <h3 className="text-sm font-semibold mb-4">{t('pages.reports.sourceDistribution')}</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie data={sources} cx="50%" cy="50%" innerRadius={60} outerRadius={110}
@@ -381,13 +384,13 @@ function SourceReport({ startDate, endDate }) {
                     ))}
                 </div>
             </div>
-            <DataTable data={sources} columns={columns} fileName="musteri_kaynak_raporu" />
+            <DataTable data={sources} columns={columns} fileName="musteri_kaynak_raporu" t={t} />
         </div>
     );
 }
 
 // ===================== OVERDUE REPORT =====================
-function OverdueReport() {
+function OverdueReport({ t }) {
     const { data, isLoading } = useQuery({
         queryKey: ['report-overdue'],
         queryFn: () => financeApi.getOverduePayments()
@@ -397,13 +400,13 @@ function OverdueReport() {
     const totalOverdue = overdueList.reduce((s, o) => s + (o.remaining || 0), 0);
 
     const columns = [
-        { key: 'customerName', label: 'Müşteri' },
-        { key: 'phone', label: 'Telefon' },
-        { key: 'archiveNumber', label: 'Arşiv No' },
-        { key: 'totalAmount', label: 'Toplam' },
-        { key: 'paidAmount', label: 'Ödenen' },
-        { key: 'remaining', label: 'Kalan' },
-        { key: 'daysPassed', label: 'Geçen Gün' }
+        { key: 'customerName', label: t('pages.reports.customer') },
+        { key: 'phone', label: t('pages.reports.phone') },
+        { key: 'archiveNumber', label: t('pages.reports.archiveNumber') },
+        { key: 'totalAmount', label: t('pages.reports.total') },
+        { key: 'paidAmount', label: t('pages.reports.paidAmount') },
+        { key: 'remaining', label: t('pages.reports.remaining') },
+        { key: 'daysPassed', label: t('pages.reports.daysPassed') }
     ];
 
     if (isLoading) return <Loading />;
@@ -411,12 +414,12 @@ function OverdueReport() {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-3 gap-3">
-                <SummaryCard label="Toplam Geciken" value={formatCurrency(totalOverdue)} color="text-destructive" bg="bg-destructive/10" />
-                <SummaryCard label="Müşteri Sayısı" value={overdueList.length} color="text-orange-600" bg="bg-orange-500/10" />
-                <SummaryCard label="Ort. Gecikme" value={`${Math.round(overdueList.reduce((s, o) => s + (o.daysPassed || 0), 0) / (overdueList.length || 1))} gün`}
+                <SummaryCard label={t('pages.reports.totalOverdue')} value={formatCurrency(totalOverdue)} color="text-destructive" bg="bg-destructive/10" />
+                <SummaryCard label={t('pages.reports.customerCount')} value={overdueList.length} color="text-orange-600" bg="bg-orange-500/10" />
+                <SummaryCard label={t('pages.reports.avgDelay')} value={`${Math.round(overdueList.reduce((s, o) => s + (o.daysPassed || 0), 0) / (overdueList.length || 1))} ${t('pages.reports.days')}`}
                     color="text-yellow-600" bg="bg-yellow-500/10" />
             </div>
-            <DataTable data={overdueList} columns={columns} fileName="geciken_odemeler_raporu" />
+            <DataTable data={overdueList} columns={columns} fileName="geciken_odemeler_raporu" t={t} />
         </div>
     );
 }
@@ -435,22 +438,22 @@ function Loading() {
     return <SkeletonDashboard />;
 }
 
-function DataTable({ data, columns, fileName }) {
+function DataTable({ data, columns, fileName, t }) {
     const [showExport, setShowExport] = useState(false);
 
     return (
         <>
             <div className="border border-border rounded-lg overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2 bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{data.length} kayıt</span>
+                    <span className="text-sm text-muted-foreground">{data.length} {t('pages.reports.records')}</span>
                     <div className="flex gap-2">
                         <button onClick={() => setShowExport(true)}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">
-                            <Download className="w-3.5 h-3.5" /> Excel
+                            <Download className="w-3.5 h-3.5" /> {t('pages.reports.excel')}
                         </button>
-                        <button onClick={() => exportPdf(data, columns, fileName)}
+                        <button onClick={() => exportPdf(data, columns, fileName, t)}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
-                            <FileText className="w-3.5 h-3.5" /> PDF
+                            <FileText className="w-3.5 h-3.5" /> {t('pages.reports.pdf')}
                         </button>
                     </div>
                 </div>
@@ -471,7 +474,7 @@ function DataTable({ data, columns, fileName }) {
                             </tr>
                         ))}
                         {data.length === 0 && (
-                            <tr><td colSpan={columns.length} className="text-center py-6 text-muted-foreground">Veri bulunamadı</td></tr>
+                            <tr><td colSpan={columns.length} className="text-center py-6 text-muted-foreground">{t('pages.reports.noData')}</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -489,13 +492,13 @@ function DataTable({ data, columns, fileName }) {
     );
 }
 
-function exportPdf(data, columns, fileName) {
+function exportPdf(data, columns, fileName, t) {
     const doc = new jsPDF();
     doc.setFont('helvetica');
     doc.setFontSize(14);
     doc.text(fileName.replace(/_/g, ' ').toUpperCase(), 14, 20);
     doc.setFontSize(9);
-    doc.text(`Oluşturulma: ${new Date().toLocaleDateString('tr-TR')}`, 14, 28);
+    doc.text(`${t('pages.reports.createdAt')}: ${new Date().toLocaleDateString('tr-TR')}`, 14, 28);
 
     // Simple table
     const startY = 35;
@@ -529,6 +532,7 @@ function exportPdf(data, columns, fileName) {
 
 // ===================== MAIN COMPONENT =====================
 export default function Reports() {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('income');
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -537,12 +541,14 @@ export default function Reports() {
     });
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
+    const tabs = getTabs(t);
+
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <BarChart3 className="w-7 h-7" /> Raporlar
+                    <BarChart3 className="w-7 h-7" /> {t('pages.reports.title')}
                 </h1>
                 <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -573,11 +579,11 @@ export default function Reports() {
             </div>
 
             {/* Tab content */}
-            {activeTab === 'income' && <IncomeReport startDate={startDate} endDate={endDate} />}
-            {activeTab === 'shootType' && <ShootTypeReport startDate={startDate} endDate={endDate} />}
-            {activeTab === 'photographer' && <PhotographerReport startDate={startDate} endDate={endDate} />}
-            {activeTab === 'source' && <SourceReport startDate={startDate} endDate={endDate} />}
-            {activeTab === 'overdue' && <OverdueReport />}
+            {activeTab === 'income' && <IncomeReport startDate={startDate} endDate={endDate} t={t} />}
+            {activeTab === 'shootType' && <ShootTypeReport startDate={startDate} endDate={endDate} t={t} />}
+            {activeTab === 'photographer' && <PhotographerReport startDate={startDate} endDate={endDate} t={t} />}
+            {activeTab === 'source' && <SourceReport startDate={startDate} endDate={endDate} t={t} />}
+            {activeTab === 'overdue' && <OverdueReport t={t} />}
         </div>
     );
 }

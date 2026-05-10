@@ -5,6 +5,7 @@
  *                 AppointmentPostponeModal, constants
  */
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appointmentsApi, settingsApi } from '../services/api';
 import { cn } from '../lib/utils';
@@ -101,6 +102,7 @@ function MoveAppointmentModal({ isOpen, onClose, appointment }) {
 
 // ==================== MAIN ORCHESTRATOR ====================
 export default function Appointments() {
+    const { t } = useTranslation();
     const [viewMode, setViewMode] = useState('month');
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -250,8 +252,8 @@ export default function Appointments() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Randevular</h1>
-                    <p className="text-muted-foreground">Randevu takvimi ve yönetimi</p>
+                    <h1 className="text-2xl font-bold">{t('appointmentsPage.title')}</h1>
+                    <p className="text-muted-foreground">{t('appointmentsPage.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
