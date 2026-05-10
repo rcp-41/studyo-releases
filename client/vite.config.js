@@ -31,4 +31,11 @@ export default defineConfig({
             },
         },
     },
+    test: {
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: ['./src/test/setup.js'],
+        css: false,
+        exclude: ['node_modules', 'e2e', 'dist', '../firebase/hosting/dist'],
+    },
 });
