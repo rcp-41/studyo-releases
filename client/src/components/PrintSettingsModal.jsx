@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Printer, Check, X, Loader2, AlertCircle, Eye, Pencil, Sparkles } from 'lucide-react';
 import { getPrintSettings, savePrintSettings } from '../lib/printSettings';
@@ -37,6 +38,7 @@ const SAMPLE_ARCHIVE = {
 };
 
 export default function PrintSettingsModal({ open, onClose }) {
+    const { t } = useTranslation();
     const [settings, setSettings] = useState(() => getPrintSettings());
     const [printers, setPrinters] = useState([]);
     const [loadingPrinters, setLoadingPrinters] = useState(false);
@@ -84,7 +86,7 @@ export default function PrintSettingsModal({ open, onClose }) {
 
     const handleSave = () => {
         savePrintSettings(settings);
-        toast.success('Yazdırma ayarları kaydedildi');
+        toast.success(t('components.printSettings.saveSuccess'));
         onClose?.();
     };
 
@@ -97,12 +99,12 @@ export default function PrintSettingsModal({ open, onClose }) {
                 silent: !!settings.printers[type]
             });
             if (res?.success) {
-                toast.success(`${TEMPLATE_LABELS[type]}: test çıktısı gönderildi`);
+                toast.success(t('components.printSettings.testSuccess', { template: TEMPLATE_LABELS[type] }));
             } else {
-                toast.error(`Test başarısız: ${res?.failureReason || 'bilinmeyen hata'}`);
+                toast.error(t('components.printSettings.testFailed', { reason: res?.failureReason || t('common.error') }));
             }
         } catch (e) {
-            toast.error('Test yazdırma hatası: ' + (e?.message || e));
+            toast.error(t('components.printSettings.testError', { message: e?.message || e }));
         } finally {
             setTesting(null);
         }
@@ -122,10 +124,10 @@ export default function PrintSettingsModal({ open, onClose }) {
                 <div className="p-6 border-b border-border flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg"><Printer className="w-5 h-5 text-primary" /></div>
                     <div className="flex-1">
-                        <h2 id="print-settings-title" className="text-lg font-semibold">Yazdırma Ayarları</h2>
-                        <p className="text-xs text-muted-foreground">F2 otomatik yazdırma — şablon başına yazıcı eşleme</p>
+                        <h2 id="print-settings-title" className="text-lg font-semibold">{t('components.printSettings.title')}</h2>
+                        <p className="text-xs text-muted-foreground">{t('components.printSettings.subtitle')}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg" aria-label="Kapat">
+                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg" aria-label={t('common.close')}>
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -134,14 +136,14 @@ export default function PrintSettingsModal({ open, onClose }) {
                     {!available && (
                         <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-700 dark:text-amber-400 text-sm">
                             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <span>Yazdırma servisi yalnızca masaüstü uygulamasında çalışır. Tarayıcıda ayarlar kaydedilir ama test yapılamaz.</span>
+                            <span>{t('components.printSettings.desktopOnly')}</span>
                         </div>
                     )}
 
                     <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                         <div className="flex-1 pr-4">
-                            <label className="font-medium block" htmlFor="auto-print-toggle">F2 ile otomatik yazdır</label>
-                            <p className="text-xs text-muted-foreground">Arşiv kaydedildiğinde aşağıdaki aktif şablonlar otomatik basılır</p>
+                            <label className="font-medium block" htmlFor="auto-print-toggle">{t('components.printSettings.autoPrint')}</label>
+                            <p className="text-xs text-muted-foreground">{t('components.printSettings.autoPrintDesc')}</p>
                         </div>
                         <button
                             id="auto-print-toggle"
@@ -183,21 +185,21 @@ export default function PrintSettingsModal({ open, onClose }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-[1fr_70px_auto_auto] gap-2 items-end">
                                 <div>
-                                    <label className="block text-xs text-muted-foreground mb-1">Yazıcı</label>
+                                    <label className="block text-xs text-muted-foreground mb-1">{t('components.printSettings.printer')}</label>
                                     <select
                                         value={settings.printers[type] || ''}
                                         onChange={(e) => updateNested('printers', type, e.target.value)}
                                         disabled={loadingPrinters || !settings.enabled[type]}
                                         className="w-full px-3 py-2 rounded-lg bg-background border border-input text-sm disabled:opacity-50"
                                     >
-                                        <option value="">— Varsayılan yazıcı —</option>
+                                        <option value="">{t('components.printSettings.defaultPrinter')}</option>
                                         {printers.map(p => (
                                             <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs text-muted-foreground mb-1">Kopya</label>
+                                    <label className="block text-xs text-muted-foreground mb-1">{t('components.printSettings.copies')}</label>
                                     <input
                                         type="number"
                                         min="1"
@@ -217,7 +219,7 @@ export default function PrintSettingsModal({ open, onClose }) {
                                         className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm flex items-center gap-2 disabled:opacity-50 w-full justify-center"
                                     >
                                         {testing === type ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
-                                        Test
+                                        {t('components.printSettings.test')}
                                     </button>
                                 </div>
                                 <div>
@@ -228,7 +230,7 @@ export default function PrintSettingsModal({ open, onClose }) {
                                         className="px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm flex items-center gap-2 w-full justify-center"
                                     >
                                         <Pencil className="w-3 h-3" />
-                                        Şablonu Düzenle
+                                        {t('components.printSettings.editTemplate')}
                                     </button>
                                 </div>
                             </div>
@@ -236,22 +238,22 @@ export default function PrintSettingsModal({ open, onClose }) {
                     ))}
 
                     <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
-                        <p className="font-medium mb-1">💡 İpuçları</p>
+                        <p className="font-medium mb-1">{t('components.printSettings.tips')}</p>
                         <ul className="list-disc list-inside space-y-0.5">
-                            <li>Yazıcı seçilmezse Windows varsayılanı kullanılır.</li>
-                            <li>"Sessiz baskı" için her şablona yazıcı atayın (aksi halde Windows print dialog açılır).</li>
-                            <li>F2 ile otomatik yazdırma aktif değilken yine de arşiv satırlarındaki "Yazdır" butonu çalışır.</li>
+                            <li>{t('components.printSettings.tip1')}</li>
+                            <li>{t('components.printSettings.tip2')}</li>
+                            <li>{t('components.printSettings.tip3')}</li>
                         </ul>
                     </div>
                 </div>
 
                 <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/20">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border hover:bg-muted">Vazgeç</button>
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border hover:bg-muted">{t('common.cancel')}</button>
                     <button
                         onClick={handleSave}
                         className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
                     >
-                        <Check className="w-4 h-4" /> Kaydet
+                        <Check className="w-4 h-4" /> {t('common.save')}
                     </button>
                 </div>
             </div>

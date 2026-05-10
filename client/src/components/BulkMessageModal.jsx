@@ -102,7 +102,7 @@ export default function BulkMessageModal({ onClose }) {
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
                         <MessageCircle className="w-5 h-5" />
-                        Toplu Mesaj {step === 1 ? '— Müşteri Seçimi' : '— Mesaj Yazma'}
+                        {t('components.bulkMessage.title')} {step === 1 ? t('components.bulkMessage.step1') : t('components.bulkMessage.step2')}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
@@ -114,11 +114,11 @@ export default function BulkMessageModal({ onClose }) {
                         <div className="grid grid-cols-2 gap-6 h-full">
                             {/* Left: Archive search */}
                             <div className="space-y-3">
-                                <h3 className="text-sm font-semibold text-muted-foreground">Arşivden Müşteri Ara</h3>
+                                <h3 className="text-sm font-semibold text-muted-foreground">{t('components.bulkMessage.searchArchive')}</h3>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                                        placeholder="İsim veya telefon..."
+                                        placeholder={t('components.bulkMessage.searchPlaceholder')}
                                         className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-background border border-input outline-none" />
                                 </div>
                                 <div className="space-y-1 max-h-[350px] overflow-auto">
@@ -136,7 +136,7 @@ export default function BulkMessageModal({ onClose }) {
                                             </button>
                                         </div>
                                     )) : (
-                                        <p className="text-center py-4 text-sm text-muted-foreground">Sonuç yok</p>
+                                        <p className="text-center py-4 text-sm text-muted-foreground">{t('components.bulkMessage.noResults')}</p>
                                     )}
                                 </div>
                             </div>
@@ -144,7 +144,7 @@ export default function BulkMessageModal({ onClose }) {
                             {/* Right: Selected customers */}
                             <div className="space-y-3">
                                 <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                                    <Users className="w-4 h-4" /> Seçilen Müşteriler ({selectedCustomers.length})
+                                    <Users className="w-4 h-4" /> {t('components.bulkMessage.selectedCustomers', { count: selectedCustomers.length })}
                                 </h3>
                                 <div className="space-y-1 max-h-[400px] overflow-auto">
                                     {selectedCustomers.map(c => (
@@ -161,7 +161,7 @@ export default function BulkMessageModal({ onClose }) {
                                     ))}
                                     {selectedCustomers.length === 0 && (
                                         <p className="text-center py-8 text-sm text-muted-foreground">
-                                            Soldan müşteri ekleyin
+                                            {t('components.bulkMessage.addFromLeft')}
                                         </p>
                                     )}
                                 </div>
@@ -172,11 +172,11 @@ export default function BulkMessageModal({ onClose }) {
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg text-sm">
                                 <Users className="w-4 h-4" />
-                                <span><strong>{selectedCustomers.length}</strong> müşteriye gönderilecek</span>
+                                <span>{t('components.bulkMessage.sendingTo', { count: selectedCustomers.length })}</span>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Mesaj Şablonu</label>
+                                <label className="block text-sm font-medium mb-1">{t('components.bulkMessage.messageTemplate')}</label>
                                 <select value={templateKey} onChange={e => handleTemplateChange(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none">
                                     {messageTemplates.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
@@ -184,12 +184,12 @@ export default function BulkMessageModal({ onClose }) {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Mesaj</label>
+                                <label className="block text-sm font-medium mb-1">{t('components.bulkMessage.message')}</label>
                                 <textarea value={message} onChange={e => setMessage(e.target.value)}
-                                    rows={6} placeholder="Mesajınızı yazın... {{isim}}, {{telefon}}, {{arsiv}} değişkenleri kullanılabilir."
+                                    rows={6} placeholder={t('components.bulkMessage.messagePlaceholder')}
                                     className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none resize-none font-mono text-sm" />
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Değişkenler: {'{{isim}}'}, {'{{telefon}}'}, {'{{arsiv}}'}
+                                    {t('components.bulkMessage.variables')}: {'{{isim}}'}, {'{{telefon}}'}, {'{{arsiv}}'}
                                 </p>
                             </div>
 
@@ -198,7 +198,7 @@ export default function BulkMessageModal({ onClose }) {
                                 <div className="p-4 border border-border rounded-lg space-y-2">
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin" /> Gönderiliyor...
+                                            <Loader2 className="w-4 h-4 animate-spin" /> {t('common.loading')}
                                         </span>
                                         <span className="font-medium">{sendProgress.sent}/{sendProgress.total}</span>
                                     </div>
@@ -208,7 +208,7 @@ export default function BulkMessageModal({ onClose }) {
                                     </div>
                                     {sendProgress.errors > 0 && (
                                         <p className="text-xs text-destructive flex items-center gap-1">
-                                            <AlertCircle className="w-3 h-3" /> {sendProgress.errors} hata
+                                            <AlertCircle className="w-3 h-3" /> {t('components.bulkMessage.errorCount', { count: sendProgress.errors })}
                                         </p>
                                     )}
                                 </div>
@@ -221,20 +221,20 @@ export default function BulkMessageModal({ onClose }) {
                 <div className="flex items-center justify-between px-6 py-4 border-t border-border">
                     {step === 1 ? (
                         <>
-                            <button onClick={onClose} className="px-4 py-2 border border-border rounded-lg hover:bg-muted">İptal</button>
+                            <button onClick={onClose} className="px-4 py-2 border border-border rounded-lg hover:bg-muted">{t('common.cancel')}</button>
                             <button onClick={() => setStep(2)} disabled={selectedCustomers.length === 0}
                                 className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50">
-                                İleri <ChevronRight className="w-4 h-4" />
+                                {t('components.bulkMessage.next')} <ChevronRight className="w-4 h-4" />
                             </button>
                         </>
                     ) : (
                         <>
                             <button onClick={() => setStep(1)} disabled={sending}
-                                className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50">Geri</button>
+                                className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50">{t('common.back')}</button>
                             <button onClick={handleSend} disabled={sending || !message.trim()}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
                                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                {sending ? `${sendProgress.sent}/${sendProgress.total} Gönderiliyor...` : 'Gönder'}
+                                {sending ? t('components.bulkMessage.sending', { sent: sendProgress.sent, total: sendProgress.total }) : t('components.bulkMessage.send')}
                             </button>
                         </>
                     )}

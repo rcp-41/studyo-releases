@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { whatsappApi } from '../services/api';
@@ -39,6 +40,7 @@ const safeFormatDate = (dateValue, formatStr = 'dd MMM yyyy') => {
 
 
 export default function WooCommerceModal({ isOpen, onClose, archive }) {
+    const { t } = useTranslation();
     const [view, setView] = useState('loading'); // loading, empty, dashboard, upload
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -86,7 +88,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
             // Electron: Use native file dialog
             const result = await window.electron.showOpenDialog({
                 defaultPath: archive.folderPath || '',
-                filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
+                filters: [{ name: t('components.woocommerce.imageFiles'), extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
                 properties: ['openFile', 'multiSelections']
             });
             if (result && result.length > 0) {
@@ -145,13 +147,13 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
      */
     const handleUpload = async () => {
         if (selectedFiles.length === 0) {
-            return toast.error('Dosya seçiniz');
+            return toast.error(t('components.woocommerce.selectFile'));
         }
         if (priceList.length === 0 || priceList.some(p => !p.size || !p.price)) {
-            return toast.error('Fiyat listesini doldurunuz');
+            return toast.error(t('components.woocommerce.fillPriceList'));
         }
         if (!password) {
-            return toast.error('Şifre giriniz');
+            return toast.error(t('components.woocommerce.enterPassword'));
         }
 
         setUploading(true);
@@ -215,7 +217,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                 });
             }
 
-            setUploadProgress(prev => ({ ...prev, percent: 100, currentFile: 'WooCommerce ürünleri oluşturuluyor...' }));
+            setUploadProgress(prev => ({ ...prev, percent: 100, currentFile: t('components.woocommerce.creatingProducts') }));
 
             // Step 2: Create WooCommerce products with Firebase URLs
             const { data } = await woocommerceApi.uploadSingle({
@@ -226,12 +228,12 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                 priceList: priceList
             });
 
-            toast.success(`${uploadedImages.length} fotoğraf yüklendi ve WooCommerce'e aktarıldı!`);
+            toast.success(t('components.woocommerce.uploadSuccess', { count: uploadedImages.length }));
             loadStats();
 
         } catch (error) {
             console.error('Upload error:', error);
-            toast.error(error.message || 'Yükleme başarısız');
+            toast.error(error.message || t('components.woocommerce.uploadError'));
         }
 
         setUploading(false);
@@ -246,10 +248,10 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
         setLoading(true);
         try {
             await woocommerceApi.reset(archive.id);
-            toast.success('Link ve fotoğraflar silindi');
+            toast.success(t('components.woocommerce.resetSuccess'));
             loadStats();
         } catch (error) {
-            toast.error('Sıfırlama başarısız');
+            toast.error(t('components.woocommerce.resetError'));
         }
         setLoading(false);
         setConfirmReset(false);
@@ -259,7 +261,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
         navigator.clipboard.writeText(stats.wcLink);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-        toast.success('Link kopyalandı');
+        toast.success(t('components.woocommerce.copySuccess'));
     };
 
     const sendWhatsApp = async (type) => {
@@ -274,14 +276,14 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
 
         try {
             await whatsappApi.send({ phone: archive.phone, message });
-            toast.success('Mesaj gönderildi');
+            toast.success(t('components.woocommerce.messageSent'));
         } catch (error) {
-            toast.error('Mesaj gönderilemedi');
+            toast.error(t('components.woocommerce.messageFailed'));
         }
     };
 
     const handleCopyPhotos = async () => {
-        const toastId = toast.loading('İşlem başlatılıyor...');
+        const toastId = toast.loading(t('components.woocommerce.processingStart'));
 
         try {
             const { data } = await woocommerceApi.copyPhotos({
@@ -297,20 +299,20 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                 toast.dismiss(toastId);
 
                 if (!window.electron) {
-                    toast.error('Bu özellik sadece masaüstü uygulamasında çalışır');
+                    toast.error(t('components.woocommerce.desktopOnly'));
                     return;
                 }
 
                 try {
                     const result = await window.electron.showOpenDialog({
                         properties: ['openDirectory'],
-                        buttonLabel: 'Klasörü Seç ve Kopyala',
-                        title: 'Orijinal Kaynak Klasörünü Seçin'
+                        buttonLabel: t('components.woocommerce.selectAndCopy'),
+                        title: t('components.woocommerce.selectSourceFolder')
                     });
 
                     if (!result.canceled && result.filePaths.length > 0) {
                         const sourcePath = result.filePaths[0];
-                        const loadingId = toast.loading('Fotoğraflar kopyalanıyor...');
+                        const loadingId = toast.loading(t('components.woocommerce.copyingPhotos'));
 
                         try {
                             const { data } = await woocommerceApi.copyPhotos({
@@ -321,11 +323,11 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                             if (data.success) {
                                 toast.success(data.message, { id: loadingId });
                             } else {
-                                toast.error(data.message || 'Kopyalama başarısız', { id: loadingId });
+                                toast.error(data.message || t('components.woocommerce.copyFailed'), { id: loadingId });
                             }
                         } catch (retryErr) {
                             console.error('Retry error:', retryErr);
-                            toast.error('İşlem başarısız', { id: loadingId });
+                            toast.error(t('components.woocommerce.processFailed'), { id: loadingId });
                         }
                     }
                 } catch (dialogErr) {
@@ -335,7 +337,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
             }
 
             console.error('Copy error:', err);
-            toast.error(err.response?.data?.error || 'İşlem başarısız', { id: toastId });
+            toast.error(err.response?.data?.error || t('components.woocommerce.processFailed'), { id: toastId });
         }
     };
 
@@ -361,7 +363,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                             <Globe className="w-5 h-5 text-purple-500" />
                         </div>
                         <div>
-                            <h2 className="font-semibold">WooCommerce Entegrasyonu</h2>
+                            <h2 className="font-semibold">{t('components.woocommerce.title')}</h2>
                             <p className="text-sm text-muted-foreground">{archive?.fullName}</p>
                         </div>
                     </div>
@@ -375,7 +377,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                     {view === 'loading' && (
                         <div className="flex flex-col items-center justify-center py-12">
                             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                            <p className="mt-2 text-sm text-muted-foreground">Yükleniyor...</p>
+                            <p className="mt-2 text-sm text-muted-foreground">{t('common.loading')}</p>
                         </div>
                     )}
 
@@ -385,16 +387,16 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                             <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mb-4">
                                 <Link2 className="w-8 h-8 text-purple-500" />
                             </div>
-                            <h3 className="text-lg font-medium mb-2">Seçim Linki Oluştur</h3>
+                            <h3 className="text-lg font-medium mb-2">{t('components.woocommerce.createLink')}</h3>
                             <p className="text-sm text-muted-foreground text-center mb-6 max-w-sm">
-                                Fotoğrafları Firebase'e yükleyip WooCommerce'e aktararak müşterinizin online seçim yapmasını sağlayın.
+                                {t('components.woocommerce.createLinkDesc')}
                             </p>
                             <button
                                 onClick={() => setView('upload')}
                                 className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
                             >
                                 <Upload className="w-5 h-5" />
-                                Fotoğraf Yükle
+                                {t('components.woocommerce.uploadPhotos')}
                             </button>
                         </div>
                     )}
@@ -408,7 +410,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                     <div className="space-y-2 flex-1">
                                         <div className="flex items-center gap-2">
                                             <Link2 className="w-4 h-4 text-purple-500" />
-                                            <span className="text-sm font-medium">Seçim Linki</span>
+                                            <span className="text-sm font-medium">{t('components.woocommerce.selectionLink')}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <code className="text-xs bg-background px-2 py-1 rounded border flex-1 truncate">
@@ -422,9 +424,9 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                             </button>
                                         </div>
                                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                            <span>🔑 Şifre: <strong className="text-foreground">{stats.wcPassword}</strong></span>
+                                            <span>{t('components.woocommerce.password')}: <strong className="text-foreground">{stats.wcPassword}</strong></span>
                                             <span>📅 {safeFormatDate(stats.wcUploadedAt)}</span>
-                                            {stats.imageCount > 0 && <span>📷 {stats.imageCount} fotoğraf</span>}
+                                            {stats.imageCount > 0 && <span>📷 {t('components.woocommerce.photoCount', { count: stats.imageCount })}</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -434,7 +436,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                             <div className="space-y-3">
                                 <h4 className="font-medium flex items-center gap-2">
                                     <ShoppingCart className="w-4 h-4" />
-                                    Sipariş Durumu
+                                    {t('components.woocommerce.orderStatus')}
                                 </h4>
 
                                 {stats.orders && stats.orders.length > 0 ? (
@@ -469,7 +471,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                 ) : (
                                     <div className="text-center py-6 text-muted-foreground text-sm">
                                         <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                        Henüz sipariş yok
+                                        {t('components.woocommerce.noOrders')}
                                     </div>
                                 )}
                             </div>
@@ -479,17 +481,17 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                 <div className="bg-muted/30 rounded-lg p-4 border border-blue-500/20 mb-4">
                                     <h4 className="font-medium flex items-center gap-2 mb-2 text-blue-600">
                                         <FolderInput className="w-4 h-4" />
-                                        Dosya İşlemleri
+                                        {t('components.woocommerce.fileOperations')}
                                     </h4>
                                     <p className="text-xs text-muted-foreground mb-3">
-                                        Satın alınan fotoğrafları orijinal klasöründen "Online Seçilenler" klasörüne kopyalayabilirsiniz.
+                                        {t('components.woocommerce.fileOperationsDesc')}
                                     </p>
                                     <button
                                         onClick={handleCopyPhotos}
                                         className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium w-full transition-colors"
                                     >
                                         <FolderInput className="w-4 h-4" />
-                                        Seçilen Fotoğrafları Kopyala
+                                        {t('components.woocommerce.copyPhotos')}
                                     </button>
                                 </div>
                             )}
@@ -501,7 +503,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
                                 >
                                     <MessageCircle className="w-4 h-4" />
-                                    Link Gönder
+                                    {t('components.woocommerce.sendLink')}
                                 </button>
                                 <button
                                     onClick={() => sendWhatsApp('order')}
@@ -509,7 +511,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
                                 >
                                     <Check className="w-4 h-4" />
-                                    Sipariş Onayı
+                                    {t('components.woocommerce.orderConfirm')}
                                 </button>
                             </div>
 
@@ -519,7 +521,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-500 hover:bg-red-500/10 rounded-lg text-sm transition-colors"
                             >
                                 <Trash2 className="w-4 h-4" />
-                                Linki ve Fotoğrafları Sıfırla
+                                {t('components.woocommerce.resetLink')}
                             </button>
                         </div>
                     )}
@@ -536,7 +538,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                         uploadMode === 'single' ? 'bg-card shadow' : 'hover:bg-background/50'
                                     )}
                                 >
-                                    Bireysel Çekim
+                                    {t('components.woocommerce.singleShoot')}
                                 </button>
                                 <button
                                     onClick={() => setUploadMode('bulk')}
@@ -545,14 +547,14 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                         uploadMode === 'bulk' ? 'bg-card shadow' : 'hover:bg-background/50'
                                     )}
                                 >
-                                    Toplu Çekim (Okul)
+                                    {t('components.woocommerce.bulkShoot')}
                                 </button>
                             </div>
 
                             {/* File Selection */}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">
-                                    {uploadMode === 'single' ? 'Fotoğrafları Seç' : 'Ana Klasörü Seç'}
+                                    {uploadMode === 'single' ? t('components.woocommerce.selectPhotos') : t('components.woocommerce.selectMainFolder')}
                                 </label>
                                 <button
                                     onClick={uploadMode === 'single' ? handleSelectFiles : handleSelectFolder}
@@ -562,8 +564,8 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                     <FolderOpen className="w-6 h-6 text-muted-foreground" />
                                     <span className="text-muted-foreground">
                                         {selectedFiles.length > 0
-                                            ? `${selectedFiles.length} dosya seçildi`
-                                            : 'Tıklayarak seçin'}
+                                            ? t('components.woocommerce.filesSelected', { count: selectedFiles.length })
+                                            : t('components.woocommerce.clickToSelect')}
                                     </span>
                                 </button>
                             </div>
@@ -573,7 +575,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                 <div className="bg-muted/30 rounded-lg p-3 border">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Image className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-sm font-medium">Seçilen Dosyalar ({selectedFiles.length})</span>
+                                        <span className="text-sm font-medium">{t('components.woocommerce.selectedFiles', { count: selectedFiles.length })}</span>
                                     </div>
                                     <div className="max-h-24 overflow-y-auto text-xs text-muted-foreground space-y-1">
                                         {selectedFiles.slice(0, 5).map((file, i) => (
@@ -582,7 +584,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                             </div>
                                         ))}
                                         {selectedFiles.length > 5 && (
-                                            <div className="text-primary">... ve {selectedFiles.length - 5} dosya daha</div>
+                                            <div className="text-primary">{t('components.woocommerce.moreFiles', { count: selectedFiles.length - 5 })}</div>
                                         )}
                                     </div>
                                 </div>
@@ -591,13 +593,13 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                             {/* Price List */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-sm font-medium">Fiyat Listesi</label>
+                                    <label className="text-sm font-medium">{t('components.woocommerce.priceList')}</label>
                                     <button
                                         onClick={addPriceRow}
                                         disabled={uploading}
                                         className="text-xs text-primary hover:underline flex items-center gap-1"
                                     >
-                                        <Plus className="w-3 h-3" /> Ekle
+                                        <Plus className="w-3 h-3" /> {t('common.add')}
                                     </button>
                                 </div>
                                 <div className="space-y-2">
@@ -607,7 +609,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                                 type="text"
                                                 value={item.size}
                                                 onChange={(e) => updatePriceRow(i, 'size', e.target.value)}
-                                                placeholder="Ebat (örn: 10x15)"
+                                                placeholder={t('components.woocommerce.sizePlaceholder')}
                                                 disabled={uploading}
                                                 className="flex-1 px-3 py-2 bg-background border border-input rounded-lg text-sm disabled:opacity-50"
                                             />
@@ -615,7 +617,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                                 type="number"
                                                 value={item.price}
                                                 onChange={(e) => updatePriceRow(i, 'price', e.target.value)}
-                                                placeholder="Fiyat"
+                                                placeholder={t('components.woocommerce.price')}
                                                 disabled={uploading}
                                                 className="w-24 px-3 py-2 bg-background border border-input rounded-lg text-sm disabled:opacity-50"
                                             />
@@ -634,17 +636,17 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
 
                             {/* Password */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Sayfa Şifresi</label>
+                                <label className="text-sm font-medium">{t('components.woocommerce.pagePassword')}</label>
                                 <input
                                     type="text"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Müşteriye verilecek şifre"
+                                    placeholder={t('components.woocommerce.passwordPlaceholder')}
                                     disabled={uploading}
                                     className="w-full px-3 py-2 bg-background border border-input rounded-lg disabled:opacity-50"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Müşteri bu şifreyi girerek fotoğraflarını görebilecek
+                                    {t('components.woocommerce.passwordHint')}
                                 </p>
                             </div>
 
@@ -652,7 +654,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                             {uploading && (
                                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium">Yükleniyor...</span>
+                                        <span className="text-sm font-medium">{t('common.loading')}</span>
                                         <span className="text-sm text-muted-foreground">{uploadProgress.percent}%</span>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-2 mb-2">
@@ -662,7 +664,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                         />
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        {uploadProgress.currentFile || `${uploadProgress.current} / ${uploadProgress.total} dosya`}
+                                        {uploadProgress.currentFile || t('components.woocommerce.uploadingFiles', { current: uploadProgress.current, total: uploadProgress.total })}
                                     </p>
                                 </div>
                             )}
@@ -674,7 +676,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                     disabled={uploading}
                                     className="flex-1 px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
                                 >
-                                    İptal
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     onClick={handleUpload}
@@ -684,12 +686,12 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                                     {uploading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            Yükleniyor...
+                                            {t('common.loading')}
                                         </>
                                     ) : (
                                         <>
                                             <Upload className="w-4 h-4" />
-                                            Firebase'e Yükle
+                                            {t('components.woocommerce.uploadToFirebase')}
                                         </>
                                     )}
                                 </button>
@@ -702,12 +704,12 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
             <ConfirmDialog
                 open={confirmReset}
                 onOpenChange={(o) => !o && !loading && setConfirmReset(false)}
-                title="Seçim linkini sıfırla"
-                description="Seçim linki, ürünler ve yüklenen fotoğraflar silinecek. Bu işlem geri alınamaz."
+                title={t('components.woocommerce.resetConfirmTitle')}
+                description={t('components.woocommerce.resetConfirmDesc')}
                 destructive
-                requireText="SİL"
-                confirmText="Sıfırla"
-                cancelText="Vazgeç"
+                requireText={t('components.woocommerce.deleteConfirmText')}
+                confirmText={t('components.woocommerce.resetConfirmButton')}
+                cancelText={t('common.cancel')}
                 onConfirm={performReset}
                 loading={loading}
             />

@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
     X, Save, RotateCcw, Eye, Download, Upload, Type, Barcode,
@@ -104,8 +105,9 @@ function previewResolve(content) {
 }
 
 export default function TemplateEditor({ open, onClose, templateType }) {
+    const { t } = useTranslation();
     const pageSize = DEFAULT_PAGE_SIZES[templateType] || { width: 200, height: 65 };
-    const [name, setName] = useState('Özel Şablon');
+    const [name, setName] = useState(t('components.templateEditor.customTemplateName'));
     const [elements, setElements] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
     const [previewOpen, setPreviewOpen] = useState(false);
@@ -120,7 +122,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
         if (!open) return;
         const existing = getCustomTemplate(templateType);
         if (existing) {
-            setName(existing.name || 'Özel Şablon');
+            setName(existing.name || t('components.templateEditor.customTemplateName'));
             setElements(existing.elements || []);
         } else {
             const blank = blankTemplate(templateType);
@@ -129,7 +131,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
         }
         setSelectedId(null);
         setPreviewOpen(false);
-    }, [open, templateType]);
+    }, [open, templateType, t]);
 
     const selected = useMemo(
         () => elements.find(el => el.id === selectedId) || null,
@@ -226,27 +228,27 @@ export default function TemplateEditor({ open, onClose, templateType }) {
     const handleSave = () => {
         const tpl = {
             type: templateType,
-            name: name || 'Özel Şablon',
+            name: name || t('components.templateEditor.customTemplateName'),
             pageWidth: pageSize.width,
             pageHeight: pageSize.height,
             elements
         };
         const ok = saveCustomTemplate(templateType, tpl);
         if (ok) {
-            toast.success(`${TEMPLATE_LABELS[templateType]}: özel şablon kaydedildi`);
+            toast.success(t('components.templateEditor.saveSuccess', { template: TEMPLATE_LABELS[templateType] }));
             onClose?.();
         } else {
-            toast.error('Şablon kaydedilemedi (geçersiz yapı)');
+            toast.error(t('components.templateEditor.saveError'));
         }
     };
 
     const handleReset = () => {
-        if (!confirm('Özel şablon silinecek ve varsayılan düzen geri yüklenecek. Emin misiniz?')) return;
+        if (!confirm(t('components.templateEditor.resetConfirm'))) return;
         deleteCustomTemplate(templateType);
         setElements([]);
         setSelectedId(null);
-        setName('Özel Şablon');
-        toast.success('Varsayılan şablona dönüldü');
+        setName(t('components.templateEditor.customTemplateName'));
+        toast.success(t('components.templateEditor.resetSuccess'));
     };
 
     const handlePreview = () => {
@@ -262,7 +264,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
             setPreviewHtml(html);
             setPreviewOpen(true);
         } catch (e) {
-            toast.error('Önizleme oluşturulamadı: ' + (e?.message || e));
+            toast.error(t('components.templateEditor.previewError', { message: e?.message || e }));
         }
     };
 
@@ -277,7 +279,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.success('Şablonlar dışa aktarıldı');
+        toast.success(t('components.templateEditor.exportSuccess'));
     };
 
     const handleImportClick = () => fileInputRef.current?.click();
@@ -290,7 +292,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
             const text = await file.text();
             const res = importTemplates(text);
             if (res.success) {
-                toast.success(`İçe aktarıldı: ${res.imported.join(', ')}`);
+                toast.success(t('components.templateEditor.importSuccess', { templates: res.imported.join(', ') }));
                 const reloaded = getCustomTemplate(templateType);
                 if (reloaded) {
                     setName(reloaded.name);
@@ -298,10 +300,10 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                     setSelectedId(null);
                 }
             } else {
-                toast.error('İçe aktarma başarısız: ' + (res.errors.join('; ') || 'bilinmeyen hata'));
+                toast.error(t('components.templateEditor.importError', { errors: res.errors.join('; ') || t('common.error') }));
             }
         } catch (err) {
-            toast.error('Dosya okunamadı: ' + (err?.message || err));
+            toast.error(t('components.templateEditor.fileReadError', { message: err?.message || err }));
         }
     };
 
@@ -338,13 +340,13 @@ export default function TemplateEditor({ open, onClose, templateType }) {
             <div className="flex items-center gap-3 p-3 border-b border-border bg-card">
                 <div className="flex-1 flex items-center gap-3 min-w-0">
                     <h2 id="template-editor-title" className="text-base font-semibold whitespace-nowrap">
-                        Şablon Düzenleyici — {TEMPLATE_LABELS[templateType]}
+                        {t('components.templateEditor.title')} — {TEMPLATE_LABELS[templateType]}
                     </h2>
                     <input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        placeholder="Şablon adı"
+                        placeholder={t('components.templateEditor.templateNamePlaceholder')}
                         className="px-3 py-1.5 rounded-lg bg-background border border-input text-sm w-56"
                     />
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -353,22 +355,22 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                 </div>
                 <div className="flex items-center gap-2">
                     <button type="button" onClick={handlePreview} className="px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-sm flex items-center gap-1.5">
-                        <Eye className="w-3.5 h-3.5" /> Önizleme
+                        <Eye className="w-3.5 h-3.5" /> {t('common.preview')}
                     </button>
                     <button type="button" onClick={handleExport} className="px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-sm flex items-center gap-1.5">
-                        <Download className="w-3.5 h-3.5" /> Dışa Aktar
+                        <Download className="w-3.5 h-3.5" /> {t('common.export')}
                     </button>
                     <button type="button" onClick={handleImportClick} className="px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-sm flex items-center gap-1.5">
-                        <Upload className="w-3.5 h-3.5" /> İçe Aktar
+                        <Upload className="w-3.5 h-3.5" /> {t('common.import')}
                     </button>
                     <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
                     <button type="button" onClick={handleReset} className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-sm flex items-center gap-1.5">
-                        <RotateCcw className="w-3.5 h-3.5" /> Sıfırla
+                        <RotateCcw className="w-3.5 h-3.5" /> {t('common.reset')}
                     </button>
                     <button type="button" onClick={handleSave} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm flex items-center gap-1.5">
-                        <Save className="w-3.5 h-3.5" /> Kaydet
+                        <Save className="w-3.5 h-3.5" /> {t('common.save')}
                     </button>
-                    <button type="button" onClick={onClose} className="p-2 hover:bg-muted rounded-lg" aria-label="Kapat">
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-muted rounded-lg" aria-label={t('common.close')}>
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -378,43 +380,46 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                 {/* Left sidebar — field palette */}
                 <aside className="w-[200px] border-r border-border bg-card overflow-y-auto p-3 space-y-3">
                     <div>
-                        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Öğe Ekle</h3>
+                        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">{t('components.templateEditor.addElement')}</h3>
                         <div className="flex flex-col gap-2">
                             <button
                                 type="button"
                                 onClick={() => addElement(newTextElement(pageSize.width))}
                                 className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm flex items-center gap-2"
                             >
-                                <Type className="w-3.5 h-3.5" /> Metin Ekle
+                                <Type className="w-3.5 h-3.5" /> {t('components.templateEditor.addText')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => addElement(newBarcodeElement(pageSize.width))}
                                 className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm flex items-center gap-2"
                             >
-                                <Barcode className="w-3.5 h-3.5" /> Barkod Ekle
+                                <Barcode className="w-3.5 h-3.5" /> {t('components.templateEditor.addBarcode')}
                             </button>
                         </div>
                     </div>
 
                     <div>
-                        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Alanlar</h3>
+                        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">{t('components.templateEditor.fields')}</h3>
                         <p className="text-[11px] text-muted-foreground mb-2">
-                            Bir alana tıklayın — seçili metne eklenir, yoksa yeni metin oluşturulur.
+                            {t('components.templateEditor.fieldsDesc')}
                         </p>
                         <div className="flex flex-col gap-1">
-                            {PLACEHOLDER_FIELDS.map(f => (
-                                <button
-                                    key={f.key}
-                                    type="button"
-                                    onClick={() => insertPlaceholder(f.key)}
-                                    className="text-left px-2 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-xs flex items-center gap-1.5"
-                                    title={`[${f.key}] — ${f.example}`}
-                                >
-                                    <Plus className="w-3 h-3 flex-shrink-0 opacity-60" />
-                                    <span className="truncate">{f.label}</span>
-                                </button>
-                            ))}
+                            {PLACEHOLDER_FIELDS.map(f => {
+                                const fieldLabel = t(`components.templateEditor.field_${f.key}`, f.label);
+                                return (
+                                    <button
+                                        key={f.key}
+                                        type="button"
+                                        onClick={() => insertPlaceholder(f.key)}
+                                        className="text-left px-2 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-xs flex items-center gap-1.5"
+                                        title={`[${f.key}] — ${f.example}`}
+                                    >
+                                        <Plus className="w-3 h-3 flex-shrink-0 opacity-60" />
+                                        <span className="truncate">{fieldLabel}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </aside>
@@ -480,7 +485,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                                     onClick={(e) => { e.stopPropagation(); setSelectedId(el.id); }}
                                 >
                                     {el.type === 'text' ? (
-                                        <div style={innerStyle}>{previewResolve(el.content) || <span style={{ opacity: 0.4 }}>(boş)</span>}</div>
+                                        <div style={innerStyle}>{previewResolve(el.content) || <span style={{ opacity: 0.4 }}>({t('common.empty')})</span>}</div>
                                     ) : (
                                         <div style={{
                                             width: '100%', height: '100%',
@@ -488,7 +493,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                                             background: 'repeating-linear-gradient(90deg, #000 0 2px, #fff 2px 4px)',
                                             color: '#fff', fontSize: 10, fontWeight: 600
                                         }}>
-                                            BARKOD [{el.field}]
+                                            {t('components.templateEditor.barcodePreview')} [{el.field}]
                                         </div>
                                     )}
                                     {isSelected && (
@@ -512,49 +517,49 @@ export default function TemplateEditor({ open, onClose, templateType }) {
 
                 {/* Right sidebar — properties */}
                 <aside className="w-[240px] border-l border-border bg-card overflow-y-auto p-3 space-y-3">
-                    <h3 className="text-xs font-semibold uppercase text-muted-foreground">Özellikler</h3>
+                    <h3 className="text-xs font-semibold uppercase text-muted-foreground">{t('components.templateEditor.properties')}</h3>
                     {!selected && (
                         <p className="text-xs text-muted-foreground">
-                            Düzenlemek için bir öğe seçin veya soldan yeni bir öğe ekleyin.
+                            {t('components.templateEditor.selectElement')}
                         </p>
                     )}
                     {selected && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-xs font-semibold">
-                                    {selected.type === 'text' ? 'Metin' : 'Barkod'}
+                                    {selected.type === 'text' ? t('components.templateEditor.text') : t('components.templateEditor.barcode')}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={() => deleteElement(selected.id)}
                                     className="p-1.5 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-600"
-                                    aria-label="Öğeyi sil"
+                                    aria-label={t('components.templateEditor.deleteElement')}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2">
-                                <LabeledNumber label="X (mm)" value={selected.x} onChange={v => patchElement(selected.id, { x: v })} />
-                                <LabeledNumber label="Y (mm)" value={selected.y} onChange={v => patchElement(selected.id, { y: v })} />
-                                <LabeledNumber label="Genişlik" value={selected.width} onChange={v => patchElement(selected.id, { width: v })} />
-                                <LabeledNumber label="Yükseklik" value={selected.height} onChange={v => patchElement(selected.id, { height: v })} />
+                                <LabeledNumber label={t('components.templateEditor.x')} value={selected.x} onChange={v => patchElement(selected.id, { x: v })} />
+                                <LabeledNumber label={t('components.templateEditor.y')} value={selected.y} onChange={v => patchElement(selected.id, { y: v })} />
+                                <LabeledNumber label={t('components.templateEditor.width')} value={selected.width} onChange={v => patchElement(selected.id, { width: v })} />
+                                <LabeledNumber label={t('components.templateEditor.height')} value={selected.height} onChange={v => patchElement(selected.id, { height: v })} />
                             </div>
 
                             {selected.type === 'text' && (
                                 <>
                                     <div>
-                                        <label className="block text-xs text-muted-foreground mb-1">İçerik</label>
+                                        <label className="block text-xs text-muted-foreground mb-1">{t('components.templateEditor.content')}</label>
                                         <textarea
                                             value={selected.content}
                                             onChange={e => patchElement(selected.id, { content: e.target.value })}
                                             rows={4}
                                             className="w-full px-2 py-1.5 rounded-md bg-background border border-input text-xs font-mono"
-                                            placeholder="Metin veya [fullName]"
+                                            placeholder={t('components.templateEditor.contentPlaceholder')}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs text-muted-foreground mb-1">Alan Ekle</label>
+                                        <label className="block text-xs text-muted-foreground mb-1">{t('components.templateEditor.addField')}</label>
                                         <select
                                             value=""
                                             onChange={e => {
@@ -565,34 +570,37 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                                             }}
                                             className="w-full px-2 py-1.5 rounded-md bg-background border border-input text-xs"
                                         >
-                                            <option value="">— Seç —</option>
-                                            {PLACEHOLDER_FIELDS.map(f => (
-                                                <option key={f.key} value={f.key}>{f.label} [{f.key}]</option>
-                                            ))}
+                                            <option value="">{t('common.select')}</option>
+                                            {PLACEHOLDER_FIELDS.map(f => {
+                                                const fieldLabel = t(`components.templateEditor.field_${f.key}`, f.label);
+                                                return (
+                                                    <option key={f.key} value={f.key}>{fieldLabel} [{f.key}]</option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
-                                    <LabeledNumber label="Yazı boyutu (pt)" value={selected.fontSize} onChange={v => patchElement(selected.id, { fontSize: v })} />
+                                    <LabeledNumber label={t('components.templateEditor.fontSize')} value={selected.fontSize} onChange={v => patchElement(selected.id, { fontSize: v })} />
                                     <div className="flex items-center gap-2">
                                         <button
                                             type="button"
                                             onClick={() => patchElement(selected.id, { bold: !selected.bold })}
                                             className={`p-2 rounded-md border ${selected.bold ? 'bg-primary text-primary-foreground border-primary' : 'border-input bg-background hover:bg-muted'}`}
-                                            aria-label="Kalın"
+                                            aria-label={t('components.templateEditor.bold')}
                                         >
                                             <Bold className="w-3.5 h-3.5" />
                                         </button>
                                         <div className="flex items-center rounded-md border border-input bg-background overflow-hidden">
                                             {[
-                                                { k: 'left', Icon: AlignLeft },
-                                                { k: 'center', Icon: AlignCenter },
-                                                { k: 'right', Icon: AlignRight }
-                                            ].map(({ k, Icon }) => (
+                                                { k: 'left', Icon: AlignLeft, label: 'left' },
+                                                { k: 'center', Icon: AlignCenter, label: 'center' },
+                                                { k: 'right', Icon: AlignRight, label: 'right' }
+                                            ].map(({ k, Icon, label }) => (
                                                 <button
                                                     key={k}
                                                     type="button"
                                                     onClick={() => patchElement(selected.id, { align: k })}
                                                     className={`p-2 ${selected.align === k ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-                                                    aria-label={`Hizala ${k}`}
+                                                    aria-label={t(`components.templateEditor.align_${label}`)}
                                                 >
                                                     <Icon className="w-3.5 h-3.5" />
                                                 </button>
@@ -604,18 +612,21 @@ export default function TemplateEditor({ open, onClose, templateType }) {
 
                             {selected.type === 'barcode' && (
                                 <div>
-                                    <label className="block text-xs text-muted-foreground mb-1">Veri alanı</label>
+                                    <label className="block text-xs text-muted-foreground mb-1">{t('components.templateEditor.dataField')}</label>
                                     <select
                                         value={selected.field}
                                         onChange={e => patchElement(selected.id, { field: e.target.value })}
                                         className="w-full px-2 py-1.5 rounded-md bg-background border border-input text-xs"
                                     >
-                                        {PLACEHOLDER_FIELDS.map(f => (
-                                            <option key={f.key} value={f.key}>{f.label}</option>
-                                        ))}
+                                        {PLACEHOLDER_FIELDS.map(f => {
+                                            const fieldLabel = t(`components.templateEditor.field_${f.key}`, f.label);
+                                            return (
+                                                <option key={f.key} value={f.key}>{fieldLabel}</option>
+                                            );
+                                        })}
                                     </select>
                                     <p className="text-[11px] text-muted-foreground mt-1">
-                                        Code 39 barkod — yalnızca A-Z, 0-9 ve birkaç sembol desteklenir.
+                                        {t('components.templateEditor.barcodeDesc')}
                                     </p>
                                 </div>
                             )}
@@ -629,8 +640,8 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                 <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-8 z-10" onClick={() => setPreviewOpen(false)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-[95vw] max-h-[95vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-3 border-b border-border">
-                            <span className="text-sm font-semibold text-foreground">Önizleme — Örnek Veri</span>
-                            <button onClick={() => setPreviewOpen(false)} className="p-1.5 hover:bg-muted rounded-md" aria-label="Kapat">
+                            <span className="text-sm font-semibold text-foreground">{t('components.templateEditor.previewTitle')}</span>
+                            <button onClick={() => setPreviewOpen(false)} className="p-1.5 hover:bg-muted rounded-md" aria-label={t('common.close')}>
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
@@ -655,7 +666,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
 function LabeledNumber({ label, value, onChange }) {
     return (
         <label className="block">
-            <span className="block text-[11px] text-muted-foreground mb-0.5">{label}</span>
+            <span className="block text-[11px] text-muted-foreground mb-0.5 whitespace-nowrap">{label}</span>
             <input
                 type="number"
                 step="0.5"

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customersApi } from '../services/api';
 import { cn } from '../lib/utils';
@@ -50,6 +51,7 @@ function downloadTemplate() {
 }
 
 export default function CustomerImportModal({ isOpen, onClose }) {
+    const { t } = useTranslation();
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [importing, setImporting] = useState(false);
@@ -79,7 +81,7 @@ export default function CustomerImportModal({ isOpen, onClose }) {
         if (f && (f.name.endsWith('.csv') || f.name.endsWith('.txt'))) {
             handleFile(f);
         } else {
-            toast.error('Lütfen CSV dosyası yükleyin');
+            toast.error(t('components.customerImport.csvError'));
         }
     };
 
@@ -106,9 +108,9 @@ export default function CustomerImportModal({ isOpen, onClose }) {
             }
             setResult({ success, failed, total: preview.rows.length });
             queryClient.invalidateQueries({ queryKey: ['customers'] });
-            toast.success(`${success} müşteri başarıyla içeri aktarıldı`);
+            toast.success(t('components.customerImport.importSuccess', { count: success }));
         } catch (err) {
-            toast.error('İçeri aktarma sırasında hata oluştu');
+            toast.error(t('components.customerImport.importError'));
         } finally {
             setImporting(false);
         }
@@ -130,7 +132,7 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                 <div className="flex items-center justify-between p-5 border-b border-border">
                     <div className="flex items-center gap-2">
                         <FileSpreadsheet className="w-5 h-5 text-primary" />
-                        <h2 className="text-lg font-semibold">Müşteri İçeri Aktar</h2>
+                        <h2 className="text-lg font-semibold">{t('components.customerImport.title')}</h2>
                     </div>
                     <button onClick={handleClose} className="p-2 hover:bg-muted rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
@@ -140,12 +142,12 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                     {/* Step 1: Template */}
                     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div>
-                            <p className="text-sm font-medium">1. Şablonu indir</p>
-                            <p className="text-xs text-muted-foreground">CSV şablonunu doldurup yükleyin</p>
+                            <p className="text-sm font-medium">{t('components.customerImport.step1')}</p>
+                            <p className="text-xs text-muted-foreground">{t('components.customerImport.step1Desc')}</p>
                         </div>
                         <button onClick={downloadTemplate}
                             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
-                            <Download className="w-4 h-4" /> Şablon İndir
+                            <Download className="w-4 h-4" /> {t('components.customerImport.downloadTemplate')}
                         </button>
                     </div>
 
@@ -161,8 +163,8 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                         )}
                     >
                         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium">2. CSV dosyasını sürükleyin veya tıklayın</p>
-                        <p className="text-xs text-muted-foreground mt-1">Desteklenen: .csv, .txt (UTF-8, ; veya , ayraç)</p>
+                        <p className="text-sm font-medium">{t('components.customerImport.step2')}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('components.customerImport.step2Desc')}</p>
                         {file && <p className="text-xs text-primary mt-2">📁 {file.name}</p>}
                         <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden"
                             onChange={(e) => handleFile(e.target.files?.[0])} />
@@ -171,17 +173,17 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                     {/* Step 3: Preview */}
                     {preview && preview.rows.length > 0 && (
                         <div>
-                            <p className="text-sm font-medium mb-2">3. Önizleme ({preview.rows.length} kayıt bulundu)</p>
+                            <p className="text-sm font-medium mb-2">{t('components.customerImport.step3', { count: preview.rows.length })}</p>
                             <div className="border border-border rounded-lg overflow-hidden">
                                 <table className="w-full text-xs">
                                     <thead className="bg-muted/50">
                                         <tr>
                                             <th className="text-left px-3 py-2 font-medium">#</th>
-                                            <th className="text-left px-3 py-2 font-medium">İsim</th>
-                                            <th className="text-left px-3 py-2 font-medium">Telefon</th>
-                                            <th className="text-left px-3 py-2 font-medium">Email</th>
-                                            <th className="text-left px-3 py-2 font-medium">Tür</th>
-                                            <th className="text-left px-3 py-2 font-medium">Kaynak</th>
+                                            <th className="text-left px-3 py-2 font-medium">{t('pages.customers.fullName')}</th>
+                                            <th className="text-left px-3 py-2 font-medium">{t('pages.customers.phone')}</th>
+                                            <th className="text-left px-3 py-2 font-medium">{t('pages.customers.email')}</th>
+                                            <th className="text-left px-3 py-2 font-medium">{t('components.customerImport.type')}</th>
+                                            <th className="text-left px-3 py-2 font-medium">{t('components.customerImport.source')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -199,7 +201,7 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                                 </table>
                                 {preview.rows.length > 5 && (
                                     <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/30 border-t border-border">
-                                        ...ve {preview.rows.length - 5} kayıt daha
+                                        {t('components.customerImport.moreRecords', { count: preview.rows.length - 5 })}
                                     </div>
                                 )}
                             </div>
@@ -209,7 +211,7 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                     {preview && preview.rows.length === 0 && (
                         <div className="flex items-center gap-2 p-3 bg-red-500/10 text-red-500 rounded-lg text-sm">
                             <AlertCircle className="w-4 h-4 shrink-0" />
-                            Dosyada geçerli kayıt bulunamadı. Sütun adlarını kontrol edin.
+                            {t('components.customerImport.noValidRecords')}
                         </div>
                     )}
 
@@ -218,8 +220,8 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                         <div className={cn('flex items-center gap-2 p-3 rounded-lg text-sm',
                             result.failed > 0 ? 'bg-yellow-500/10 text-yellow-600' : 'bg-green-500/10 text-green-600')}>
                             <CheckCircle className="w-4 h-4 shrink-0" />
-                            {result.success}/{result.total} müşteri başarıyla aktarıldı.
-                            {result.failed > 0 && ` ${result.failed} kayıt başarısız oldu.`}
+                            {t('components.customerImport.importResult', { success: result.success, total: result.total })}
+                            {result.failed > 0 && t('components.customerImport.failedRecords', { count: result.failed })}
                         </div>
                     )}
                 </div>
@@ -227,13 +229,13 @@ export default function CustomerImportModal({ isOpen, onClose }) {
                 {/* Footer */}
                 <div className="flex justify-end gap-3 p-5 border-t border-border">
                     <button onClick={handleClose} className="px-4 py-2 border border-border rounded-lg hover:bg-muted text-sm">
-                        Kapat
+                        {t('common.close')}
                     </button>
                     <button onClick={handleImport}
                         disabled={!preview?.rows?.length || importing || !!result}
                         className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 text-sm">
                         {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                        {importing ? 'Aktarılıyor...' : 'İçeri Aktar'}
+                        {importing ? t('components.customerImport.importing') : t('components.customerImport.import')}
                     </button>
                 </div>
             </div>
