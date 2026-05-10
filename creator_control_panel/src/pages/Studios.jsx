@@ -10,6 +10,10 @@ import toast from 'react-hot-toast';
 import { creatorApi } from '../services/creatorApi';
 import BotConfigModal from '../components/BotConfigModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PlanChangeModal, { PlanBadge } from '../components/PlanChangeModal';
+import SuspendModal from '../components/SuspendModal';
+import SubscriptionModal from '../components/SubscriptionModal';
+import CouponApplyModal from '../components/CouponApplyModal';
 
 const SECRET_MASK = '••••••••';
 
@@ -28,6 +32,65 @@ function formatLastLogin(lastLoginAt) {
     const diffD = Math.floor(diffH / 24);
     if (diffD < 30) return `${diffD} gün önce`;
     return date.toLocaleDateString('tr-TR');
+}
+
+// B1/B3: Subscription expiry badge
+function SubscriptionBadge({ subscription }) {
+    if (!subscription?.expiresAt) return null;
+    const expiresDate = subscription.expiresAt?.toDate
+        ? subscription.expiresAt.toDate()
+        : new Date(subscription.expiresAt);
+    if (isNaN(expiresDate.getTime())) return null;
+
+    const now = new Date();
+    const diffMs = expiresDate - now;
+    const diffDays = Math.ceil(diffMs / 86400000);
+
+    const status = subscription.status;
+    let color = '#22c55e';
+    let label = '';
+
+    if (status === 'trial') {
+        label = `Deneme: ${diffDays > 0 ? diffDays + ' gün kaldı' : 'Süresi doldu'}`;
+        color = '#8b5cf6';
+    } else if (status === 'grace_period') {
+        label = 'Grace period';
+        color = '#f59e0b';
+    } else if (status === 'expired') {
+        label = 'Süresi doldu';
+        color = '#ef4444';
+    } else if (diffDays <= 0) {
+        label = 'Süresi doldu';
+        color = '#ef4444';
+    } else if (diffDays <= 7) {
+        label = `Bitiş: ${diffDays} gün kaldı`;
+        color = '#ef4444';
+    } else if (diffDays <= 30) {
+        label = `Bitiş: ${diffDays} gün kaldı`;
+        color = '#f59e0b';
+    } else {
+        label = `Bitiş: ${expiresDate.toLocaleDateString('tr-TR')}`;
+        color = '#22c55e';
+    }
+
+    return (
+        <span style={{
+            fontSize: '11px', fontWeight: 500, padding: '1px 7px', borderRadius: '10px',
+            background: color + '18', color, border: `1px solid ${color}33`
+        }}>
+            {label}
+        </span>
+    );
+}
+
+// A2: Suspension info badge
+function SuspensionBadge({ suspension }) {
+    if (!suspension?.active) return null;
+    return (
+        <span style={{ fontSize: '11px', color: '#ef4444', fontStyle: 'italic' }} title={suspension.reason}>
+            {suspension.reason?.substring(0, 40)}{suspension.reason?.length > 40 ? '...' : ''}
+        </span>
+    );
 }
 
 export default function Studios() {
@@ -65,6 +128,12 @@ export default function Studios() {
 
     // Bot Config Modal
     const [showBotModal, setShowBotModal] = useState(null);
+
+    // Faz 2 modals
+    const [showPlanModal, setShowPlanModal] = useState(null);
+    const [showSuspendModal, setShowSuspendModal] = useState(null);
+    const [showSubscriptionModal, setShowSubscriptionModal] = useState(null);
+    const [showCouponModal, setShowCouponModal] = useState(null);
 
     // Confirm Dialog state
     const [confirmState, setConfirmState] = useState(null);
@@ -222,7 +291,8 @@ export default function Studios() {
                     phone: formData.contact,
                     adminPassword: formData.adminPassword,
                     userPassword: formData.userPassword,
-                    hwidLock: false
+                    hwidLock: false,
+                    trialDays: formData.trialDays ? parseInt(formData.trialDays) : undefined
                 });
 
                 if (result?.success) {
@@ -496,9 +566,16 @@ export default function Studios() {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                     <span style={{ fontSize: '22px' }}>📷</span>
                                                     <div>
-                                                        <div style={{ fontWeight: 500 }}>{studio.info?.name || 'İsimsiz'}</div>
+                                                        <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                            {studio.info?.name || 'İsimsiz'}
+                                                            <PlanBadge tier={studio.plan?.tier || 'basic'} />
+                                                        </div>
                                                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                                                             {studio.info?.owner || 'Sahip yok'} · HWID: {studio.license?.hwid_lock ? '🔒 Kayıtlı' : '⏳ Bekliyor'}
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
+                                                            {studio.subscription && <SubscriptionBadge subscription={studio.subscription} />}
+                                                            {studio.suspension?.active && <SuspensionBadge suspension={studio.suspension} />}
                                                         </div>
                                                         {studio.activity?.last_login_at && (
                                                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -519,6 +596,18 @@ export default function Studios() {
                                                         <button className="btn btn-secondary btn-sm" title="Düzenle" onClick={() => openEditModal(studio)}>
                                                             <Edit size={14} />
                                                         </button>
+                                                        <button className="btn btn-sm" title="Plan Değiştir" onClick={() => setShowPlanModal(studio)}
+                                                            style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)', fontSize: '11px', padding: '4px 8px' }}>
+                                                            Plan
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Aboneliği Güncelle" onClick={() => setShowSubscriptionModal(studio)}
+                                                            style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
+                                                            <Clock size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Kupon Uygula" onClick={() => setShowCouponModal(studio)}
+                                                            style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
+                                                            <Key size={14} />
+                                                        </button>
                                                         <button className="btn btn-sm" title="AI Bot Ayarları" onClick={() => setShowBotModal(studio)}
                                                             style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.3)' }}>
                                                             🤖
@@ -526,7 +615,14 @@ export default function Studios() {
                                                         <button className="btn btn-secondary btn-sm" title="Cihazlar" disabled={deviceModalPending} onClick={() => openDeviceModal(studio)}>
                                                             <Monitor size={14} />
                                                         </button>
-                                                        <button className="btn btn-secondary btn-sm" title="Durum Değiştir" onClick={() => handleToggleStatus(studio)}>
+                                                        <button className="btn btn-secondary btn-sm" title="Durum Değiştir"
+                                                            onClick={() => {
+                                                                if (studio.info?.subscription_status === 'active') {
+                                                                    setShowSuspendModal(studio);
+                                                                } else {
+                                                                    handleToggleStatus(studio);
+                                                                }
+                                                            }}>
                                                             {studio.info?.subscription_status === 'active' ? <Pause size={14} /> : <Play size={14} />}
                                                         </button>
                                                         <button className="btn btn-sm" title="Veri Sıfırlama" onClick={() => { setShowResetModal(studio); setResetOption('archives'); setResetConfirmText(''); }}
@@ -729,6 +825,21 @@ export default function Studios() {
                                                         onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                                                     />
                                                 </div>
+                                                {!editingStudio && (
+                                                    <div className="form-group">
+                                                        <label className="form-label">
+                                                            Deneme Süresi (gün)
+                                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                                                                (Boş bırakılırsa deneme başlatılmaz)
+                                                            </span>
+                                                        </label>
+                                                        <input type="number" min="1" max="365" className="form-input"
+                                                            placeholder="Örn: 14"
+                                                            value={formData.trialDays || ''}
+                                                            onChange={e => setFormData({ ...formData, trialDays: e.target.value })}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </>
@@ -1143,6 +1254,36 @@ export default function Studios() {
                 danger={confirmState?.danger}
                 requireText={confirmState?.requireText}
             />
+
+            {/* Faz 2 Modals */}
+            {showPlanModal && (
+                <PlanChangeModal
+                    studio={showPlanModal}
+                    onClose={() => setShowPlanModal(null)}
+                    onSuccess={loadData}
+                />
+            )}
+            {showSuspendModal && (
+                <SuspendModal
+                    studio={showSuspendModal}
+                    onClose={() => setShowSuspendModal(null)}
+                    onSuccess={loadData}
+                />
+            )}
+            {showSubscriptionModal && (
+                <SubscriptionModal
+                    studio={showSubscriptionModal}
+                    onClose={() => setShowSubscriptionModal(null)}
+                    onSuccess={loadData}
+                />
+            )}
+            {showCouponModal && (
+                <CouponApplyModal
+                    studio={showCouponModal}
+                    onClose={() => setShowCouponModal(null)}
+                    onSuccess={loadData}
+                />
+            )}
         </div>
     );
 }

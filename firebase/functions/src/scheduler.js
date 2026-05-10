@@ -6,6 +6,12 @@
 const admin = require('firebase-admin');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 
+// Faz 2 schedulers
+const { checkSuspensions } = require('./scheduled/checkSuspensions');
+const { checkSubscriptions } = require('./scheduled/checkSubscriptions');
+exports.checkSuspensions = checkSuspensions;
+exports.checkSubscriptions = checkSubscriptions;
+
 /**
  * Check and expire studios with expired licenses
  * Runs every 24 hours, scans all organizations

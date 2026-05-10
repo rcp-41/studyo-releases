@@ -452,5 +452,119 @@ export const creatorApi = {
         } catch (error) {
             handleApiError(error, 'Disable TOTP');
         }
+    },
+
+    // ============================================
+    // A1 — Plan Değişikliği
+    // ============================================
+
+    changeStudioPlan: async (organizationId, studioId, newTier) => {
+        try {
+            const func = httpsCallable(functions, 'setup-changeStudioPlan');
+            const result = await func({ organizationId, studioId, newTier });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Change Studio Plan');
+        }
+    },
+
+    // ============================================
+    // A2 — Suspend with reason + auto-reactivate
+    // ============================================
+
+    suspendStudioWithReason: async (organizationId, studioId, reason, reactivateAfterDays) => {
+        try {
+            const func = httpsCallable(functions, 'setup-suspendStudioWithReason');
+            const result = await func({ organizationId, studioId, reason, reactivateAfterDays });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Suspend Studio With Reason');
+        }
+    },
+
+    // ============================================
+    // B1 — Subscription management
+    // ============================================
+
+    updateSubscription: async (organizationId, studioId, expiresAt) => {
+        try {
+            const func = httpsCallable(functions, 'setup-updateSubscription');
+            const result = await func({ organizationId, studioId, expiresAt });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update Subscription');
+        }
+    },
+
+    // ============================================
+    // B3 — Trial
+    // ============================================
+
+    setTrialSubscription: async (organizationId, studioId, trialDays) => {
+        try {
+            const func = httpsCallable(functions, 'setup-setTrialSubscription');
+            const result = await func({ organizationId, studioId, trialDays });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Set Trial Subscription');
+        }
+    },
+
+    // ============================================
+    // B4 — Coupons
+    // ============================================
+
+    createCoupon: async ({ code, type, value, expiresAt, usageLimit, allowedOrgs }) => {
+        try {
+            const func = httpsCallable(functions, 'setup-createCoupon');
+            const result = await func({ code, type, value, expiresAt, usageLimit, allowedOrgs });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Create Coupon');
+        }
+    },
+
+    listCoupons: async () => {
+        try {
+            const func = httpsCallable(functions, 'setup-listCoupons');
+            const result = await func({});
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'List Coupons');
+        }
+    },
+
+    redeemCoupon: async (organizationId, studioId, code) => {
+        try {
+            const func = httpsCallable(functions, 'setup-redeemCoupon');
+            const result = await func({ organizationId, studioId, code });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Redeem Coupon');
+        }
+    },
+
+    // ============================================
+    // F4 — Versioning
+    // ============================================
+
+    getVersioning: async () => {
+        try {
+            const func = httpsCallable(functions, 'setup-getVersioning');
+            const result = await func({});
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Versioning');
+        }
+    },
+
+    updateVersioning: async (config) => {
+        try {
+            const func = httpsCallable(functions, 'setup-updateVersioning');
+            const result = await func(config);
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Update Versioning');
+        }
     }
 };

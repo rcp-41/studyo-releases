@@ -6,6 +6,13 @@ const { checkRateLimit } = require('./rateLimit');
 const db = admin.firestore();
 const auth = admin.auth();
 
+// A1 — Plan tier definitions
+const PLAN_TIERS = {
+    basic: { maxUsers: 5, maxStorage: 5368709120, features: { whatsapp: false, voiceBot: false, analytics: false } },
+    pro: { maxUsers: 20, maxStorage: 21474836480, features: { whatsapp: true, voiceBot: false, analytics: true } },
+    enterprise: { maxUsers: 100, maxStorage: 107374182400, features: { whatsapp: true, voiceBot: true, analytics: true } }
+};
+
 exports.createStudio = onCall({ enforceAppCheck: false }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
@@ -26,7 +33,8 @@ exports.createStudio = onCall({ enforceAppCheck: false }, async (request) => {
         adminPassword,
         userPassword,
         licenseKey,
-        hwidLock
+        hwidLock,
+        trialDays
     } = request.data;
 
     if (!organizationId) {
@@ -58,6 +66,21 @@ exports.createStudio = onCall({ enforceAppCheck: false }, async (request) => {
         // B6: Always generate license key server-side (ignore any client-supplied key)
         const generatedLicenseKey = DatabaseHandler.generateLicenseKey();
 
+        // B3: Build subscription block (trial or default active)
+        let subscriptionBlock = null;
+        if (trialDays && parseInt(trialDays) > 0) {
+            const trialDaysInt = parseInt(trialDays);
+            const now = new Date();
+            const trialEndsAt = admin.firestore.Timestamp.fromDate(new Date(now.getTime() + trialDaysInt * 86400000));
+            subscriptionBlock = {
+                startedAt: admin.firestore.Timestamp.fromDate(now),
+                status: 'trial',
+                trialEndsAt,
+                expiresAt: trialEndsAt,
+                graceEndsAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + (trialDaysInt + 3) * 86400000))
+            };
+        }
+
         const studioData = {
             info: {
                 name,
@@ -74,6 +97,10 @@ exports.createStudio = onCall({ enforceAppCheck: false }, async (request) => {
                 expires_at: null,
                 last_validated_at: null
             },
+            // A1: Default plan
+            plan: { tier: 'basic', ...PLAN_TIERS.basic },
+            // B1/B3: Subscription block
+            ...(subscriptionBlock ? { subscription: subscriptionBlock } : {}),
             organizationId: organizationId,
             createdAt: new Date().toISOString(),
             createdBy: request.auth?.uid || 'system'
@@ -582,7 +609,362 @@ exports.getActivityTimeline = onCall({ enforceAppCheck: false }, async (request)
     }
 });
 
+// ============================================================
+// A1 — Plan Değişikliği
+// ============================================================
+
+exports.changeStudioPlan = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { organizationId, studioId, newTier } = request.data || {};
+    if (!organizationId || !studioId || !newTier) throw new HttpsError('invalid-argument', 'organizationId, studioId, newTier required');
+    if (!PLAN_TIERS[newTier]) throw new HttpsError('invalid-argument', `Invalid tier. Must be: ${Object.keys(PLAN_TIERS).join(', ')}`);
+
+    const studioRef = db.collection('organizations').doc(organizationId).collection('studios').doc(studioId);
+    const studioDoc = await studioRef.get();
+    if (!studioDoc.exists) throw new HttpsError('not-found', 'Studio not found');
+
+    const current = studioDoc.data();
+    const oldPlan = current.plan || null;
+    const tierConfig = PLAN_TIERS[newTier];
+    const newPlan = { tier: newTier, ...tierConfig, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+
+    await studioRef.update({ plan: newPlan, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+    await studioRef.collection('auditLogs').add({
+        action: 'plan_changed',
+        oldPlan: oldPlan || null,
+        newPlan: { tier: newTier },
+        performedBy: request.auth.uid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    await studioRef.collection('activityTimeline').add({
+        event: 'plan_changed',
+        oldTier: oldPlan?.tier || null,
+        newTier,
+        performedBy: request.auth.uid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return { success: true, plan: { tier: newTier, ...tierConfig } };
+});
+
+// ============================================================
+// A2 — Geçici Devre Dışı + Neden + Auto-reactivate
+// ============================================================
+
+exports.suspendStudioWithReason = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { organizationId, studioId, reason, reactivateAfterDays } = request.data || {};
+    if (!organizationId || !studioId) throw new HttpsError('invalid-argument', 'organizationId and studioId required');
+    if (!reason || !reason.trim()) throw new HttpsError('invalid-argument', 'reason is required');
+
+    const studioRef = db.collection('organizations').doc(organizationId).collection('studios').doc(studioId);
+    const studioDoc = await studioRef.get();
+    if (!studioDoc.exists) throw new HttpsError('not-found', 'Studio not found');
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const reactivateAt = reactivateAfterDays
+        ? admin.firestore.Timestamp.fromDate(new Date(Date.now() + reactivateAfterDays * 86400000))
+        : null;
+
+    const suspension = {
+        active: true,
+        reason: reason.trim(),
+        suspendedAt: now,
+        suspendedBy: request.auth.uid,
+        reactivateAt: reactivateAt
+    };
+
+    await studioRef.update({
+        'info.subscription_status': 'suspended',
+        suspension,
+        updatedAt: now
+    });
+
+    await studioRef.collection('auditLogs').add({
+        action: 'studio_suspended_with_reason',
+        reason: reason.trim(),
+        reactivateAfterDays: reactivateAfterDays || null,
+        performedBy: request.auth.uid,
+        createdAt: now
+    });
+
+    await studioRef.collection('activityTimeline').add({
+        event: 'studio_suspended',
+        reason: reason.trim(),
+        reactivateAt: reactivateAt,
+        performedBy: request.auth.uid,
+        createdAt: now
+    });
+
+    return { success: true };
+});
+
+// ============================================================
+// B1 — Abonelik Güncelleme (Manuel)
+// ============================================================
+
+exports.updateSubscription = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { organizationId, studioId, expiresAt } = request.data || {};
+    if (!organizationId || !studioId || !expiresAt) throw new HttpsError('invalid-argument', 'organizationId, studioId, expiresAt required');
+
+    const expiresDate = new Date(expiresAt);
+    if (isNaN(expiresDate.getTime())) throw new HttpsError('invalid-argument', 'Invalid expiresAt date');
+
+    const studioRef = db.collection('organizations').doc(organizationId).collection('studios').doc(studioId);
+    const studioDoc = await studioRef.get();
+    if (!studioDoc.exists) throw new HttpsError('not-found', 'Studio not found');
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const expiresTimestamp = admin.firestore.Timestamp.fromDate(expiresDate);
+    const graceEndsAt = admin.firestore.Timestamp.fromDate(new Date(expiresDate.getTime() + 3 * 86400000));
+
+    const subscription = {
+        startedAt: studioDoc.data().subscription?.startedAt || now,
+        expiresAt: expiresTimestamp,
+        status: 'active',
+        graceEndsAt
+    };
+
+    await studioRef.update({
+        subscription,
+        'info.subscription_status': 'active',
+        updatedAt: now
+    });
+
+    await studioRef.collection('auditLogs').add({
+        action: 'subscription_updated',
+        expiresAt: expiresDate.toISOString(),
+        performedBy: request.auth.uid,
+        createdAt: now
+    });
+
+    return { success: true, subscription: { expiresAt: expiresDate.toISOString() } };
+});
+
+// ============================================================
+// B3 — Trial Yönetimi (createStudio artık trialDays alıyor — ayrı callable değil)
+// Ayrı trial başlatma callable'ı stüdyo oluşturulduktan sonra veya standalone kullanım için
+// ============================================================
+
+exports.setTrialSubscription = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { organizationId, studioId, trialDays } = request.data || {};
+    if (!organizationId || !studioId || !trialDays) throw new HttpsError('invalid-argument', 'organizationId, studioId, trialDays required');
+
+    const days = parseInt(trialDays);
+    if (isNaN(days) || days < 1 || days > 365) throw new HttpsError('invalid-argument', 'trialDays must be 1-365');
+
+    const studioRef = db.collection('organizations').doc(organizationId).collection('studios').doc(studioId);
+    const studioDoc = await studioRef.get();
+    if (!studioDoc.exists) throw new HttpsError('not-found', 'Studio not found');
+
+    const now = new Date();
+    const trialEndsAt = admin.firestore.Timestamp.fromDate(new Date(now.getTime() + days * 86400000));
+
+    const subscription = {
+        startedAt: admin.firestore.Timestamp.fromDate(now),
+        status: 'trial',
+        trialEndsAt,
+        expiresAt: trialEndsAt,
+        graceEndsAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + (days + 3) * 86400000))
+    };
+
+    await studioRef.update({
+        subscription,
+        'info.subscription_status': 'active',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    await studioRef.collection('auditLogs').add({
+        action: 'trial_started',
+        trialDays: days,
+        trialEndsAt: trialEndsAt.toDate().toISOString(),
+        performedBy: request.auth.uid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return { success: true, trialEndsAt: trialEndsAt.toDate().toISOString() };
+});
+
+// ============================================================
+// B4 — Kupon Kodu
+// ============================================================
+
+exports.createCoupon = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { code, type, value, expiresAt, usageLimit, allowedOrgs } = request.data || {};
+    if (!code || !type || !value) throw new HttpsError('invalid-argument', 'code, type, value required');
+    if (!['discount', 'extension'].includes(type)) throw new HttpsError('invalid-argument', 'type must be discount or extension');
+    if (typeof value !== 'number' || value <= 0) throw new HttpsError('invalid-argument', 'value must be positive number');
+
+    const codeUpper = code.trim().toUpperCase();
+    const couponRef = db.collection('coupons').doc(codeUpper);
+    const existing = await couponRef.get();
+    if (existing.exists) throw new HttpsError('already-exists', 'Coupon code already exists');
+
+    const couponData = {
+        code: codeUpper,
+        type,
+        value,
+        expiresAt: expiresAt ? admin.firestore.Timestamp.fromDate(new Date(expiresAt)) : null,
+        usageLimit: usageLimit || null,
+        usedCount: 0,
+        allowedOrgs: allowedOrgs || [],
+        createdBy: request.auth.uid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await couponRef.set(couponData);
+
+    return { success: true, code: codeUpper };
+});
+
+exports.listCoupons = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const snap = await db.collection('coupons').orderBy('createdAt', 'desc').limit(100).get();
+    const coupons = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        expiresAt: doc.data().expiresAt?.toDate?.()?.toISOString() || null,
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+    }));
+    return { success: true, coupons };
+});
+
+exports.redeemCoupon = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { organizationId, studioId, code } = request.data || {};
+    if (!organizationId || !studioId || !code) throw new HttpsError('invalid-argument', 'organizationId, studioId, code required');
+
+    const codeUpper = code.trim().toUpperCase();
+    const couponRef = db.collection('coupons').doc(codeUpper);
+    const couponDoc = await couponRef.get();
+    if (!couponDoc.exists) throw new HttpsError('not-found', 'Coupon not found');
+
+    const coupon = couponDoc.data();
+
+    // Validate
+    if (coupon.expiresAt && coupon.expiresAt.toDate() < new Date()) {
+        throw new HttpsError('failed-precondition', 'Coupon has expired');
+    }
+    if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+        throw new HttpsError('resource-exhausted', 'Coupon usage limit reached');
+    }
+    if (coupon.allowedOrgs && coupon.allowedOrgs.length > 0 && !coupon.allowedOrgs.includes(organizationId)) {
+        throw new HttpsError('permission-denied', 'Coupon not valid for this organization');
+    }
+
+    const studioRef = db.collection('organizations').doc(organizationId).collection('studios').doc(studioId);
+    const studioDoc = await studioRef.get();
+    if (!studioDoc.exists) throw new HttpsError('not-found', 'Studio not found');
+
+    let result = { applied: false, message: '' };
+
+    if (coupon.type === 'extension') {
+        const studio = studioDoc.data();
+        const currentExpiry = studio.subscription?.expiresAt?.toDate?.() || new Date();
+        const baseDate = currentExpiry > new Date() ? currentExpiry : new Date();
+        const newExpiry = new Date(baseDate.getTime() + coupon.value * 86400000);
+        const newExpiryTs = admin.firestore.Timestamp.fromDate(newExpiry);
+        const graceEndsAt = admin.firestore.Timestamp.fromDate(new Date(newExpiry.getTime() + 3 * 86400000));
+
+        await studioRef.update({
+            'subscription.expiresAt': newExpiryTs,
+            'subscription.graceEndsAt': graceEndsAt,
+            'subscription.status': 'active',
+            'info.subscription_status': 'active',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        result = { applied: true, message: `Abonelik ${coupon.value} gün uzatıldı`, newExpiresAt: newExpiry.toISOString() };
+    } else if (coupon.type === 'discount') {
+        // Flag for future payment integration
+        await studioRef.update({
+            'pendingDiscount': { couponCode: codeUpper, discountValue: coupon.value, appliedAt: admin.firestore.FieldValue.serverTimestamp() },
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        result = { applied: true, message: `%${coupon.value} indirim kodu uygulandı (ödeme entegrasyonu bekleniyor)` };
+    }
+
+    // Increment usedCount
+    await couponRef.update({ usedCount: admin.firestore.FieldValue.increment(1) });
+
+    // Audit log on studio
+    await studioRef.collection('auditLogs').add({
+        action: 'coupon_redeemed',
+        couponCode: codeUpper,
+        couponType: coupon.type,
+        couponValue: coupon.value,
+        result: result.message,
+        performedBy: request.auth.uid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return { success: true, ...result };
+});
+
+// ============================================================
+// F4 — Sürüm Güncelleme Zorunluluk Bayrağı
+// ============================================================
+
+exports.getVersioning = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const doc = await db.collection('appVersioning').doc('config').get();
+    if (!doc.exists) {
+        return { success: true, config: { latestVersion: '1.0.0', minRequiredVersion: '1.0.0', channel: 'stable', forceUpdate: false, releaseNotes: '' } };
+    }
+    return { success: true, config: doc.data() };
+});
+
+exports.updateVersioning = onCall({ enforceAppCheck: false }, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+    if (request.auth.token?.role !== 'creator') throw new HttpsError('permission-denied', 'Only Creator');
+
+    const { latestVersion, minRequiredVersion, channel, forceUpdate, releaseNotes } = request.data || {};
+    if (!latestVersion || !minRequiredVersion) throw new HttpsError('invalid-argument', 'latestVersion and minRequiredVersion required');
+
+    const versionRegex = /^\d+\.\d+\.\d+$/;
+    if (!versionRegex.test(latestVersion) || !versionRegex.test(minRequiredVersion)) {
+        throw new HttpsError('invalid-argument', 'Versions must be in semver format (e.g., 1.2.3)');
+    }
+
+    const config = {
+        latestVersion,
+        minRequiredVersion,
+        channel: channel || 'stable',
+        forceUpdate: !!forceUpdate,
+        releaseNotes: releaseNotes || '',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedBy: request.auth.uid
+    };
+
+    await db.collection('appVersioning').doc('config').set(config, { merge: true });
+
+    return { success: true, config };
+});
+
+// ============================================================
 // E1: Record login activity - called by Electron client on each login
+// ============================================================
+
 exports.recordLogin = onCall({ enforceAppCheck: false }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');

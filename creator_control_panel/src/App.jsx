@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
-import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle, Bot, Shield } from 'lucide-react';
+import { Building2, LayoutDashboard, Database, Settings, LogOut, Loader2, Building, AlertTriangle, Bot, Shield, Tag, Smartphone } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 
@@ -13,6 +13,8 @@ import ErrorLogs from './pages/ErrorLogs';
 import BotConversations from './pages/BotConversations';
 import AuditLogs from './pages/AuditLogs';
 import SettingsPage from './pages/Settings';
+import Coupons from './pages/Coupons';
+import Versioning from './pages/Versioning';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -63,6 +65,14 @@ function Sidebar({ onLogout }) {
                 <NavLink to="/audit-logs" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Shield />
                     Audit Loglar
+                </NavLink>
+                <NavLink to="/coupons" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Tag />
+                    Kuponlar
+                </NavLink>
+                <NavLink to="/versioning" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Smartphone />
+                    Sürüm
                 </NavLink>
                 <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Settings />
@@ -152,6 +162,8 @@ export default function App() {
                                 <Route path="/bot-conversations" element={<ProtectedRoute user={user}><BotConversations /></ProtectedRoute>} />
                                 <Route path="/audit-logs" element={<ProtectedRoute user={user}><AuditLogs /></ProtectedRoute>} />
                                 <Route path="/settings" element={<ProtectedRoute user={user}><SettingsPage /></ProtectedRoute>} />
+                                <Route path="/coupons" element={<ProtectedRoute user={user}><Coupons /></ProtectedRoute>} />
+                                <Route path="/versioning" element={<ProtectedRoute user={user}><Versioning /></ProtectedRoute>} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Routes>
                         </main>
