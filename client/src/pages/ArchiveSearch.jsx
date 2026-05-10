@@ -160,8 +160,8 @@ export default function ArchiveSearch() {
     // Status update mutation
     const statusMutation = useMutation({
         mutationFn: ({ id, status }) => archivesApi.update(id, { workflowStatus: status }),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['archives'] }); notify.success('Durum güncellendi'); },
-        onError: () => notify.error('Durum güncellenemedi')
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['archives'] }); notify.success(t('pages.archiveSearch.statusUpdated')); },
+        onError: () => notify.error(t('pages.archiveSearch.statusUpdateFailed'))
     });
 
     // Apply remaining client-side filters (name, phone, archiveNo, paymentStatus)
@@ -242,14 +242,14 @@ export default function ArchiveSearch() {
                     <button
                         onClick={() => setViewMode('list')}
                         className={cn('p-2 rounded-md', viewMode === 'list' ? 'bg-card shadow-sm' : 'hover:bg-card/50')}
-                        title="Liste Görünümü"
+                        title={t('pages.archiveSearch.listView')}
                     >
                         <LayoutList className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => setViewMode('grouped')}
                         className={cn('p-2 rounded-md', viewMode === 'grouped' ? 'bg-card shadow-sm' : 'hover:bg-card/50')}
-                        title="Durum Görünümü"
+                        title={t('pages.archiveSearch.statusView')}
                     >
                         <LayoutGrid className="w-4 h-4" />
                     </button>
@@ -260,64 +260,64 @@ export default function ArchiveSearch() {
             <div className="bg-card border border-border rounded-xl p-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     <div>
-                        <label className="block text-xs font-medium mb-1">İsim</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.name')}</label>
                         <input type="text" value={filters.name} onChange={e => setFilters({ ...filters, name: e.target.value })}
-                            placeholder="Ad Soyad..." className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none text-sm" />
+                            placeholder={t('pages.archiveSearch.name')} className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none text-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Telefon</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.phone')}</label>
                         <input type="text" value={filters.phone} onChange={e => setFilters({ ...filters, phone: e.target.value })}
-                            placeholder="Tel..." className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none text-sm" />
+                            placeholder={t('pages.archiveSearch.phone')} className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none text-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Arşiv No</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.archiveNo')}</label>
                         <input type="text" value={filters.archiveNo} onChange={e => setFilters({ ...filters, archiveNo: e.target.value })}
                             placeholder="#..." className="w-full px-3 py-2 rounded-lg bg-background border border-input focus:border-primary outline-none text-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Tarih Başlangıç</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.dateFrom')}</label>
                         <input type="date" value={filters.dateFrom} onChange={e => setFilters({ ...filters, dateFrom: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Tarih Bitiş</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.dateTo')}</label>
                         <input type="date" value={filters.dateTo} onChange={e => setFilters({ ...filters, dateTo: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Çekim Türü</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.shootType')}</label>
                         <select value={filters.shootTypeId} onChange={e => setFilters({ ...filters, shootTypeId: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm">
-                            <option value="">Tümü</option>
+                            <option value="">{t('pages.archiveSearch.all')}</option>
                             {shootTypes?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Çekim Yeri</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.location')}</label>
                         <select value={filters.locationId} onChange={e => setFilters({ ...filters, locationId: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm">
-                            <option value="">Tümü</option>
+                            <option value="">{t('pages.archiveSearch.all')}</option>
                             {locations?.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Fotoğrafçı</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.photographer')}</label>
                         <select value={filters.photographerId} onChange={e => setFilters({ ...filters, photographerId: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm">
-                            <option value="">Tümü</option>
+                            <option value="">{t('pages.archiveSearch.all')}</option>
                             {photographers?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Okul</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.school')}</label>
                         <select value={filters.schoolId} onChange={e => setFilters({ ...filters, schoolId: e.target.value, className: '' })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm">
-                            <option value="">Tümü</option>
+                            <option value="">{t('pages.archiveSearch.all')}</option>
                             {schools?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Sınıf</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.class')}</label>
                         {(() => {
                             const school = schools?.find(s => s.id === filters.schoolId);
                             const classes = school?.classes || [];
@@ -325,7 +325,7 @@ export default function ArchiveSearch() {
                                 return (
                                     <select value={filters.className} onChange={e => setFilters({ ...filters, className: e.target.value })}
                                         className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm">
-                                        <option value="">Tümü</option>
+                                        <option value="">{t('pages.archiveSearch.all')}</option>
                                         {classes.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 );
@@ -335,31 +335,31 @@ export default function ArchiveSearch() {
                         })()}
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">İş Durumu</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.workflowStatus')}</label>
                         <select value={filters.workflowStatus} onChange={e => setFilters({ ...filters, workflowStatus: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm">
-                            <option value="">Tümü</option>
+                            <option value="">{t('pages.archiveSearch.all')}</option>
                             {Object.entries(WORKFLOW_STATUSES).map(([key, val]) => (
                                 <option key={key} value={key}>{val.label}</option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">Ödeme</label>
+                        <label className="block text-xs font-medium mb-1">{t('pages.archiveSearch.paymentStatus')}</label>
                         <select value={filters.paymentStatus} onChange={e => setFilters({ ...filters, paymentStatus: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm">
-                            <option value="">Tümü</option>
-                            <option value="paid">Ödendi</option>
-                            <option value="partial">Kapora Alındı</option>
-                            <option value="unpaid">Ödenmedi</option>
+                            <option value="">{t('pages.archiveSearch.all')}</option>
+                            <option value="paid">{t('pages.archiveSearch.paid')}</option>
+                            <option value="partial">{t('pages.archiveSearch.partial')}</option>
+                            <option value="unpaid">{t('pages.archiveSearch.unpaid')}</option>
                         </select>
                     </div>
                     <div className="flex items-end gap-2">
                         <button onClick={handleSearch} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-sm">
-                            <Search className="w-4 h-4 inline mr-1" /> Ara
+                            <Search className="w-4 h-4 inline mr-1" /> {t('pages.archiveSearch.search')}
                         </button>
                         <button onClick={handleClear} className="px-4 py-2 border border-border rounded-lg hover:bg-muted text-sm">
-                            Temizle
+                            {t('pages.archiveSearch.clear')}
                         </button>
                     </div>
                 </div>
@@ -386,7 +386,7 @@ export default function ArchiveSearch() {
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {pagedArchives.length === 0 ? (
-                                    <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Sonuç bulunamadı</td></tr>
+                                    <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">{t('pages.archiveSearch.noResults')}</td></tr>
                                 ) : (
                                     pagedArchives.map(arc => (
                                         <tr key={arc.id} className="hover:bg-muted/30">
@@ -423,7 +423,7 @@ export default function ArchiveSearch() {
                     {/* Pagination */}
                     <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>Sayfa başına:</span>
+                            <span>{t('pages.archiveSearch.pageSize')}:</span>
                             <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
                                 className="px-2 py-1 rounded bg-background border border-input text-sm outline-none">
                                 {PAGE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -431,7 +431,7 @@ export default function ArchiveSearch() {
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">
-                                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sortedArchives.length)} / {sortedArchives.length}
+                                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sortedArchives.length)} {t('pages.archiveSearch.results')} {sortedArchives.length}
                             </span>
                             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                                 className="p-1.5 rounded hover:bg-muted disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
@@ -454,7 +454,7 @@ export default function ArchiveSearch() {
                                     </div>
                                 </div>
                                 {items.length === 0 ? (
-                                    <div className="py-6 text-center text-sm text-muted-foreground">Bu durumda kayıt yok</div>
+                                    <div className="py-6 text-center text-sm text-muted-foreground">{t('pages.archiveSearch.noRecordsForStatus')}</div>
                                 ) : (
                                     <div className="divide-y divide-border">
                                         {items.map(arc => (

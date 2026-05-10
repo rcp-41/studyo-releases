@@ -30,6 +30,7 @@ import { generateSlots, appointmentTypes } from './appointments/constants';
 
 // ==================== MOVE MODAL ====================
 function MoveAppointmentModal({ isOpen, onClose, appointment }) {
+    const { t } = useTranslation();
     const [newDate, setNewDate] = useState('');
     const [newSlot, setNewSlot] = useState('');
     const queryClient = useQueryClient();
@@ -47,8 +48,8 @@ function MoveAppointmentModal({ isOpen, onClose, appointment }) {
 
     const moveMutation = useMutation({
         mutationFn: () => appointmentsApi.update(appointment.id, { appointmentDate: newDate, timeSlot: newSlot }),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); notify.success('Randevu taşındı'); onClose(); },
-        onError: () => notify.error('Randevu taşınamadı')
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); notify.success(t('appointmentsPage.appointmentMoved')); onClose(); },
+        onError: () => notify.error(t('appointmentsPage.cannotMove'))
     });
 
     if (!isOpen || !appointment) return null;
@@ -58,21 +59,21 @@ function MoveAppointmentModal({ isOpen, onClose, appointment }) {
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
             <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-sm p-6 select-text">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">Randevu Taşı</h2>
+                    <h2 className="text-lg font-semibold">{t('appointmentsPage.moveTitle')}</h2>
                     <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">✕</button>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{appointment.fullName || appointment.customer?.fullName}</p>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-xs font-medium mb-1">Yeni Tarih</label>
+                        <label className="block text-xs font-medium mb-1">{t('appointmentsPage.newDate')}</label>
                         <input type="date" value={newDate} onChange={e => { setNewDate(e.target.value); setNewSlot(''); }}
                             className="w-full px-3 py-2 rounded-lg bg-background border border-input outline-none text-sm" />
                     </div>
                     {newDate && (
                         <div>
-                            <label className="block text-xs font-medium mb-1">Boş Saatler</label>
+                            <label className="block text-xs font-medium mb-1">{t('appointmentsPage.emptySlots')}</label>
                             {availableSlots.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Bu tarihte boş saat yok</p>
+                                <p className="text-sm text-muted-foreground">{t('appointmentsPage.noAvailableSlots')}</p>
                             ) : (
                                 <div className="grid grid-cols-4 gap-1 max-h-40 overflow-y-auto">
                                     {availableSlots.map(slot => (
@@ -87,11 +88,11 @@ function MoveAppointmentModal({ isOpen, onClose, appointment }) {
                         </div>
                     )}
                     <div className="flex gap-3 pt-2">
-                        <button onClick={onClose} className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted text-sm">İptal</button>
+                        <button onClick={onClose} className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted text-sm">{t('common.cancel')}</button>
                         <button onClick={() => moveMutation.mutate()} disabled={!newDate || !newSlot || moveMutation.isPending}
                             className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 text-sm flex items-center justify-center gap-2">
                             {moveMutation.isPending && <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
-                            Taşı
+                            {t('appointmentsPage.moveTitle')}
                         </button>
                     </div>
                 </div>
@@ -243,9 +244,9 @@ export default function Appointments() {
     };
 
     const VIEW_MODES = [
-        { key: 'month', label: 'Ay', icon: CalendarRange },
-        { key: 'week', label: 'Hafta', icon: CalendarDays },
-        { key: 'day', label: 'Gün', icon: CalendarCheck }
+        { key: 'month', label: t('appointmentsPage.month'), icon: CalendarRange },
+        { key: 'week', label: t('appointmentsPage.week'), icon: CalendarDays },
+        { key: 'day', label: t('appointmentsPage.day'), icon: CalendarCheck }
     ];
 
     return (
@@ -268,7 +269,7 @@ export default function Appointments() {
                     </div>
                     <button onClick={() => { setEditAppointment(null); setSelectedSlotDate(format(currentDate, 'yyyy-MM-dd')); setSelectedSlotTime(''); setShowModal(true); }}
                         className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
-                        <Plus className="w-5 h-5" /> Yeni Randevu
+                        <Plus className="w-5 h-5" /> {t('appointmentsPage.newAppointment')}
                     </button>
                 </div>
             </div>
@@ -287,14 +288,14 @@ export default function Appointments() {
                     />
                     <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6">
                         <h3 className="font-semibold mb-4">
-                            {format(selectedDate, 'd MMMM yyyy', { locale: tr })} - Randevular
+                            {format(selectedDate, 'd MMMM yyyy', { locale: tr })} - {t('appointmentsPage.title')}
                         </h3>
                         {(() => {
                             const dayApts = appointments?.filter(apt => isSameDay(new Date(apt.appointmentDate), selectedDate)) || [];
                             if (dayApts.length === 0) return (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                    <p>Bu gün için randevu yok</p>
+                                    <p>{t('appointmentsPage.noDayAppointments')}</p>
                                 </div>
                             );
                             return (
@@ -316,16 +317,16 @@ export default function Appointments() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {apt.status === 'completed' && <span className="px-2 py-1 rounded text-xs font-medium bg-green-500/15 text-green-600">Geldi</span>}
-                                                {apt.status === 'no_show' && <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/15 text-red-600">Gelmedi</span>}
+                                                {apt.status === 'completed' && <span className="px-2 py-1 rounded text-xs font-medium bg-green-500/15 text-green-600">{t('appointmentsPage.arrived')}</span>}
+                                                {apt.status === 'no_show' && <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/15 text-red-600">{t('appointmentsPage.noShow')}</span>}
                                                 {(!apt.status || apt.status === 'pending') && (
                                                     <>
                                                         <button onClick={() => statusMutation.mutate({ id: apt.id, status: 'completed' })}
-                                                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg" title="Geldi">
+                                                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg" title={t('appointmentsPage.arrived')}>
                                                             <Check className="w-4 h-4" />
                                                         </button>
                                                         <button onClick={() => statusMutation.mutate({ id: apt.id, status: 'no_show' })}
-                                                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg" title="Gelmedi">
+                                                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg" title={t('appointmentsPage.noShow')}>
                                                             <XCircle className="w-4 h-4" />
                                                         </button>
                                                     </>
@@ -386,11 +387,11 @@ export default function Appointments() {
             <ConfirmDialog
                 open={!!confirmDelete}
                 onOpenChange={(o) => !o && setConfirmDelete(null)}
-                title="Randevuyu sil"
-                description="Bu randevu silinecek. Emin misiniz?"
+                title={t('appointmentsPage.deleteConfirmTitle')}
+                description={t('appointmentsPage.deleteConfirmDesc')}
                 destructive
-                confirmText="Sil"
-                cancelText="Vazgeç"
+                confirmText={t('common.delete')}
+                cancelText={t('common.cancel')}
                 onConfirm={() => {
                     if (!confirmDelete) return;
                     const apt = confirmDelete;
