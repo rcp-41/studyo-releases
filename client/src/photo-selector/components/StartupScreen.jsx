@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FolderPlus, FileSearch, FolderOpen, Upload, Search, Loader2, ChevronRight, Camera } from 'lucide-react';
 import { archivesApi, settingsApi, optionsApi } from '../../services/api';
 import { toast } from 'sonner';
@@ -34,26 +35,28 @@ export default function StartupScreen({ onStartMode1, onStartMode2, onStartMode3
 
 // ===================== CARD SELECTION =====================
 function CardSelection({ onSelect }) {
+    const { t } = useTranslation();
+
     const cards = [
         {
             id: 1,
             icon: FolderPlus,
-            title: 'Arşiv Kaydı Aç',
-            description: 'Yeni bir arşiv kaydı oluşturarak fotoğrafları arşiv klasörüne kopyalayın',
+            title: t('photoSelector.startup.openArchive'),
+            description: t('photoSelector.startup.openArchiveDesc'),
             color: '#f59e0b',
         },
         {
             id: 2,
             icon: FileSearch,
-            title: 'Arşiv Seç',
-            description: 'Mevcut bir arşiv kaydını seçerek fotoğraf seçimi yapın',
+            title: t('photoSelector.startup.selectArchive'),
+            description: t('photoSelector.startup.selectArchiveDesc'),
             color: '#3b82f6',
         },
         {
             id: 3,
             icon: FolderOpen,
-            title: 'Klasör Seç',
-            description: 'Arşivden bağımsız olarak bir klasördeki fotoğrafları numaralandırın',
+            title: t('photoSelector.startup.selectFolder'),
+            description: t('photoSelector.startup.selectFolderDesc'),
             color: '#22c55e',
         },
     ];
@@ -80,7 +83,7 @@ function CardSelection({ onSelect }) {
                             {card.description}
                         </p>
                         <div className="mt-4 text-xs text-neutral-500 flex items-center gap-1 group-hover:text-amber-400/70 transition-colors">
-                            Devam et <ChevronRight className="w-3 h-3" />
+                            {t('photoSelector.startup.continue')} <ChevronRight className="w-3 h-3" />
                         </div>
                     </button>
                 ))}
@@ -91,6 +94,7 @@ function CardSelection({ onSelect }) {
 
 // ===================== MODE 1 - Arşiv Kaydı Aç =====================
 function Mode1Panel({ onStart, onBack }) {
+    const { t } = useTranslation();
     const [dragActive, setDragActive] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState(null);
     const [shootTypes, setShootTypes] = useState([]);
@@ -147,11 +151,11 @@ function Mode1Panel({ onStart, onBack }) {
 
     const handleCreate = async () => {
         if (!selectedFolder) {
-            toast.error('Lütfen bir klasör seçin');
+            toast.error(t('photoSelector.mode1.pleaseSelectFolder'));
             return;
         }
         if (!selectedShootType) {
-            toast.error('Lütfen çekim türü seçin');
+            toast.error(t('photoSelector.mode1.pleaseSelectShootType'));
             return;
         }
 
@@ -165,7 +169,7 @@ function Mode1Panel({ onStart, onBack }) {
                 customerName: customerName,
             });
         } catch (err) {
-            toast.error('Hata: ' + err.message);
+            toast.error(t('photoSelector.mode1.error', { error: err.message }));
             setLoading(false);
         }
     };
@@ -174,12 +178,12 @@ function Mode1Panel({ onStart, onBack }) {
         <div className="h-full flex flex-col items-center justify-center p-8">
             <div className="w-full max-w-lg space-y-6">
                 <button onClick={onBack} className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
-                    ← Geri
+                    ← {t('photoSelector.startup.back')}
                 </button>
 
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                     <FolderPlus className="w-5 h-5 text-amber-400" />
-                    Arşiv Kaydı Aç
+                    {t('photoSelector.startup.openArchive')}
                 </h2>
 
                 {/* Drag & Drop Zone */}
@@ -201,33 +205,33 @@ function Mode1Panel({ onStart, onBack }) {
                     {selectedFolder ? (
                         <div>
                             <FolderOpen className="w-10 h-10 mx-auto mb-3 text-green-400" />
-                            <p className="text-sm font-medium text-green-400">Klasör seçildi</p>
+                            <p className="text-sm font-medium text-green-400">{t('photoSelector.startup.folderSelected')}</p>
                             <p className="text-xs text-neutral-500 mt-1 truncate max-w-sm mx-auto">
                                 {selectedFolder}
                             </p>
-                            <p className="text-xs text-neutral-600 mt-2">Değiştirmek için tıklayın</p>
+                            <p className="text-xs text-neutral-600 mt-2">{t('photoSelector.startup.changeFolder')}</p>
                         </div>
                     ) : (
                         <div>
                             <Upload className="w-10 h-10 mx-auto mb-3 text-neutral-500" />
                             <p className="text-sm text-neutral-400">
-                                Fotoğraf klasörünü buraya sürükleyin
+                                {t('photoSelector.startup.dragDropFolders')}
                             </p>
-                            <p className="text-xs text-neutral-600 mt-1">veya tıklayarak seçin</p>
+                            <p className="text-xs text-neutral-600 mt-1">{t('photoSelector.startup.orClickSelect')}</p>
                         </div>
                     )}
                 </div>
 
                 {/* Shoot Type */}
                 <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">Çekim Türü</label>
+                    <label className="block text-xs text-neutral-400 mb-1.5">{t('photoSelector.startup.shootTypeLabel')}</label>
                     <select
                         value={selectedShootType}
                         onChange={e => setSelectedShootType(e.target.value)}
                         className="w-full px-3 py-2 text-sm rounded-lg bg-neutral-800 border border-neutral-700
                                    focus:border-amber-500 outline-none"
                     >
-                        <option value="">Seçiniz...</option>
+                        <option value="">{t('photoSelector.startup.shootTypeSelect')}</option>
                         {shootTypes.map(st => (
                             <option key={st.id} value={st.id}>
                                 {st.name} ({st.category?.replace(/_/g, ' ')})
@@ -238,12 +242,12 @@ function Mode1Panel({ onStart, onBack }) {
 
                 {/* Customer Name */}
                 <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">Müşteri Adı (opsiyonel)</label>
+                    <label className="block text-xs text-neutral-400 mb-1.5">{t('photoSelector.startup.customerNameLabel')}</label>
                     <input
                         type="text"
                         value={customerName}
                         onChange={e => setCustomerName(e.target.value)}
-                        placeholder="Müşteri adı..."
+                        placeholder={t('photoSelector.startup.customerNamePlaceholder')}
                         className="w-full px-3 py-2 text-sm rounded-lg bg-neutral-800 border border-neutral-700
                                    focus:border-amber-500 outline-none"
                     />
@@ -260,7 +264,7 @@ function Mode1Panel({ onStart, onBack }) {
                     {loading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                        'Kayıt Oluştur ve Devam Et'
+                        t('photoSelector.startup.createAndContinue')
                     )}
                 </button>
             </div>
@@ -270,6 +274,7 @@ function Mode1Panel({ onStart, onBack }) {
 
 // ===================== MODE 2 - Arşiv Seç =====================
 function Mode2Panel({ onStart, onBack }) {
+    const { t } = useTranslation();
     const [archives, setArchives] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -288,7 +293,7 @@ function Mode2Panel({ onStart, onBack }) {
             });
             setArchives(result?.data || []);
         } catch (err) {
-            toast.error('Arşivler yüklenemedi');
+            toast.error(t('photoSelector.mode2.loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -312,12 +317,12 @@ function Mode2Panel({ onStart, onBack }) {
     return (
         <div className="h-full flex flex-col p-6">
             <button onClick={onBack} className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors mb-4">
-                ← Geri
+                ← {t('photoSelector.startup.back')}
             </button>
 
             <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
                 <FileSearch className="w-5 h-5 text-blue-400" />
-                Arşiv Seç
+                {t('photoSelector.startup.selectArchive')}
             </h2>
 
             {/* Search */}
@@ -327,7 +332,7 @@ function Mode2Panel({ onStart, onBack }) {
                     type="text"
                     value={searchTerm}
                     onChange={handleSearch}
-                    placeholder="Arşiv no, müşteri adı veya telefon ile arayın..."
+                    placeholder={t('photoSelector.startup.searchArchive')}
                     className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-neutral-800 border border-neutral-700
                                focus:border-blue-500 outline-none"
                 />
@@ -341,17 +346,17 @@ function Mode2Panel({ onStart, onBack }) {
                     </div>
                 ) : archives.length === 0 ? (
                     <div className="text-center py-16 text-neutral-500 text-sm">
-                        {searchTerm ? 'Arama sonucu bulunamadı' : 'Arşiv kaydı yok'}
+                        {searchTerm ? t('photoSelector.startup.searchNoResults') : t('photoSelector.startup.noArchives')}
                     </div>
                 ) : (
                     <table className="w-full text-sm">
                         <thead className="sticky top-0 bg-neutral-800 text-neutral-400">
                             <tr>
-                                <th className="text-left px-4 py-2.5 font-medium">No</th>
-                                <th className="text-left px-4 py-2.5 font-medium">Müşteri</th>
-                                <th className="text-left px-4 py-2.5 font-medium">Telefon</th>
-                                <th className="text-left px-4 py-2.5 font-medium">Çekim Türü</th>
-                                <th className="text-left px-4 py-2.5 font-medium">Tarih</th>
+                                <th className="text-left px-4 py-2.5 font-medium">{t('photoSelector.startup.archiveTableNo')}</th>
+                                <th className="text-left px-4 py-2.5 font-medium">{t('photoSelector.startup.archiveTableCustomer')}</th>
+                                <th className="text-left px-4 py-2.5 font-medium">{t('photoSelector.startup.archiveTablePhone')}</th>
+                                <th className="text-left px-4 py-2.5 font-medium">{t('photoSelector.startup.archiveTableType')}</th>
+                                <th className="text-left px-4 py-2.5 font-medium">{t('photoSelector.startup.archiveTableDate')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -393,7 +398,7 @@ function Mode2Panel({ onStart, onBack }) {
                                flex items-center gap-2"
                 >
                     <ChevronRight className="w-4 h-4" />
-                    Seçim Yap
+                    {t('photoSelector.startup.selectArchiveAction')}
                 </button>
             </div>
         </div>
@@ -402,6 +407,7 @@ function Mode2Panel({ onStart, onBack }) {
 
 // ===================== MODE 3 - Klasör Seç =====================
 function Mode3Panel({ onStart, onBack }) {
+    const { t } = useTranslation();
     const [dragActive, setDragActive] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState(null);
     const [pixonaiConfigs, setPixonaiConfigs] = useState([]);
@@ -474,18 +480,18 @@ function Mode3Panel({ onStart, onBack }) {
                     onClick={() => selectedFolder ? setSelectedFolder(null) : onBack()}
                     className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
                 >
-                    ← {selectedFolder ? 'Klasör Değiştir' : 'Geri'}
+                    ← {selectedFolder ? t('photoSelector.startup.changeFolder') : t('photoSelector.startup.back')}
                 </button>
 
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                     <FolderOpen className="w-5 h-5 text-green-400" />
-                    {selectedFolder ? 'Çekim Türü Seç' : 'Klasör Seç'}
+                    {selectedFolder ? t('photoSelector.mode3.selectShootType') : t('photoSelector.mode3.selectFolder')}
                 </h2>
 
                 {!selectedFolder ? (
                     <>
                         <p className="text-sm text-neutral-400">
-                            Arşivden bağımsız olarak bir klasördeki fotoğrafları inceleyin ve numaralandırın.
+                            {t('photoSelector.mode3.description')}
                         </p>
 
                         {/* Drag & Drop Zone */}
@@ -504,9 +510,9 @@ function Mode3Panel({ onStart, onBack }) {
                         >
                             <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-500" />
                             <p className="text-neutral-300 font-medium">
-                                Fotoğraf klasörünü buraya sürükleyin
+                                {t('photoSelector.startup.dragDropFolders')}
                             </p>
-                            <p className="text-xs text-neutral-600 mt-2">veya tıklayarak seçin</p>
+                            <p className="text-xs text-neutral-600 mt-2">{t('photoSelector.startup.orClickSelect')}</p>
                         </div>
                     </>
                 ) : (
@@ -515,7 +521,7 @@ function Mode3Panel({ onStart, onBack }) {
                             <span className="text-neutral-300 font-mono text-xs">{selectedFolder}</span>
                         </p>
                         <p className="text-sm text-neutral-400 mt-1">
-                            Numaralandırma türünü seçin:
+                            {t('photoSelector.startup.selectNumbering')}
                         </p>
 
                         {loadingConfigs ? (
@@ -535,8 +541,8 @@ function Mode3Panel({ onStart, onBack }) {
                                         <span className="text-lg">🔢</span>
                                     </div>
                                     <div>
-                                        <p className="font-medium text-sm text-neutral-200">Paketsiz (Sadece Numaralandır)</p>
-                                        <p className="text-xs text-neutral-500">01, 02, 03... şeklinde basit numaralandırma</p>
+                                        <p className="font-medium text-sm text-neutral-200">{t('photoSelector.startup.numberingNoPackages')}</p>
+                                        <p className="text-xs text-neutral-500">{t('photoSelector.startup.numberingNoPackagesDesc')}</p>
                                     </div>
                                     <ChevronRight className="w-4 h-4 text-neutral-600 ml-auto" />
                                 </button>
@@ -557,10 +563,12 @@ function Mode3Panel({ onStart, onBack }) {
                                         <div>
                                             <p className="font-medium text-sm text-neutral-200">{config.shootCategoryLabel}</p>
                                             <p className="text-xs text-neutral-500">
-                                                {config.packages?.length || 0} paket ·{' '}
-                                                {config.type === 'yearly' ? 'Yıllık' :
-                                                    config.type === 'set' ? 'Set' :
-                                                        config.type === 'portrait' ? 'Vesikalık/Biyometrik' : config.type}
+                                                {t('photoSelector.startup.pixonaiConfig', {
+                                                    count: config.packages?.length || 0,
+                                                    type: config.type === 'yearly' ? t('pixonai.periodYearly') :
+                                                        config.type === 'set' ? 'Set' :
+                                                            config.type === 'portrait' ? t('pixonai.periodPortrait') : config.type
+                                                })}
                                             </p>
                                         </div>
                                         <ChevronRight className="w-4 h-4 text-neutral-600 ml-auto" />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import usePhotoSelectorStore from './stores/photoSelectorStore';
 import GridView from './components/GridView';
 import SingleView from './components/SingleView';
@@ -17,6 +18,7 @@ import { Loader2, FolderOpen, Copy, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export default function PhotoSelectorApp() {
+    const { t } = useTranslation();
     const [startupComplete, setStartupComplete] = useState(false);
     const [initializing, setInitializing] = useState(false);
     const [selectionOpen, setSelectionOpen] = useState(false);
@@ -96,7 +98,7 @@ export default function PhotoSelectorApp() {
             const settings = settingsResult?.data;
             const basePath = settings?.general?.archive_base_path;
             if (!basePath) {
-                toast.error('Arşiv kök yolu ayarlanmamış! Lütfen Ayarlar → Genel bölümünden ayarlayın.');
+                toast.error(t('photoSelector.app.archiveBasePathNotSet'));
                 setStartupComplete(false);
                 setInitializing(false);
                 return;
@@ -114,7 +116,7 @@ export default function PhotoSelectorApp() {
             if (!archive) throw new Error('Arşiv kaydı oluşturulamadı');
 
             const archiveNumber = archive.archiveId || archive.archiveNumber;
-            toast.success(`Arşiv #${archiveNumber} oluşturuldu`);
+            toast.success(t('photoSelector.app.archiveCreated', { number: archiveNumber }));
 
             // 3. Create archive folder
             const destPath = `${basePath}\\${archiveNumber}`;
@@ -136,14 +138,14 @@ export default function PhotoSelectorApp() {
             });
 
             if (!copyResult?.success) {
-                toast.error('Fotoğraf kopyalama hatası: ' + (copyResult?.error || 'Bilinmeyen hata'));
+                toast.error(t('photoSelector.app.photoCopyError', { error: copyResult?.error || 'Bilinmeyen hata' }));
                 setStartupComplete(false);
                 setInitializing(false);
                 setCopyProgress(null);
                 return;
             }
 
-            toast.success(`${copyResult.data.copied} fotoğraf kopyalandı`);
+            toast.success(t('photoSelector.app.photosCopied', { count: copyResult.data.copied }));
             setCopyProgress(null);
 
             // 5. Update archive with folderPath
@@ -170,7 +172,7 @@ export default function PhotoSelectorApp() {
             await loadPhotos(destPath);
         } catch (err) {
             console.error('Mode 1 error:', err);
-            toast.error('Hata: ' + err.message);
+            toast.error(t('photoSelector.mode1.error', { error: err.message }));
             setStartupComplete(false);
         } finally {
             setInitializing(false);
@@ -192,7 +194,7 @@ export default function PhotoSelectorApp() {
             const folderPath = archive.folderPath || (basePath ? `${basePath}\\${archiveNumber}` : null);
 
             if (!folderPath) {
-                toast.error('Bu arşivin klasör yolu bulunamadı ve arşiv kök yolu ayarlanmamış.');
+                toast.error(t('photoSelector.app.archivePathNotFound'));
                 setStartupComplete(false);
                 setInitializing(false);
                 return;
@@ -217,7 +219,7 @@ export default function PhotoSelectorApp() {
             await loadPhotos(folderPath);
         } catch (err) {
             console.error('Mode 2 error:', err);
-            toast.error('Hata: ' + err.message);
+            toast.error(t('photoSelector.mode1.error', { error: err.message }));
             setStartupComplete(false);
         } finally {
             setInitializing(false);
@@ -245,7 +247,7 @@ export default function PhotoSelectorApp() {
             await loadPhotos(folderPath);
         } catch (err) {
             console.error('Mode 3 error:', err);
-            toast.error('Hata: ' + err.message);
+            toast.error(t('photoSelector.mode1.error', { error: err.message }));
             setStartupComplete(false);
         } finally {
             setInitializing(false);
@@ -332,7 +334,7 @@ export default function PhotoSelectorApp() {
             try {
                 const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
                 if (!renameResult.success) {
-                    toast.error('Yeniden adlandırma hatası: ' + (renameResult.error || 'Bilinmeyen hata'));
+                    toast.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
                 } else {
                     // Update BOTH originalName and currentName so INI keys match disk filenames
                     const updatedPhotos = state.photos.map(p => {
@@ -351,13 +353,13 @@ export default function PhotoSelectorApp() {
                     usePhotoSelectorStore.setState({ photos: updatedPhotos, isDirty: true });
                     // Re-save INI with updated originalNames so it matches files on disk
                     await performSave();
-                    toast.success('Numaralandırma kaydedildi');
+                    toast.success(t('photoSelector.app.numberingSaved'));
                 }
             } catch (err) {
-                toast.error('Yeniden adlandırma başarısız: ' + err.message);
+                toast.error(t('photoSelector.app.renameFailed', { error: err.message }));
             }
         } else {
-            toast.success('Kaydedildi');
+            toast.success(t('photoSelector.app.saved'));
         }
 
         // Save note text file if there's a note
@@ -419,7 +421,7 @@ export default function PhotoSelectorApp() {
             try {
                 const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
                 if (!renameResult.success) {
-                    toast.error('Yeniden adlandırma hatası: ' + (renameResult.error || 'Bilinmeyen hata'));
+                    toast.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
                 } else {
                     // Update photos in store with new currentName/fullPath so INI re-save is accurate
                     const updatedPhotos = state.photos.map(p => {
@@ -435,7 +437,7 @@ export default function PhotoSelectorApp() {
                     await performSave();
                 }
             } catch (err) {
-                toast.error('Yeniden adlandırma başarısız: ' + err.message);
+                toast.error(t('photoSelector.app.renameFailed', { error: err.message }));
             }
         }
 
@@ -519,10 +521,10 @@ export default function PhotoSelectorApp() {
                     ...(newNotes !== undefined ? { notes: newNotes } : {}),
                 });
 
-                toast.success('Arşiv kaydı güncellendi');
+                toast.success(t('photoSelector.app.archiveUpdated'));
             } catch (err) {
                 console.error('Archive update error:', err);
-                toast.error('Arşiv güncelleme hatası: ' + err.message);
+                toast.error(t('photoSelector.app.archiveUpdateError', { error: err.message }));
             }
         }
 
@@ -543,7 +545,7 @@ export default function PhotoSelectorApp() {
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-neutral-900">
                 <Loader2 className="w-10 h-10 animate-spin text-amber-400 mb-4" />
-                <p className="text-neutral-400 text-sm">Oturum kontrol ediliyor...</p>
+                <p className="text-neutral-400 text-sm">{t('photoSelector.app.sessionChecking')}</p>
             </div>
         );
     }
@@ -564,7 +566,7 @@ export default function PhotoSelectorApp() {
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-neutral-900 gap-4">
                 <Copy className="w-12 h-12 text-amber-400 mb-2" />
-                <h2 className="text-lg font-semibold text-neutral-200">Fotoğraflar Kopyalanıyor...</h2>
+                <h2 className="text-lg font-semibold text-neutral-200">{t('photoSelector.app.copying')}</h2>
                 <p className="text-sm text-neutral-400">{copyProgress.fileName}</p>
 
                 {/* Progress Bar */}
@@ -576,7 +578,7 @@ export default function PhotoSelectorApp() {
                 </div>
 
                 <p className="text-xs text-neutral-500">
-                    {copyProgress.current} / {copyProgress.total} dosya
+                    {copyProgress.current} / {copyProgress.total} {t('photoSelector.app.photos')}
                 </p>
             </div>
         );
@@ -587,7 +589,7 @@ export default function PhotoSelectorApp() {
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-neutral-900">
                 <Loader2 className="w-10 h-10 animate-spin text-amber-400 mb-4" />
-                <p className="text-neutral-400 text-sm">Fotoğraflar yükleniyor...</p>
+                <p className="text-neutral-400 text-sm">{t('photoSelector.app.loading')}</p>
             </div>
         );
     }
@@ -619,17 +621,17 @@ export default function PhotoSelectorApp() {
 
             {/* Status bar */}
             <div className="ps-statusbar">
-                <span>{filteredPhotos.length} fotoğraf</span>
-                <span>{favorites.size} favori</span>
-                <span>{numberedPhotos.filter(np => !np.isCancelled).length} numaralandırılmış</span>
+                <span>{filteredPhotos.length} {t('photoSelector.app.photos')}</span>
+                <span>{favorites.size} {t('photoSelector.app.favorites')}</span>
+                <span>{numberedPhotos.filter(np => !np.isCancelled).length} {t('photoSelector.app.numbered')}</span>
                 {operationMode && (
                     <span className="text-neutral-600">
-                        {operationMode === 'archive_new' ? '📁 Yeni Arşiv' :
-                            operationMode === 'archive_existing' ? '📋 Arşiv Seçimi' :
-                                '🖥️ Bağımsız'}
+                        {operationMode === 'archive_new' ? '📁 ' + t('photoSelector.app.newArchive') :
+                            operationMode === 'archive_existing' ? '📋 ' + t('photoSelector.app.archiveSelection') :
+                                '🖥️ ' + t('photoSelector.app.independent')}
                     </span>
                 )}
-                {isDirty && <span className="text-amber-400">Kaydedilmemiş değişiklik</span>}
+                {isDirty && <span className="text-amber-400">{t('photoSelector.app.unsavedChanges2')}</span>}
             </div>
 
             {selectionOpen && (
@@ -649,11 +651,11 @@ export default function PhotoSelectorApp() {
                                 <AlertTriangle className="w-5 h-5 text-amber-400" />
                             </div>
                             <h3 className="text-base font-semibold text-neutral-100">
-                                Kaydedilmemis Degisiklikler
+                                {t('photoSelector.app.unsavedChanges')}
                             </h3>
                         </div>
                         <p className="text-sm text-neutral-400 mb-6">
-                            Kaydedilmemis degisiklikleriniz var. Cikmadan once kaydetmek ister misiniz?
+                            {t('photoSelector.app.unsavedChangesDesc')}
                         </p>
                         <div className="flex gap-2 justify-end">
                             <button
@@ -661,21 +663,21 @@ export default function PhotoSelectorApp() {
                                 className="px-4 py-2 text-sm rounded-lg bg-neutral-700 text-neutral-300
                                            hover:bg-neutral-600 transition-colors"
                             >
-                                Iptal
+                                {t('photoSelector.app.cancel')}
                             </button>
                             <button
                                 onClick={doBack}
                                 className="px-4 py-2 text-sm rounded-lg bg-red-500/20 text-red-400
                                            hover:bg-red-500/30 transition-colors"
                             >
-                                Kaydetmeden Cik
+                                {t('photoSelector.app.exitWithoutSave')}
                             </button>
                             <button
                                 onClick={handleBackWithSave}
                                 className="px-4 py-2 text-sm rounded-lg bg-amber-500 text-neutral-900
                                            hover:bg-amber-400 transition-colors font-medium"
                             >
-                                Kaydet ve Cik
+                                {t('photoSelector.app.saveAndExit')}
                             </button>
                         </div>
                     </div>

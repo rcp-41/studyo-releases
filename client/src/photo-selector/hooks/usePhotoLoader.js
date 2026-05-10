@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import { deserializeFromIni } from '../utils/iniManager';
 import { toast } from 'sonner';
@@ -6,6 +7,7 @@ import { toast } from 'sonner';
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'tiff', 'tif', 'webp', 'bmp', 'cr2', 'nef', 'arw', 'dng'];
 
 export default function usePhotoLoader() {
+    const { t } = useTranslation();
     const setPhotos = usePhotoSelectorStore(s => s.setPhotos);
     const setPhotosLoading = usePhotoSelectorStore(s => s.setPhotosLoading);
     const setThumbnailProgress = usePhotoSelectorStore(s => s.setThumbnailProgress);
@@ -28,7 +30,7 @@ export default function usePhotoLoader() {
             console.log('[PhotoLoader] files result:', files);
 
             if (!files || files.length === 0) {
-                toast('Bu klasörde fotoğraf bulunamadı', { icon: '📂' });
+                toast(t('photoSelector.photoLoader.noPhotosFound'), { icon: '📂' });
                 setPhotos([]);
                 return;
             }
@@ -71,10 +73,10 @@ export default function usePhotoLoader() {
 
         } catch (err) {
             console.error('Photo loading error:', err);
-            toast.error('Fotoğraflar yüklenemedi: ' + err.message);
+            toast.error(t('photoSelector.photoLoader.loadError', { error: err.message }));
             setPhotos([]);
         }
-    }, [setPhotos, setPhotosLoading, restoreFromIni]);
+    }, [setPhotos, setPhotosLoading, restoreFromIni, t]);
 
     const generateThumbnails = useCallback(async (folderPath) => {
         // Listen for progress events
@@ -94,7 +96,7 @@ export default function usePhotoLoader() {
                 setAllThumbnails(normalizedDir);
 
                 if (result.data.failed.length > 0) {
-                    toast(`${result.data.failed.length} fotoğraf için thumbnail oluşturulamadı`, {
+                    toast(t('photoSelector.photoLoader.thumbnailsFailed', { count: result.data.failed.length }), {
                         icon: '⚠️',
                         duration: 5000,
                     });
@@ -103,7 +105,7 @@ export default function usePhotoLoader() {
         } catch (err) {
             console.error('Thumbnail generation error:', err);
         }
-    }, [setThumbnailProgress, setAllThumbnails]);
+    }, [setThumbnailProgress, setAllThumbnails, t]);
 
     return { loadPhotos };
 }

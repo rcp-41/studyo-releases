@@ -873,6 +873,88 @@
       "selectNumberingType": "Çekim Türü Seç",
       "selectFolderType": "Klasör Seç",
       "pixonaiConfig": "{{count}} paket · {{type}}"
+    },
+    "toolbar": {
+      "back": "Geri Dön (Ana Uygulamaya)",
+      "gridView": "Grid Görünüm (G)",
+      "singleView": "Tek Görünüm (Enter)",
+      "compareView": "Karşılaştırma (C)",
+      "filterAll": "Tümü",
+      "filterFavorites": "Favoriler",
+      "filterUnfavorited": "Kaldırılanlar",
+      "filterNumbered": "Numaralı",
+      "decreaseColumns": "Sütun Azalt",
+      "increaseColumns": "Sütun Artır",
+      "undo": "Geri Al",
+      "redo": "İleri Al",
+      "completeRecord": "Kaydı Tamamla",
+      "updateArchive": "Arşivi Güncelle",
+      "saveAndClose": "Kaydet & Kapat"
+    },
+    "app": {
+      "sessionChecking": "Oturum kontrol ediliyor...",
+      "copying": "Fotoğraflar Kopyalanıyor...",
+      "loading": "Fotoğraflar yükleniyor...",
+      "archiveBasePathNotSet": "Arşiv kök yolu ayarlanmamış! Lütfen Ayarlar → Genel bölümünden ayarlayın.",
+      "archiveCreated": "Arşiv #{{number}} oluşturuldu",
+      "photoCopyError": "Fotoğraf kopyalama hatası: {{error}}",
+      "photosCopied": "{{count}} fotoğraf kopyalandı",
+      "archivePathNotFound": "Bu arşivin klasör yolu bulunamadı ve arşiv kök yolu ayarlanmamış.",
+      "renameError": "Yeniden adlandırma hatası: {{error}}",
+      "renameFailed": "Yeniden adlandırma başarısız: {{error}}",
+      "numberingSaved": "Numaralandırma kaydedildi",
+      "saved": "Kaydedildi",
+      "archiveUpdated": "Arşiv kaydı güncellendi",
+      "archiveUpdateError": "Arşiv güncelleme hatası: {{error}}",
+      "unsavedChanges": "Kaydedilmemiş Değişiklikler",
+      "unsavedChangesDesc": "Kaydedilmemiş değişiklikleriniz var. Çıkmadan önce kaydetmek ister misiniz?",
+      "cancel": "İptal",
+      "exitWithoutSave": "Kaydetmeden Çık",
+      "saveAndExit": "Kaydet ve Çık",
+      "photos": "fotoğraf",
+      "favorites": "favori",
+      "numbered": "numaralandırılmış",
+      "newArchive": "Yeni Arşiv",
+      "archiveSelection": "Arşiv Seçimi",
+      "independent": "Bağımsız",
+      "unsavedChanges2": "Kaydedilmemiş değişiklik"
+    },
+    "mode1": {
+      "title": "Arşiv Kaydı Aç",
+      "pleaseSelectFolder": "Lütfen bir klasör seçin",
+      "pleaseSelectShootType": "Lütfen çekim türü seçin",
+      "error": "Hata: {{error}}"
+    },
+    "mode2": {
+      "title": "Arşiv Seç",
+      "loadFailed": "Arşivler yüklenemedi"
+    },
+    "mode3": {
+      "title": "Klasör Seç",
+      "selectFolder": "Klasör Seç",
+      "selectShootType": "Çekim Türü Seç",
+      "description": "Arşivden bağımsız olarak bir klasördeki fotoğrafları inceleyin ve numaralandırın."
+    },
+    "photoLoader": {
+      "noPhotosFound": "Bu klasörde fotoğraf bulunamadı",
+      "loadError": "Fotoğraflar yüklenemedi: {{error}}",
+      "thumbnailsFailed": "{{count}} fotoğraf için thumbnail oluşturulamadı"
+    },
+    "toolbar": {
+      "filters": {
+        "all": "Tümü",
+        "favorites": "Favoriler",
+        "unfavorited": "Kaldırılanlar",
+        "numbered": "Numaralı"
+      }
+    },
+    "faceRecognition": {
+      "modelsLoaded": "Modeller yüklendi",
+      "selectReferenceFirst": "Önce referans fotoğraf seçin",
+      "loadModelsFirst": "Önce modelleri yükleyin",
+      "matchesFound": "{{count}} eşleşme bulundu",
+      "scanError": "Tarama hatası: {{error}}",
+      "showing": "Eşleşen fotoğraflar gösteriliyor"
     }
   },
   "breadcrumb": {

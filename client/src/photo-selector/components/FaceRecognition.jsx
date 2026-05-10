@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Scan, Upload, X, Loader2, CheckCircle, AlertCircle, FolderSearch } from 'lucide-react';
 import { toast } from 'sonner';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
@@ -11,6 +12,7 @@ const THRESHOLD = 0.5; // Euclidean distance threshold (lower = stricter)
  * that contain a matching face using face-api.js (running in Electron main process).
  */
 export default function FaceRecognition({ onClose }) {
+    const { t } = useTranslation();
     const [modelsLoading, setModelsLoading] = useState(false);
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [referenceFile, setReferenceFile] = useState(null);
@@ -28,7 +30,7 @@ export default function FaceRecognition({ onClose }) {
     // ── Load models ──────────────────────────────────────────────────
     const handleLoadModels = async () => {
         if (!faceRecognition) {
-            setError('Yüz tanıma sadece Electron uygulamasında çalışır.');
+            setError(t('faceRecognition.electronRequired') || 'Yüz tanıma sadece Electron uygulamasında çalışır.');
             return;
         }
         setModelsLoading(true);
@@ -37,7 +39,7 @@ export default function FaceRecognition({ onClose }) {
             const res = await faceRecognition.loadModels({});
             if (res.success) {
                 setModelsLoaded(true);
-                toast.success('Modeller yüklendi');
+                toast.success(t('photoSelector.faceRecognition.modelsLoaded'));
             } else {
                 setError(res.error || 'Modeller yüklenemedi');
             }
@@ -68,15 +70,15 @@ export default function FaceRecognition({ onClose }) {
     // ── Scan folder ──────────────────────────────────────────────────
     const handleScan = async () => {
         if (!referenceFile) {
-            toast.error('Önce referans fotoğraf seçin');
+            toast.error(t('photoSelector.faceRecognition.selectReferenceFirst'));
             return;
         }
         if (!modelsLoaded) {
-            toast.error('Önce modelleri yükleyin');
+            toast.error(t('photoSelector.faceRecognition.loadModelsFirst'));
             return;
         }
         if (!faceRecognition) {
-            setError('Yüz tanıma sadece Electron uygulamasında çalışır.');
+            setError(t('faceRecognition.electronRequired') || 'Yüz tanıma sadece Electron uygulamasında çalışır.');
             return;
         }
 
@@ -104,10 +106,10 @@ export default function FaceRecognition({ onClose }) {
                 totalScanned: allPaths.length,
             });
 
-            toast.success(`${matchRes.matches.length} eşleşme bulundu`);
+            toast.success(t('photoSelector.faceRecognition.matchesFound', { count: matchRes.matches.length }));
         } catch (err) {
             setError(err.message);
-            toast.error('Tarama hatası: ' + err.message);
+            toast.error(t('photoSelector.faceRecognition.scanError', { error: err.message }));
         } finally {
             setScanning(false);
         }
@@ -121,7 +123,7 @@ export default function FaceRecognition({ onClose }) {
         if (typeof setFilter === 'function') {
             setFilter(p => matchPaths.has(p.path || p.filePath));
         }
-        toast.success('Eşleşen fotoğraflar gösteriliyor');
+        toast.success(t('photoSelector.faceRecognition.showing'));
         onClose?.();
     };
 

@@ -1,17 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import {
     Grid3X3, Image, Columns2, Star, ListOrdered, Undo2, Redo2,
     Save, Minus, Plus, Filter, ArrowLeft
 } from 'lucide-react';
 
-const FILTER_LABELS = {
-    all: 'Tümü',
-    favorites: 'Favoriler',
-    unfavorited: 'Kaldırılanlar',
-    numbered: 'Numaralı',
-};
-
 export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumbering, onBack }) {
+    const { t } = useTranslation();
     const currentView = usePhotoSelectorStore(s => s.currentView);
     const setView = usePhotoSelectorStore(s => s.setView);
     const filterMode = usePhotoSelectorStore(s => s.filterMode);
@@ -28,9 +23,9 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumberi
 
     const isGenerating = thumbnailProgress.total > 0 && thumbnailProgress.done < thumbnailProgress.total;
 
-    const saveButtonLabel = operationMode === 'archive_new' ? 'Kaydı Tamamla'
-        : operationMode === 'archive_existing' ? 'Arşivi Güncelle'
-            : 'Kaydet & Kapat';
+    const saveButtonLabel = operationMode === 'archive_new' ? t('photoSelector.toolbar.completeRecord')
+        : operationMode === 'archive_existing' ? t('photoSelector.toolbar.updateArchive')
+            : t('photoSelector.toolbar.saveAndClose');
 
     return (
         <div className="ps-toolbar">
@@ -38,7 +33,7 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumberi
             <div className="flex items-center gap-3">
                 <button
                     onClick={onBack}
-                    title="Geri Don (Ana Uygulamaya)"
+                    title={t('photoSelector.toolbar.back')}
                     className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-200
                                hover:bg-neutral-700 transition-colors"
                 >
@@ -77,19 +72,19 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumberi
                         icon={Grid3X3}
                         active={currentView === 'grid'}
                         onClick={() => setView('grid')}
-                        title="Grid Görünüm (G)"
+                        title={t('photoSelector.toolbar.gridView')}
                     />
                     <ToolbarBtn
                         icon={Image}
                         active={currentView === 'single'}
                         onClick={() => setView('single')}
-                        title="Tek Görünüm (Enter)"
+                        title={t('photoSelector.toolbar.singleView')}
                     />
                     <ToolbarBtn
                         icon={Columns2}
                         active={currentView === 'compare'}
                         onClick={() => setView('compare')}
-                        title="Karşılaştırma (C)"
+                        title={t('photoSelector.toolbar.compareView')}
                     />
                 </div>
 
@@ -97,7 +92,14 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumberi
 
                 {/* Filter buttons */}
                 <div className="flex items-center gap-0.5 bg-neutral-800 rounded-lg p-0.5">
-                    {Object.entries(FILTER_LABELS).map(([mode, label]) => (
+                    {['all', 'favorites', 'unfavorited', 'numbered'].map((mode) => {
+                        const filterLabelMap = {
+                            all: t('photoSelector.toolbar.filters.all'),
+                            favorites: t('photoSelector.toolbar.filters.favorites'),
+                            unfavorited: t('photoSelector.toolbar.filters.unfavorited'),
+                            numbered: t('photoSelector.toolbar.filters.numbered'),
+                        };
+                        return (
                         <button
                             key={mode}
                             onClick={() => setFilterMode(mode)}
@@ -108,9 +110,10 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumberi
                         >
                             {mode === 'favorites' && <Star className="w-3 h-3 inline mr-1" />}
                             {mode === 'numbered' && <ListOrdered className="w-3 h-3 inline mr-1" />}
-                            {label}
+                            {filterLabelMap[mode]}
                         </button>
-                    ))}
+                    );
+                    })}
                 </div>
 
                 {/* Grid column size (only in grid view) */}
@@ -121,17 +124,17 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumberi
                             <button
                                 onClick={() => setGridColumns(Math.max(3, gridColumns - 1))}
                                 className="p-1 text-neutral-400 hover:text-neutral-200 rounded"
-                                title="Daha büyük"
+                                title={t('photoSelector.toolbar.decreaseColumns')}
                             >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Minus className="w-3.5 h-3.5" />
                             </button>
                             <span className="text-xs text-neutral-500 w-4 text-center">{gridColumns}</span>
                             <button
                                 onClick={() => setGridColumns(Math.min(10, gridColumns + 1))}
                                 className="p-1 text-neutral-400 hover:text-neutral-200 rounded"
-                                title="Daha küçük"
+                                title={t('photoSelector.toolbar.increaseColumns')}
                             >
-                                <Minus className="w-3.5 h-3.5" />
+                                <Plus className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     </>
@@ -144,13 +147,13 @@ export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumberi
                     icon={Undo2}
                     onClick={undo}
                     disabled={undoStack.length === 0}
-                    title="Geri Al (Ctrl+Z)"
+                    title={t('photoSelector.toolbar.undo')}
                 />
                 <ToolbarBtn
                     icon={Redo2}
                     onClick={redo}
                     disabled={redoStack.length === 0}
-                    title="Yinele (Ctrl+Y)"
+                    title={t('photoSelector.toolbar.redo')}
                 />
 
 

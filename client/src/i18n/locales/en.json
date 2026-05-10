@@ -872,6 +872,88 @@
       "selectNumberingType": "Select Shoot Type",
       "selectFolderType": "Select Folder",
       "pixonaiConfig": "{{count}} packages · {{type}}"
+    },
+    "toolbar": {
+      "back": "Back (to Main App)",
+      "gridView": "Grid View (G)",
+      "singleView": "Single View (Enter)",
+      "compareView": "Compare (C)",
+      "filterAll": "All",
+      "filterFavorites": "Favorites",
+      "filterUnfavorited": "Unfavorited",
+      "filterNumbered": "Numbered",
+      "decreaseColumns": "Decrease Columns",
+      "increaseColumns": "Increase Columns",
+      "undo": "Undo",
+      "redo": "Redo",
+      "completeRecord": "Complete Record",
+      "updateArchive": "Update Archive",
+      "saveAndClose": "Save & Close"
+    },
+    "app": {
+      "sessionChecking": "Checking session...",
+      "copying": "Copying photos...",
+      "loading": "Loading photos...",
+      "archiveBasePathNotSet": "Archive base path is not set! Please configure in Settings → General.",
+      "archiveCreated": "Archive #{{number}} created",
+      "photoCopyError": "Photo copy error: {{error}}",
+      "photosCopied": "{{count}} photos copied",
+      "archivePathNotFound": "Archive folder path not found and archive base path is not set.",
+      "renameError": "Rename error: {{error}}",
+      "renameFailed": "Rename failed: {{error}}",
+      "numberingSaved": "Numbering saved",
+      "saved": "Saved",
+      "archiveUpdated": "Archive record updated",
+      "archiveUpdateError": "Archive update error: {{error}}",
+      "unsavedChanges": "Unsaved Changes",
+      "unsavedChangesDesc": "You have unsaved changes. Do you want to save before exiting?",
+      "cancel": "Cancel",
+      "exitWithoutSave": "Exit Without Saving",
+      "saveAndExit": "Save and Exit",
+      "photos": "photos",
+      "favorites": "favorites",
+      "numbered": "numbered",
+      "newArchive": "New Archive",
+      "archiveSelection": "Archive Selection",
+      "independent": "Independent",
+      "unsavedChanges2": "Unsaved changes"
+    },
+    "mode1": {
+      "title": "Open Archive Record",
+      "pleaseSelectFolder": "Please select a folder",
+      "pleaseSelectShootType": "Please select a shoot type",
+      "error": "Error: {{error}}"
+    },
+    "mode2": {
+      "title": "Select Archive",
+      "loadFailed": "Failed to load archives"
+    },
+    "mode3": {
+      "title": "Select Folder",
+      "selectFolder": "Select Folder",
+      "selectShootType": "Select Shoot Type",
+      "description": "Independently of archives, browse and number photos in a folder."
+    },
+    "photoLoader": {
+      "noPhotosFound": "No photos found in this folder",
+      "loadError": "Failed to load photos: {{error}}",
+      "thumbnailsFailed": "Could not create thumbnails for {{count}} photos"
+    },
+    "toolbar": {
+      "filters": {
+        "all": "All",
+        "favorites": "Favorites",
+        "unfavorited": "Unfavorited",
+        "numbered": "Numbered"
+      }
+    },
+    "faceRecognition": {
+      "modelsLoaded": "Models loaded",
+      "selectReferenceFirst": "Select reference photo first",
+      "loadModelsFirst": "Load models first",
+      "matchesFound": "{{count}} matches found",
+      "scanError": "Scan error: {{error}}",
+      "showing": "Showing matched photos"
     }
   },
   "breadcrumb": {
