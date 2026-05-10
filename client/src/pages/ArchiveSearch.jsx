@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { archivesApi, optionsApi, schoolsApi } from '../services/api';
 import { formatCurrency } from '../lib/utils';
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import { toast } from 'sonner';
+
 import { SkeletonTable } from '../components/Skeleton';
 
 // Workflow statuses (shared with Archives.jsx)
@@ -157,8 +158,8 @@ export default function ArchiveSearch() {
     // Status update mutation
     const statusMutation = useMutation({
         mutationFn: ({ id, status }) => archivesApi.update(id, { workflowStatus: status }),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['archives'] }); toast.success('Durum güncellendi'); },
-        onError: () => toast.error('Durum güncellenemedi')
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['archives'] }); notify.success('Durum güncellendi'); },
+        onError: () => notify.error('Durum güncellenemedi')
     });
 
     // Apply remaining client-side filters (name, phone, archiveNo, paymentStatus)

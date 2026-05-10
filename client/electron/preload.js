@@ -117,6 +117,16 @@ contextBridge.exposeInMainWorld('electron', {
         pdfPreview: (params) => ipcRenderer.invoke('print:pdfPreview', params),
     },
 
+    // Security — safeStorage encryption status
+    security: {
+        // Calls main to check if OS-level encryption is available
+        getEncryptionStatus: () => ipcRenderer.invoke('app:getEncryptionStatus'),
+        // Register a one-time callback for the encryption-unavailable event
+        onEncryptionUnavailable: (cb) => {
+            ipcRenderer.once('security:encryptionUnavailable', () => cb());
+        },
+    },
+
     // Auto-Update
     update: {
         onStatus: (callback) => {

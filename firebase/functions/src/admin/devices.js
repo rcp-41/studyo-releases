@@ -3,7 +3,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 
 const db = admin.firestore();
 
-exports.registerHwid = onCall({ enforceAppCheck: false }, async (request) => {
+exports.registerHwid = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
     }
@@ -61,7 +61,7 @@ exports.registerHwid = onCall({ enforceAppCheck: false }, async (request) => {
     }
 });
 
-exports.requestHwidApproval = onCall({ enforceAppCheck: false }, async (request) => {
+exports.requestHwidApproval = onCall({ enforceAppCheck: true }, async (request) => {
     const { organizationId, studioId, licenseKey, hwid, macAddress, hostname, ipAddress, localIp, publicIp, deviceInfo } = request.data || {};
 
     if (!organizationId || !studioId || !licenseKey || !hwid) {
@@ -132,7 +132,7 @@ exports.requestHwidApproval = onCall({ enforceAppCheck: false }, async (request)
     }
 });
 
-exports.checkHwidStatus = onCall({ enforceAppCheck: false }, async (request) => {
+exports.checkHwidStatus = onCall({ enforceAppCheck: true }, async (request) => {
     const { organizationId, studioId, hwid } = request.data || {};
 
     if (!organizationId || !studioId || !hwid) {
@@ -161,7 +161,7 @@ exports.checkHwidStatus = onCall({ enforceAppCheck: false }, async (request) => 
     }
 });
 
-exports.approveDevice = onCall({ enforceAppCheck: false }, async (request) => {
+exports.approveDevice = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
     }
@@ -227,7 +227,7 @@ exports.approveDevice = onCall({ enforceAppCheck: false }, async (request) => {
     }
 });
 
-exports.rejectDevice = onCall({ enforceAppCheck: false }, async (request) => {
+exports.rejectDevice = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
     }
@@ -274,7 +274,7 @@ exports.rejectDevice = onCall({ enforceAppCheck: false }, async (request) => {
     }
 });
 
-exports.getStudioDevices = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getStudioDevices = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
     }
@@ -309,7 +309,7 @@ exports.getStudioDevices = onCall({ enforceAppCheck: false }, async (request) =>
     }
 });
 
-exports.deviceHeartbeat = onCall({ enforceAppCheck: false }, async (request) => {
+exports.deviceHeartbeat = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
     }

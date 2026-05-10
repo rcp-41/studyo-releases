@@ -174,10 +174,74 @@ service cloud.firestore {
           allow write: if isStudioAdmin(studioId) || isCreator();
         }
 
-        // Catch-all for any other sub-collections within a studio
-        match /{subcollection}/{docId} {
+        // Devices - hardware management
+        match /devices/{deviceId} {
+          allow read: if isStudioAdmin(studioId) || isOrgAdmin(orgId) || isCreator();
+          allow write: if false; // Cloud Functions only
+        }
+
+        // Payments
+        match /payments/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioAdmin(studioId);
+        }
+
+        // Expenses
+        match /expenses/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioAdmin(studioId);
+        }
+
+        // Cash entries
+        match /cashEntries/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioAdmin(studioId);
+        }
+
+        // Daily balances
+        match /dailyBalances/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if false; // Cloud Functions only
+        }
+
+        // Staff
+        match /staff/{docId} {
           allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
           allow write: if isStudioAdmin(studioId);
+        }
+
+        // Conversations (bot)
+        match /conversations/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if false; // Cloud Functions only
+        }
+
+        // Complaints (bot)
+        match /complaints/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if false; // Cloud Functions only
+        }
+
+        // Packages
+        match /packages/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+
+        // Personnel
+        match /personnel/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow write: if isStudioAdmin(studioId);
+        }
+
+        // Shoots
+        match /shoots/{docId} {
+          allow read: if isStudioMember(studioId) || isOrgAdmin(orgId);
+          allow create: if isStudioMember(studioId);
+          allow update, delete: if isStudioMember(studioId);
         }
       }
     }
@@ -196,8 +260,85 @@ service cloud.firestore {
       allow read: if isStudioMember(studioId) || isCreator();
       allow write: if isStudioAdmin(studioId) || isCreator();
 
-      // Legacy studio sub-collections
-      match /{subcollection}/{docId} {
+      // Legacy studio sub-collections (explicit whitelist — no catch-all)
+      match /archives/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /appointments/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /customers/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /shoots/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /payments/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /expenses/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /cashEntries/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /packages/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /personnel/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /staff/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /conversations/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if false; // Cloud Functions only
+      }
+      match /complaints/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if false; // Cloud Functions only
+      }
+      match /users/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /auditLogs/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow create: if isStudioMember(studioId);
+        allow update, delete: if false; // Immutable
+      }
+      match /settings/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId) || isCreator();
+      }
+      match /shootTypes/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId);
+      }
+      match /locations/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId);
+      }
+      match /photographers/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if isStudioAdmin(studioId);
+      }
+      match /dailyBalances/{docId} {
+        allow read: if isStudioMember(studioId) || isCreator();
+        allow write: if false; // Cloud Functions only
+      }
+      match /botConfig/{docId} {
         allow read: if isStudioMember(studioId) || isCreator();
         allow write: if isStudioAdmin(studioId) || isCreator();
       }

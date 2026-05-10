@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import notify from '../lib/notify';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { shootsApi, optionsApi, settingsApi } from '../services/api';
@@ -8,7 +9,7 @@ import {
     Edit, Trash2, CheckCircle, Loader2, Play, Pause, AlertCircle, X,
     Undo2, UserCog, Image, FolderOpen, ChevronDown, Printer
 } from 'lucide-react';
-import { toast } from 'sonner';
+
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonCard } from '../components/Skeleton';
 import useF2Print from '../hooks/useF2Print';
@@ -81,7 +82,7 @@ function PhotoGallery({ archiveNumber, photoSelectionData }) {
 
     const loadPhotos = async () => {
         if (!basePath || !archiveNumber) {
-            toast.error('Arşiv klasör yolu ayarlanmamış');
+            notify.error('Arşiv klasör yolu ayarlanmamış');
             return;
         }
         setLoading(true);
@@ -93,7 +94,7 @@ function PhotoGallery({ archiveNumber, photoSelectionData }) {
                     setPhotos(result.files || []);
                     if (!result.files?.length) toast('Klasörde fotoğraf bulunamadı');
                 } else {
-                    toast.error(result.error || 'Fotoğraflar yüklenemedi');
+                    notify.error(result.error || 'Fotoğraflar yüklenemedi');
                 }
             } else {
                 // Fallback: open folder
@@ -102,7 +103,7 @@ function PhotoGallery({ archiveNumber, photoSelectionData }) {
                 }
             }
         } catch (e) {
-            toast.error('Fotoğraf yükleme hatası');
+            notify.error('Fotoğraf yükleme hatası');
         }
         setLoading(false);
     };
@@ -243,7 +244,7 @@ export default function ShootDetail() {
         mutationFn: ({ status, workflowStage }) => shootsApi.updateStatus(id, status, workflowStage),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['shoot', id] });
-            toast.success('Durum güncellendi');
+            notify.success('Durum güncellendi');
         }
     });
 
@@ -251,9 +252,9 @@ export default function ShootDetail() {
         mutationFn: (photographerId) => shootsApi.assignPhotographer(id, photographerId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['shoot', id] });
-            toast.success('Fotoğrafçı atandı');
+            notify.success('Fotoğrafçı atandı');
         },
-        onError: () => toast.error('Fotoğrafçı atanamadı')
+        onError: () => notify.error('Fotoğrafçı atanamadı')
     });
 
     const getStageIndex = () => {
@@ -263,13 +264,13 @@ export default function ShootDetail() {
 
     const printShootDocs = async () => {
         if (!shoot || !isPrintAvailable()) {
-            toast.error('Yazdırma servisi kullanılamıyor');
+            notify.error('Yazdırma servisi kullanılamıyor');
             return;
         }
         const settings = getPrintSettings();
         const types = ['receipt', 'smallEnvelope', 'bigEnvelope'].filter(t => settings.enabled?.[t]);
         if (types.length === 0) {
-            toast.error('Hiçbir şablon aktif değil. Ayarlar > Yazdırma');
+            notify.error('Hiçbir şablon aktif değil. Ayarlar > Yazdırma');
             return;
         }
         const printable = {
@@ -288,11 +289,11 @@ export default function ShootDetail() {
             remainingAmount: shoot.remainingAmount,
             notes: shoot.notes
         };
-        toast.loading('Yazdırılıyor...', { id: 'print-shoot' });
+        notify.loading('Yazdırılıyor...', { id: 'print-shoot' });
         for (const type of types) {
             await printTemplate(type, printable);
         }
-        toast.success(`${types.length} şablon yazdırıldı`, { id: 'print-shoot' });
+        notify.success(`${types.length} şablon yazdırıldı`, { id: 'print-shoot' });
     };
 
     useF2Print({
@@ -583,8 +584,8 @@ function EditShootModal({ shoot, onClose, onSave }) {
 
     const updateMutation = useMutation({
         mutationFn: (data) => shootsApi.update(shoot.id, data),
-        onSuccess: () => { toast.success('Çekim güncellendi'); onSave(); },
-        onError: () => toast.error('Güncelleme başarısız')
+        onSuccess: () => { notify.success('Çekim güncellendi'); onSave(); },
+        onError: () => notify.error('Güncelleme başarısız')
     });
 
     return (
@@ -632,8 +633,8 @@ function PaymentModal({ shoot, onClose, onSave }) {
 
     const paymentMutation = useMutation({
         mutationFn: (data) => shootsApi.addPayment(shoot.id, data),
-        onSuccess: () => { toast.success('Ödeme kaydedildi'); onSave(); },
-        onError: () => toast.error('Ödeme kaydedilemedi')
+        onSuccess: () => { notify.success('Ödeme kaydedildi'); onSave(); },
+        onError: () => notify.error('Ödeme kaydedilemedi')
     });
 
     return (

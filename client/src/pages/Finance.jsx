@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi, whatsappApi } from '../services/api';
 import { formatDate, formatCurrency, cn } from '../lib/utils';
@@ -9,7 +10,7 @@ import {
     LayoutDashboard, TrendingUp, Percent
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts';
-import { toast } from 'sonner';
+
 import { SkeletonDashboard, SkeletonTable, SkeletonCard } from '../components/Skeleton';
 
 const tabs = [
@@ -406,11 +407,11 @@ function CashTab({ range }) {
     const updateBalanceMutation = useMutation({
         mutationFn: (balance) => financeApi.setOpeningBalance({ date: today, openingBalance: balance }),
         onSuccess: () => {
-            toast.success('Açılış bakiyesi güncellendi');
+            notify.success('Açılış bakiyesi güncellendi');
             queryClient.invalidateQueries({ queryKey: ['finance-daily-cash'] });
             setEditBalance(false);
         },
-        onError: () => toast.error('Güncelleme başarısız')
+        onError: () => notify.error('Güncelleme başarısız')
     });
 
     if (isLoading) return <div className="max-w-2xl mx-auto"><SkeletonCard className="h-96" /></div>;
@@ -589,14 +590,14 @@ function AddExpenseModal({ onClose, onSave }) {
 
     const mutation = useMutation({
         mutationFn: (data) => financeApi.addExpense(data),
-        onSuccess: () => { toast.success('Gider kaydedildi'); onSave(); },
-        onError: () => toast.error('Gider kaydedilemedi')
+        onSuccess: () => { notify.success('Gider kaydedildi'); onSave(); },
+        onError: () => notify.error('Gider kaydedilemedi')
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (formData.category === 'other' && !formData.description.trim()) {
-            toast.error('"Diğer" kategorisinde açıklama zorunludur');
+            notify.error('"Diğer" kategorisinde açıklama zorunludur');
             return;
         }
         mutation.mutate(formData);
@@ -692,7 +693,7 @@ function OverdueTab() {
 
     const sendWhatsApp = async () => {
         const items = overdueList.filter(o => selected.has(o.id));
-        if (!items.length) { toast.error('Lütfen müşteri seçin'); return; }
+        if (!items.length) { notify.error('Lütfen müşteri seçin'); return; }
 
         for (const item of items) {
             const msg = `Merhaba ${item.customerName}, ${item.archiveNumber} numaralı arşivinize ait ${formatCurrency(item.remaining)} tutarında ödemeniz bulunmaktadır. Bilgilerinize.`;
@@ -702,7 +703,7 @@ function OverdueTab() {
                 await new Promise(r => setTimeout(r, Math.random() * 3000 + 2000));
             } catch { /* continue */ }
         }
-        toast.success(`${items.length} müşteriye mesaj gönderildi`);
+        notify.success(`${items.length} müşteriye mesaj gönderildi`);
     };
 
     const totalOverdue = useMemo(() => overdueList.reduce((s, o) => s + (o.remaining || 0), 0), [overdueList]);

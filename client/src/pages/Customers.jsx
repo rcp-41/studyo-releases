@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { customersApi } from '../services/api';
@@ -15,7 +16,7 @@ import {
     ChevronRight,
     X
 } from 'lucide-react';
-import { toast } from 'sonner';
+
 import { SkeletonList } from '../components/Skeleton';
 
 // Customer Card Component
@@ -93,18 +94,18 @@ function AddCustomerModal({ isOpen, onClose }) {
         mutationFn: (data) => customersApi.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['customers'] });
-            toast.success('Müşteri oluşturuldu');
+            notify.success('Müşteri oluşturuldu');
             onClose();
         },
         onError: (error) => {
-            toast.error(error.response?.data?.error || 'Hata oluştu');
+            notify.error(error.response?.data?.error || 'Hata oluştu');
         }
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.fullName || !formData.phone) {
-            toast.error('Ad ve telefon zorunludur');
+            notify.error('Ad ve telefon zorunludur');
             return;
         }
         createMutation.mutate(formData);

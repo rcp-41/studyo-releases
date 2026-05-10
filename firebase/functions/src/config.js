@@ -8,8 +8,12 @@
 
 module.exports = {
     // Feature flag — when true, onCall functions enforce AppCheck tokens.
-    // Flip via: firebase functions:config:set appcheck.enabled=true  (or APPCHECK_ENABLED=true env)
-    APPCHECK_ENABLED: process.env.APPCHECK_ENABLED === 'true',
+    // In emulator mode (FUNCTIONS_EMULATOR=true) AppCheck is opt-in (default off).
+    // In prod AppCheck is ALWAYS on unless APPCHECK_ENABLED=false is set explicitly.
+    // Override via env: APPCHECK_ENABLED=false  (only honoured in emulator)
+    APPCHECK_ENABLED: process.env.FUNCTIONS_EMULATOR === 'true'
+        ? process.env.APPCHECK_ENABLED === 'true'   // emulator: opt-in
+        : process.env.APPCHECK_ENABLED !== 'false', // prod: default ON
 
     // Default region for all Cloud Functions
     REGION: process.env.FUNCTIONS_REGION || 'us-central1',

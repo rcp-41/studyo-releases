@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { shootsApi, packagesApi, customersApi } from '../services/api';
@@ -16,7 +17,7 @@ import {
     X,
     CalendarRange
 } from 'lucide-react';
-import { toast } from 'sonner';
+
 import { SkeletonList } from '../components/Skeleton';
 
 const statusFilters = [
@@ -118,11 +119,11 @@ function AddShootModal({ isOpen, onClose }) {
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['shoots'] });
-            toast.success('Çekim oluşturuldu');
+            notify.success('Çekim oluşturuldu');
             onClose();
         },
         onError: (error) => {
-            toast.error(error.response?.data?.error || 'Hata oluştu');
+            notify.error(error.response?.data?.error || 'Hata oluştu');
         }
     });
 
@@ -142,7 +143,7 @@ function AddShootModal({ isOpen, onClose }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.customerId || !formData.shootDate || !formData.totalAmount) {
-            toast.error('Müşteri, tarih ve tutar zorunludur');
+            notify.error('Müşteri, tarih ve tutar zorunludur');
             return;
         }
         createMutation.mutate(formData);

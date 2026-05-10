@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import notify from '../lib/notify';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
@@ -8,7 +9,7 @@ import { Loader2, User, UserCog, RotateCcw, ShieldAlert, X } from 'lucide-react'
 import BaseOSLoader from '../components/BaseOSLoader';
 import PasswordInput from '../components/PasswordInput';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { toast } from 'sonner';
+
 
 export default function Login() {
     const [password, setPassword] = useState('');
@@ -73,12 +74,12 @@ export default function Login() {
         e.preventDefault();
 
         if (!password) {
-            toast.error(t('auth.enterPassword'));
+            notify.error(t('auth.enterPassword'));
             return;
         }
 
         if (!studioConfig?.studioId) {
-            toast.error('Stüdyo yapılandırması bulunamadı. Lütfen önce seri numarası ile kurulum yapın.');
+            notify.error('Stüdyo yapılandırması bulunamadı. Lütfen önce seri numarası ile kurulum yapın.');
             navigate('/setup');
             return;
         }
@@ -89,18 +90,18 @@ export default function Login() {
             const result = await login(email, password);
 
             if (result.success) {
-                toast.success(t('auth.loginSuccess'));
+                notify.success(t('auth.loginSuccess'));
                 navigate('/');
             }
         } catch (error) {
             const message = error.message || t('auth.loginFailed');
-            toast.error(message);
+            notify.error(message);
         }
     };
 
     const handleResetStudio = async () => {
         if (!resetPassword) {
-            toast.error('Lütfen Super Admin şifresini girin');
+            notify.error('Lütfen Super Admin şifresini girin');
             return;
         }
 
@@ -111,7 +112,7 @@ export default function Login() {
             const superAdminEmail = import.meta.env.VITE_SUPER_ADMIN_EMAIL;
             if (!superAdminEmail) {
                 console.warn('[Login] VITE_SUPER_ADMIN_EMAIL is not configured; studio reset is disabled.');
-                toast.error('Super Admin yapılandırılmamış. Yönetici ile iletişime geçin.');
+                notify.error('Super Admin yapılandırılmamış. Yönetici ile iletişime geçin.');
                 setResetLoading(false);
                 return;
             }
@@ -131,7 +132,7 @@ export default function Login() {
             // Sign out the super admin
             await auth.signOut();
 
-            toast.success('Stüdyo sıfırlandı! Yeni kuruluma yönlendiriliyorsunuz...');
+            notify.success('Stüdyo sıfırlandı! Yeni kuruluma yönlendiriliyorsunuz...');
             setShowResetModal(false);
             setResetPassword('');
 
@@ -142,13 +143,13 @@ export default function Login() {
         } catch (error) {
             console.error('Reset error:', error);
             if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                toast.error('Super Admin şifresi yanlış');
+                notify.error('Super Admin şifresi yanlış');
             } else if (error.code === 'auth/user-not-found') {
-                toast.error('Super Admin hesabı bulunamadı');
+                notify.error('Super Admin hesabı bulunamadı');
             } else if (error.code === 'auth/too-many-requests') {
-                toast.error('Çok fazla deneme. Lütfen biraz bekleyin');
+                notify.error('Çok fazla deneme. Lütfen biraz bekleyin');
             } else {
-                toast.error(error.message || 'Sıfırlama başarısız');
+                notify.error(error.message || 'Sıfırlama başarısız');
             }
         } finally {
             setResetLoading(false);

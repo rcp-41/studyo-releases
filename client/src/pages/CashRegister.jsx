@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../services/api';
 import { formatDate, formatCurrency, cn } from '../lib/utils';
@@ -7,7 +8,7 @@ import {
     Calendar, RefreshCw, Pencil, Trash2, TrendingUp, TrendingDown,
     ArrowDownCircle, ArrowUpCircle
 } from 'lucide-react';
-import { toast } from 'sonner';
+
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/Skeleton';
 import useUndoable from '../hooks/useUndoable';
@@ -77,10 +78,10 @@ function EntryFormModal({ onClose, onSave, editingEntry = null }) {
             ? financeApi.updateCashEntry({ id: editingEntry.id, ...data })
             : financeApi.createCashEntry(data),
         onSuccess: () => {
-            toast.success(editingEntry ? 'Kayıt güncellendi' : 'Kayıt eklendi');
+            notify.success(editingEntry ? 'Kayıt güncellendi' : 'Kayıt eklendi');
             onSave();
         },
-        onError: (err) => toast.error(err?.message || 'İşlem başarısız')
+        onError: (err) => notify.error(err?.message || 'İşlem başarısız')
     });
 
     const handleDirectionChange = (newDir) => {
@@ -95,7 +96,7 @@ function EntryFormModal({ onClose, onSave, editingEntry = null }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!form.amount || Number(form.amount) <= 0) {
-            toast.error('Geçerli bir tutar girin');
+            notify.error('Geçerli bir tutar girin');
             return;
         }
         if (direction === 'income') {
@@ -319,7 +320,7 @@ export default function CashRegister() {
             queryClient.invalidateQueries({ queryKey: ['cash-register'] });
         },
         onError: (err) => {
-            toast.error(err?.message || 'Silinemedi — değişiklikler geri alındı');
+            notify.error(err?.message || 'Silinemedi — değişiklikler geri alındı');
             queryClient.invalidateQueries({ queryKey: ['cash-register'] });
         }
     });

@@ -1,38 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import useAuthStore from './store/authStore';
 
+// Critical routes — NOT lazy (always needed on first load)
 import Login from './pages/Login';
 import Setup from './pages/Setup';
 import Dashboard from './pages/Dashboard';
 import Archives from './pages/Archives';
-import ArchiveSearch from './pages/ArchiveSearch';
-import Appointments from './pages/Appointments';
-import Settings from './pages/Settings';
-import Users from './pages/Users';
-import WcClients from './pages/WcClients';
-import Customers from './pages/Customers';
-import CustomerDetail from './pages/CustomerDetail';
-import Shoots from './pages/Shoots';
-import ShootDetail from './pages/ShootDetail';
-import Finance from './pages/Finance';
-import Reports from './pages/Reports';
-import CashRegister from './pages/CashRegister';
-import PixonaiSettings from './pages/PixonaiSettings';
-import BotConversations from './pages/BotConversations';
+
+// Lazy-loaded routes
+const ArchiveSearch = lazy(() => import('./pages/ArchiveSearch'));
+const Appointments = lazy(() => import('./pages/Appointments'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Users = lazy(() => import('./pages/Users'));
+const WcClients = lazy(() => import('./pages/WcClients'));
+const Customers = lazy(() => import('./pages/Customers'));
+const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
+const Shoots = lazy(() => import('./pages/Shoots'));
+const ShootDetail = lazy(() => import('./pages/ShootDetail'));
+const Finance = lazy(() => import('./pages/Finance'));
+const Reports = lazy(() => import('./pages/Reports'));
+const CashRegister = lazy(() => import('./pages/CashRegister'));
+const PixonaiSettings = lazy(() => import('./pages/PixonaiSettings'));
+const BotConversations = lazy(() => import('./pages/BotConversations'));
+
 import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineBanner from './components/OfflineBanner';
-
 import BaseOSLoader from './components/BaseOSLoader';
 
+function PageLoader() {
+    return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <BaseOSLoader size={36} />
+        </div>
+    );
+}
+
 // Role-based Dashboard Router
-// Admin → Dashboard, Personel → Archives
 function DashboardRouter() {
     const user = useAuthStore((state) => state.user);
-    if (user?.role === 'admin') {
-        return <Dashboard />;
-    }
+    if (user?.role === 'admin') return <Dashboard />;
     return <Archives />;
 }
 
@@ -41,7 +49,6 @@ function ProtectedRoute() {
     const user = useAuthStore((state) => state.user);
     const loading = useAuthStore((state) => state.loading);
 
-    // Wait for auth state to resolve before deciding
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -54,7 +61,7 @@ function ProtectedRoute() {
     return <AppLayout><Outlet /></AppLayout>;
 }
 
-// Admin Route Wrapper - blocks non-admin users from accessing admin pages
+// Admin Route Wrapper
 function AdminRoute({ children }) {
     const user = useAuthStore((state) => state.user);
     if (user?.role !== 'admin') return <Navigate to="/archives" replace />;
@@ -72,11 +79,9 @@ function LicenseCheck({ children }) {
             try {
                 let config = null;
 
-                // Check Electron license
                 if (window.electron && window.electron.getLicenseConfig) {
                     config = await window.electron.getLicenseConfig();
                 } else {
-                    // Fallback for web
                     try {
                         const stored = localStorage.getItem('studyo_license');
                         config = stored ? JSON.parse(stored) : null;
@@ -88,7 +93,6 @@ function LicenseCheck({ children }) {
                 }
 
                 if (config && config.studioId) {
-                    // SECURITY: Verify HWID with server (Electron only)
                     if (window.electron && config.hwid && config.organizationId) {
                         try {
                             const { httpsCallable } = await import('firebase/functions');
@@ -103,7 +107,6 @@ function LicenseCheck({ children }) {
                             if (status === 'approved') {
                                 setHasLicense(true);
                             } else {
-                                // Device not approved — clear local license
                                 console.warn('[LicenseCheck] Device not approved on server, status:', status);
                                 if (window.electron?.clearLicenseConfig) {
                                     await window.electron.clearLicenseConfig();
@@ -114,7 +117,6 @@ function LicenseCheck({ children }) {
                             }
                         } catch (verifyErr) {
                             console.error('[LicenseCheck] HWID verification failed:', verifyErr);
-                            // On network error, allow offline access with existing license
                             setHasLicense(true);
                         }
                     } else {
@@ -131,9 +133,7 @@ function LicenseCheck({ children }) {
             }
         };
         checkLicense();
-        // Only re-run when crossing the /setup boundary (e.g., after saving the license on Setup page);
-        // avoids a Firebase call on every route change.
-    }, [location.pathname === '/setup']);
+    }, [location.pathname === '/setup']); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading) {
         return (
@@ -143,22 +143,13 @@ function LicenseCheck({ children }) {
         );
     }
 
-    // If on setup page, allow access if no license
-    if (!hasLicense && location.pathname !== '/setup') {
-        return <Navigate to="/setup" replace />;
-    }
-
-    // If has license and trying to access setup, redirect to login
-    if (hasLicense && location.pathname === '/setup') {
-        return <Navigate to="/login" replace />;
-    }
+    if (!hasLicense && location.pathname !== '/setup') return <Navigate to="/setup" replace />;
+    if (hasLicense && location.pathname === '/setup') return <Navigate to="/login" replace />;
 
     return children;
 }
 
-
 export default function App() {
-
     return (
         <ErrorBoundary>
             <OfflineBanner />
@@ -172,24 +163,23 @@ export default function App() {
                             <Route index element={<Navigate to="/dashboard" replace />} />
                             <Route path="dashboard" element={<DashboardRouter />} />
                             <Route path="archives" element={<Archives />} />
-                            <Route path="archives/search" element={<ArchiveSearch />} />
-                            <Route path="appointments" element={<Appointments />} />
-                            <Route path="customers" element={<Customers />} />
-                            <Route path="customers/detail" element={<CustomerDetail />} />
-                            <Route path="customers/:id" element={<CustomerDetail />} />
-                            <Route path="shoots" element={<Shoots />} />
-                            <Route path="shoots/:id" element={<ShootDetail />} />
-                            <Route path="finance" element={<AdminRoute><Finance /></AdminRoute>} />
-                            <Route path="reports" element={<AdminRoute><Reports /></AdminRoute>} />
-                            <Route path="cash-register" element={<CashRegister />} />
-                            <Route path="settings" element={<AdminRoute><Settings /></AdminRoute>} />
-                            <Route path="users" element={<AdminRoute><Users /></AdminRoute>} />
-                            <Route path="wc-clients" element={<AdminRoute><WcClients /></AdminRoute>} />
-                            <Route path="pixonai-settings" element={<AdminRoute><PixonaiSettings /></AdminRoute>} />
-                            <Route path="bot-conversations" element={<BotConversations />} />
+                            <Route path="archives/search" element={<Suspense fallback={<PageLoader />}><ArchiveSearch /></Suspense>} />
+                            <Route path="appointments" element={<Suspense fallback={<PageLoader />}><Appointments /></Suspense>} />
+                            <Route path="customers" element={<Suspense fallback={<PageLoader />}><Customers /></Suspense>} />
+                            <Route path="customers/detail" element={<Suspense fallback={<PageLoader />}><CustomerDetail /></Suspense>} />
+                            <Route path="customers/:id" element={<Suspense fallback={<PageLoader />}><CustomerDetail /></Suspense>} />
+                            <Route path="shoots" element={<Suspense fallback={<PageLoader />}><Shoots /></Suspense>} />
+                            <Route path="shoots/:id" element={<Suspense fallback={<PageLoader />}><ShootDetail /></Suspense>} />
+                            <Route path="finance" element={<AdminRoute><Suspense fallback={<PageLoader />}><Finance /></Suspense></AdminRoute>} />
+                            <Route path="reports" element={<AdminRoute><Suspense fallback={<PageLoader />}><Reports /></Suspense></AdminRoute>} />
+                            <Route path="cash-register" element={<Suspense fallback={<PageLoader />}><CashRegister /></Suspense>} />
+                            <Route path="settings" element={<AdminRoute><Suspense fallback={<PageLoader />}><Settings /></Suspense></AdminRoute>} />
+                            <Route path="users" element={<AdminRoute><Suspense fallback={<PageLoader />}><Users /></Suspense></AdminRoute>} />
+                            <Route path="wc-clients" element={<AdminRoute><Suspense fallback={<PageLoader />}><WcClients /></Suspense></AdminRoute>} />
+                            <Route path="pixonai-settings" element={<AdminRoute><Suspense fallback={<PageLoader />}><PixonaiSettings /></Suspense></AdminRoute>} />
+                            <Route path="bot-conversations" element={<Suspense fallback={<PageLoader />}><BotConversations /></Suspense>} />
                         </Route>
 
-                        {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </LicenseCheck>

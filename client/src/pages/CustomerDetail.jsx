@@ -1,4 +1,5 @@
 import { useParams, useSearchParams, Link } from 'react-router-dom';
+import notify from '../lib/notify';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customersApi, appointmentsApi } from '../services/api';
@@ -8,7 +9,7 @@ import {
     Calendar, Edit, Loader2, MessageCircle, X, Clock,
     CreditCard, Banknote, ArrowRightLeft, FileText, RefreshCw
 } from 'lucide-react';
-import { toast } from 'sonner';
+
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SkeletonCard } from '../components/Skeleton';
@@ -236,7 +237,7 @@ export default function CustomerDetail() {
     });
 
     const handleWhatsApp = () => {
-        if (!customer?.phone) { toast.error('Telefon numarası bulunamadı'); return; }
+        if (!customer?.phone) { notify.error('Telefon numarası bulunamadı'); return; }
         const phone = customer.phone.replace(/[^0-9]/g, '');
         const formatted = phone.startsWith('0') ? '90' + phone.slice(1) : phone;
         window.open(`https://wa.me/${formatted}`, '_blank');
@@ -483,8 +484,8 @@ function EditCustomerModal({ customer, onClose, onSave }) {
 
     const updateMutation = useMutation({
         mutationFn: (data) => customersApi.update(customer.id, data),
-        onSuccess: () => { toast.success('Müşteri güncellendi'); onSave(); },
-        onError: () => toast.error('Güncelleme başarısız')
+        onSuccess: () => { notify.success('Müşteri güncellendi'); onSave(); },
+        onError: () => notify.error('Güncelleme başarısız')
     });
 
     const handleSubmit = (e) => {

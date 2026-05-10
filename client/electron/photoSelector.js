@@ -1,6 +1,22 @@
 const { app, BrowserWindow, ipcMain, screen, dialog, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+// p-limit is an ESM-only package; we load it lazily via dynamic import.
+let _pLimit = null;
+async function getPLimit() {
+    if (!_pLimit) {
+        const mod = await import('p-limit');
+        _pLimit = mod.default;
+    }
+    return _pLimit;
+}
+
+// Concurrency ceiling: CPUs - 1, capped at 4
+function concurrency() {
+    return Math.min(4, Math.max(1, os.cpus().length - 1));
+}
 
 let cspInstalled = false;
 function ensurePhotoSelectorCSP() {
@@ -192,8 +208,22 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
         const failed = [];
         const sender = event.sender;
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        const pLimit = await getPLimit();
+        const limit = pLimit(concurrency());
+
+        // 100 ms throttle for progress events
+        let lastProgressMs = 0;
+        let doneCount = 0;
+        function sendProgress(file) {
+            doneCount++;
+            const now = Date.now();
+            if (!sender.isDestroyed() && (now - lastProgressMs >= 100 || doneCount === files.length)) {
+                lastProgressMs = now;
+                sender.send('photos:thumbnail-progress', { done: doneCount, total: files.length, current: file });
+            }
+        }
+
+        await Promise.all(files.map((file, _i) => limit(async () => {
             const inputPath = path.join(folderPath, file);
             const thumbName = path.parse(file).name + '.jpg';
             const outputPath = path.join(thumbDir, thumbName);
@@ -205,11 +235,8 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
                     const thumbStat = fs.statSync(outputPath);
                     if (thumbStat.mtimeMs > srcStat.mtimeMs) {
                         skipped++;
-                        if (!sender.isDestroyed()) {
-                            sender.send('photos:thumbnail-progress',
-                                { done: i + 1, total: files.length, current: file });
-                        }
-                        continue;
+                        sendProgress(file);
+                        return;
                     }
                 } catch { }
             }
@@ -226,11 +253,8 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
                 console.error(`Thumbnail failed for ${file}:`, err.message);
             }
 
-            if (!sender.isDestroyed()) {
-                sender.send('photos:thumbnail-progress',
-                    { done: i + 1, total: files.length, current: file });
-            }
-        }
+            sendProgress(file);
+        })));
 
         return { success: true, data: { generated, skipped, failed, thumbnailDir: thumbDir } };
     });
@@ -518,27 +542,36 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
         const copied = [];
         const failed = [];
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        const pLimit = await getPLimit();
+        const limit = pLimit(concurrency());
+
+        let copyDone = 0;
+        let lastCopyMs = 0;
+        function sendCopyProgress(file) {
+            copyDone++;
+            const now = Date.now();
+            if (!sender.isDestroyed() && (now - lastCopyMs >= 100 || copyDone === files.length)) {
+                lastCopyMs = now;
+                sender.send('photos:copy-progress', {
+                    current: copyDone,
+                    total: files.length,
+                    fileName: file,
+                    percent: Math.round((copyDone / files.length) * 100)
+                });
+            }
+        }
+
+        await Promise.all(files.map(file => limit(async () => {
             const srcFile = path.join(sourcePath, file);
             const dstFile = path.join(destPath, file);
-
             try {
                 await fs.promises.copyFile(srcFile, dstFile);
                 copied.push(file);
             } catch (err) {
                 failed.push({ file, error: err.message });
             }
-
-            if (!sender.isDestroyed()) {
-                sender.send('photos:copy-progress', {
-                    current: i + 1,
-                    total: files.length,
-                    fileName: file,
-                    percent: Math.round(((i + 1) / files.length) * 100)
-                });
-            }
-        }
+            sendCopyProgress(file);
+        })));
 
         return {
             success: true,
@@ -621,8 +654,11 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
             const refDesc = new Float32Array(referenceDescriptor);
             const matches = [];
 
-            for (const filePath of filePaths) {
-                if (!isPathAllowed(filePath)) continue;
+            const pLimit = await getPLimit();
+            const limit = pLimit(concurrency());
+
+            await Promise.all(filePaths.map(filePath => limit(async () => {
+                if (!isPathAllowed(filePath)) return;
                 try {
                     const img = await canvas.loadImage(filePath);
                     const detection = await faceapi
@@ -630,7 +666,7 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
                         .withFaceLandmarks()
                         .withFaceDescriptor();
 
-                    if (!detection) continue;
+                    if (!detection) return;
 
                     const distance = faceapi.euclideanDistance(refDesc, detection.descriptor);
                     if (distance <= threshold) {
@@ -639,7 +675,7 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
                 } catch {
                     // Skip unreadable files
                 }
-            }
+            })));
 
             matches.sort((a, b) => a.distance - b.distance);
             return { success: true, matches };

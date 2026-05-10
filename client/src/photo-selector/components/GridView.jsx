@@ -1,4 +1,6 @@
 import { useRef, useCallback, useState } from 'react';
+import { FixedSizeGrid } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import PhotoCard from './PhotoCard';
 import PhotoContextMenu from './PhotoContextMenu';
@@ -16,6 +18,9 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+const GRID_GAP = 8;
+const GRID_PADDING = 16;
 
 function SortablePhotoCard({ id, ...props }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -117,59 +122,108 @@ export default function GridView() {
         );
     }
 
-    const renderGridItems = () => photos.map((photo, index) => {
-        const props = {
-            photo,
-            isFavorite: favorites.has(photo.id),
-            orderNumber: numberedMap[photo.id] || null,
-            isSelected: index === selectedIndex,
-            onClick: () => handlePhotoClick(index),
-            onDoubleClick: () => handlePhotoDoubleClick(index),
-            onToggleFavorite: () => handleToggleFavorite(photo.id),
-            onContextMenu: handleContextMenu,
-            nextNumber: nextOrderNumber,
-            onAssignNumber: handleAssignNumber,
-            onRemoveNumber: handleRemoveNumber,
-            showOverlay,
-        };
-        
-        if (filterMode === 'favorites') {
-            return <SortablePhotoCard key={photo.id} id={photo.id} {...props} />;
-        }
-        return <PhotoCard key={photo.id} {...props} />;
-    });
+    // Favorites mode: flat DnD grid (no virtualisation — order must be preserved)
+    const renderFavoritesGrid = () => {
+        const items = photos.map((photo, index) => (
+            <SortablePhotoCard
+                key={photo.id}
+                id={photo.id}
+                photo={photo}
+                isFavorite={favorites.has(photo.id)}
+                orderNumber={numberedMap[photo.id] || null}
+                isSelected={index === selectedIndex}
+                onClick={() => handlePhotoClick(index)}
+                onDoubleClick={() => handlePhotoDoubleClick(index)}
+                onToggleFavorite={() => handleToggleFavorite(photo.id)}
+                onContextMenu={handleContextMenu}
+                nextNumber={nextOrderNumber}
+                onAssignNumber={handleAssignNumber}
+                onRemoveNumber={handleRemoveNumber}
+                showOverlay={showOverlay}
+            />
+        ));
+        return (
+            <div
+                ref={gridRef}
+                className="h-full overflow-y-auto ps-scrollbar p-4"
+            >
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <div
+                        className="grid gap-2"
+                        style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}
+                    >
+                        <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
+                            {items}
+                        </SortableContext>
+                    </div>
+                </DndContext>
+            </div>
+        );
+    };
 
-    const gridContent = (
-        <div
-            className="grid gap-2"
-            style={{
-                gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
-            }}
-        >
-            {filterMode === 'favorites' ? (
-                <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
-                    {renderGridItems()}
-                </SortableContext>
-            ) : (
-                renderGridItems()
-            )}
+    // All other modes: virtualised FixedSizeGrid
+    const renderVirtualGrid = () => (
+        <div ref={gridRef} className="h-full">
+            <AutoSizer>
+                {({ width, height }) => {
+                    const innerWidth = width - GRID_PADDING * 2;
+                    const cellWidth = Math.floor((innerWidth - GRID_GAP * (gridColumns - 1)) / gridColumns);
+                    const cellHeight = Math.floor(cellWidth * 1.15);
+                    const rowCount = Math.ceil(photos.length / gridColumns);
+
+                    const Cell = ({ columnIndex, rowIndex, style }) => {
+                        const index = rowIndex * gridColumns + columnIndex;
+                        if (index >= photos.length) return null;
+                        const photo = photos[index];
+                        // Adjust style to add gap via padding
+                        const cellStyle = {
+                            ...style,
+                            left: (style.left || 0) + GRID_PADDING + columnIndex * GRID_GAP,
+                            top: (style.top || 0) + GRID_PADDING + rowIndex * GRID_GAP,
+                            width: cellWidth,
+                            height: cellHeight,
+                        };
+                        return (
+                            <div style={cellStyle}>
+                                <PhotoCard
+                                    photo={photo}
+                                    isFavorite={favorites.has(photo.id)}
+                                    orderNumber={numberedMap[photo.id] || null}
+                                    isSelected={index === selectedIndex}
+                                    onClick={() => handlePhotoClick(index)}
+                                    onDoubleClick={() => handlePhotoDoubleClick(index)}
+                                    onToggleFavorite={() => handleToggleFavorite(photo.id)}
+                                    onContextMenu={handleContextMenu}
+                                    nextNumber={nextOrderNumber}
+                                    onAssignNumber={handleAssignNumber}
+                                    onRemoveNumber={handleRemoveNumber}
+                                    showOverlay={showOverlay}
+                                />
+                            </div>
+                        );
+                    };
+
+                    return (
+                        <FixedSizeGrid
+                            columnCount={gridColumns}
+                            columnWidth={cellWidth + GRID_GAP}
+                            rowCount={rowCount}
+                            rowHeight={cellHeight + GRID_GAP}
+                            width={width}
+                            height={height}
+                            overscanRowCount={3}
+                        >
+                            {Cell}
+                        </FixedSizeGrid>
+                    );
+                }}
+            </AutoSizer>
         </div>
     );
 
     return (
         <>
-            <div
-                ref={gridRef}
-                className="h-full overflow-y-auto ps-scrollbar p-4"
-            >
-                {filterMode === 'favorites' ? (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        {gridContent}
-                    </DndContext>
-                ) : (
-                    gridContent
-                )}
-            </div>
+            {filterMode === 'favorites' ? renderFavoritesGrid() : renderVirtualGrid()}
 
             {/* Context Menu */}
             {contextMenu && (

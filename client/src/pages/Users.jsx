@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../services/api';
 import { formatDate, getRoleLabel, getInitials, cn } from '../lib/utils';
 import { Plus, Search, Edit, Trash2, Loader2, X, User, Shield, Check, Key, Calendar, CalendarPlus } from 'lucide-react';
-import { toast } from 'sonner';
+
 import ConfirmDialog from '../components/ConfirmDialog';
 import PasswordInput from '../components/PasswordInput';
 import { SkeletonTable } from '../components/Skeleton';
@@ -22,14 +23,14 @@ function AddUserModal({ isOpen, onClose }) {
 
     const createMutation = useMutation({
         mutationFn: (data) => usersApi.create(data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Kullanıcı oluşturuldu'); onClose(); },
-        onError: (e) => toast.error(e.response?.data?.error || 'Hata oluştu')
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); notify.success('Kullanıcı oluşturuldu'); onClose(); },
+        onError: (e) => notify.error(e.response?.data?.error || 'Hata oluştu')
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.username || !formData.fullName || !formData.password) {
-            toast.error('Kullanıcı adı, ad soyad ve şifre zorunludur');
+            notify.error('Kullanıcı adı, ad soyad ve şifre zorunludur');
             return;
         }
         createMutation.mutate(formData);
@@ -94,14 +95,14 @@ function ResetPasswordModal({ isOpen, onClose, user }) {
 
     const resetMutation = useMutation({
         mutationFn: (data) => usersApi.resetPassword(data),
-        onSuccess: () => { toast.success('Şifre başarıyla sıfırlandı'); onClose(); },
-        onError: () => toast.error('Şifre sıfırlanamadı')
+        onSuccess: () => { notify.success('Şifre başarıyla sıfırlandı'); onClose(); },
+        onError: () => notify.error('Şifre sıfırlanamadı')
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (password.length < 6) return toast.error('Şifre en az 6 karakter olmalı');
-        if (password !== confirm) return toast.error('Şifreler eşleşmiyor');
+        if (password.length < 6) return notify.error('Şifre en az 6 karakter olmalı');
+        if (password !== confirm) return notify.error('Şifreler eşleşmiyor');
         resetMutation.mutate({ uid: user.uid || user.id, password });
     };
 
@@ -141,13 +142,13 @@ function AddLeaveModal({ isOpen, onClose, users }) {
 
     const addLeaveMutation = useMutation({
         mutationFn: (data) => usersApi.addLeave(data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leaves'] }); toast.success('İzin eklendi'); onClose(); },
-        onError: () => toast.error('İzin eklenemedi')
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leaves'] }); notify.success('İzin eklendi'); onClose(); },
+        onError: () => notify.error('İzin eklenemedi')
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!form.userId || !form.startDate || !form.endDate) return toast.error('Tüm alanları doldurun');
+        if (!form.userId || !form.startDate || !form.endDate) return notify.error('Tüm alanları doldurun');
         addLeaveMutation.mutate(form);
     };
 
@@ -210,8 +211,8 @@ function EditUserModal({ isOpen, onClose, user }) {
 
     const updateMutation = useMutation({
         mutationFn: (data) => usersApi.update(user?.uid || user?.id, data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Kullanıcı güncellendi'); onClose(); },
-        onError: (e) => toast.error(e.message || 'Güncelleme başarısız')
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); notify.success('Kullanıcı güncellendi'); onClose(); },
+        onError: (e) => notify.error(e.message || 'Güncelleme başarısız')
     });
 
     const handleSubmit = (e) => {
@@ -278,20 +279,20 @@ export default function Users() {
 
     const deleteMutation = useMutation({
         mutationFn: (id) => usersApi.delete(id),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Kullanıcı silindi'); setDeleteTarget(null); },
-        onError: () => { toast.error('Silme başarısız'); setDeleteTarget(null); }
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); notify.success('Kullanıcı silindi'); setDeleteTarget(null); },
+        onError: () => { notify.error('Silme başarısız'); setDeleteTarget(null); }
     });
 
     const toggleMutation = useMutation({
         mutationFn: ({ id, disabled }) => usersApi.update(id, { isActive: !disabled }),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Durum güncellendi'); }
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); notify.success('Durum güncellendi'); }
     });
 
     // Leaves
     const { data: leaves } = useQuery({ queryKey: ['leaves'], queryFn: () => usersApi.getLeaves?.().then(r => r.data).catch(() => []) });
     const deleteLeaveMutation = useMutation({
         mutationFn: (id) => usersApi.deleteLeave?.(id),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leaves'] }); toast.success('İzin silindi'); }
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leaves'] }); notify.success('İzin silindi'); }
     });
 
     const filteredUsers = users?.filter(u =>

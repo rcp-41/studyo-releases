@@ -17,6 +17,27 @@ const isDev = process.env.NODE_ENV === 'development';
 // Firebase Hosting URL for production (Stealth Mode)
 const FIREBASE_HOSTING_URL = process.env.FIREBASE_HOSTING_URL || 'https://studyo-live-2026.web.app';
 
+// SECURITY: Navigation/window-open origin whitelist
+const ALLOWED_NAVIGATE_ORIGINS = [
+    /^https:\/\/studyo-live-2026\.web\.app(\/|$)/,
+    /^https:\/\/[a-z0-9-]+\.firebaseapp\.com(\/|$)/,
+    /^https:\/\/[a-z0-9-]+\.firebaseio\.com(\/|$)/,
+    /^https:\/\/[a-z0-9.-]+\.googleapis\.com(\/|$)/,
+    /^https:\/\/accounts\.google\.com(\/|$)/,
+    ...(process.env.NODE_ENV === 'development' ? [/^http:\/\/localhost:\d+(\/|$)/] : []),
+];
+
+function isAllowedUrl(url) {
+    try {
+        return ALLOWED_NAVIGATE_ORIGINS.some(re => re.test(url));
+    } catch {
+        return false;
+    }
+}
+
+// Single-fire flag for encryption unavailability warning
+let _encryptionWarnSent = false;
+
 // SECURITY: Allowed base paths for file operations (populated after app.ready)
 const ALLOWED_BASE_PATHS = [];
 
@@ -76,6 +97,7 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            sandbox: true,
             preload: path.join(__dirname, 'preload.js')
         },
         frame: true,
@@ -94,6 +116,33 @@ function createWindow() {
         mainWindow.loadURL(FIREBASE_HOSTING_URL);
         // Hide menu bar in production
         mainWindow.setMenuBarVisibility(false);
+    }
+
+    // SECURITY: Block or redirect new-window requests
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (isAllowedUrl(url)) return { action: 'allow' };
+        // Open external http(s) links in the OS browser
+        if (/^https?:\/\//.test(url)) shell.openExternal(url).catch(() => {});
+        return { action: 'deny' };
+    });
+
+    // SECURITY: Block navigation outside allowed origins
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        if (!isAllowedUrl(url)) {
+            event.preventDefault();
+            console.warn('[Security] Blocked navigation to:', url);
+        }
+    });
+
+    // SECURITY: safeStorage availability check — warn renderer once
+    if (!safeStorage.isEncryptionAvailable() && !_encryptionWarnSent) {
+        _encryptionWarnSent = true;
+        console.warn('[Security] safeStorage encryption unavailable on this machine.');
+        mainWindow.webContents.once('did-finish-load', () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('security:encryptionUnavailable');
+            }
+        });
     }
 
     // Handle window close
@@ -512,6 +561,11 @@ app.on('before-quit', () => {
 // IPC handlers
 ipcMain.handle('app:version', () => {
     return app.getVersion();
+});
+
+// SECURITY: Report safeStorage encryption status to renderer on demand
+ipcMain.handle('app:getEncryptionStatus', () => {
+    return { available: safeStorage.isEncryptionAvailable() };
 });
 
 // SECURITY: Shell open external with protocol whitelist
