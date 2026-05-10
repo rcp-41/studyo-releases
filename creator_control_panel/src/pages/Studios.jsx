@@ -3,7 +3,7 @@ import {
     Plus, Search, Edit, Eye, EyeOff, RefreshCcw, Pause, Play, Trash2, X, Key,
     Settings, Camera, MapPin, User, Save, Globe, Lock, Wifi, WifiOff, Loader2,
     Building, Shield, RotateCcw, ChevronDown, ChevronRight, Monitor, Bell,
-    CheckCircle, XCircle, Clock, Database
+    CheckCircle, XCircle, Clock, Database, Copy, ArrowRightLeft, Download, HardDrive
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -14,6 +14,10 @@ import PlanChangeModal, { PlanBadge } from '../components/PlanChangeModal';
 import SuspendModal from '../components/SuspendModal';
 import SubscriptionModal from '../components/SubscriptionModal';
 import CouponApplyModal from '../components/CouponApplyModal';
+import CloneStudioModal from '../components/CloneStudioModal';
+import MoveStudioModal from '../components/MoveStudioModal';
+import ExportModal from '../components/ExportModal';
+import BackupPanel from '../components/BackupPanel';
 
 const SECRET_MASK = '••••••••';
 
@@ -134,6 +138,13 @@ export default function Studios() {
     const [showSuspendModal, setShowSuspendModal] = useState(null);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(null);
     const [showCouponModal, setShowCouponModal] = useState(null);
+
+    // Faz 3 modals
+    const [showCloneModal, setShowCloneModal] = useState(null);
+    const [showMoveModal, setShowMoveModal] = useState(null);
+    const [showExportModal, setShowExportModal] = useState(null);
+    const [showBackupPanel, setShowBackupPanel] = useState(null);
+    const [resetTotpCode, setResetTotpCode] = useState('');
 
     // Confirm Dialog state
     const [confirmState, setConfirmState] = useState(null);
@@ -416,14 +427,19 @@ export default function Studios() {
 
     async function handleResetData() {
         if (resetConfirmText !== 'ONAYLIYORUM') return;
+        if (!resetTotpCode || resetTotpCode.length !== 6) {
+            toast.error('6 haneli TOTP kodu gerekli');
+            return;
+        }
         setResettingData(true);
         try {
-            await creatorApi.resetStudioData(showResetModal.organizationId, showResetModal.id, resetOption);
+            await creatorApi.resetStudioDataSecure(showResetModal.organizationId, showResetModal.id, resetOption, resetTotpCode);
             toast.success('Stüdyo verileri başarıyla sıfırlandı!');
             setShowResetModal(null);
+            setResetTotpCode('');
             loadData();
         } catch (error) {
-            toast.error('Sıfırlama hatası: ' + error.message);
+            toast.error('Sıfırlama hatası: ' + (error.message || 'Bilinmeyen hata'));
         } finally {
             setResettingData(false);
         }
@@ -625,8 +641,24 @@ export default function Studios() {
                                                             }}>
                                                             {studio.info?.subscription_status === 'active' ? <Pause size={14} /> : <Play size={14} />}
                                                         </button>
-                                                        <button className="btn btn-sm" title="Veri Sıfırlama" onClick={() => { setShowResetModal(studio); setResetOption('archives'); setResetConfirmText(''); }}
+                                                        <button className="btn btn-sm" title="Veri Sıfırlama (2FA)" onClick={() => { setShowResetModal(studio); setResetOption('archives'); setResetConfirmText(''); setResetTotpCode(''); }}
                                                             style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                                            <Database size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Klonla" onClick={() => setShowCloneModal(studio)}
+                                                            style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)' }}>
+                                                            <Copy size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Org Degistir" onClick={() => setShowMoveModal(studio)}
+                                                            style={{ background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
+                                                            <ArrowRightLeft size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Veri Export" onClick={() => setShowExportModal(studio)}
+                                                            style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+                                                            <Globe size={14} />
+                                                        </button>
+                                                        <button className="btn btn-sm" title="Yedekler & Depolama" onClick={() => setShowBackupPanel(studio)}
+                                                            style={{ background: 'rgba(167,139,250,0.1)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }}>
                                                             <Database size={14} />
                                                         </button>
                                                         <button className="btn btn-danger btn-sm" title="Sil" onClick={() => handleDeleteStudio(studio)}>
@@ -1212,19 +1244,32 @@ export default function Studios() {
 
                             <div className="form-group" style={{ marginBottom: 0 }}>
                                 <label className="form-label">Onaylıyorsanız aşağıya "ONAYLIYORUM" yazın:</label>
-                                <input type="text" className="form-input" 
-                                    value={resetConfirmText} 
+                                <input type="text" className="form-input"
+                                    value={resetConfirmText}
                                     onChange={e => setResetConfirmText(e.target.value)}
                                     placeholder="ONAYLIYORUM"
                                 />
                             </div>
+                            <div className="form-group" style={{ marginTop: 14 }}>
+                                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Shield size={13} /> 2FA Kodu (TOTP) *
+                                </label>
+                                <input type="text" className="form-input"
+                                    value={resetTotpCode}
+                                    onChange={e => setResetTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="6 haneli kod"
+                                    maxLength={6}
+                                    style={{ letterSpacing: 4, fontFamily: 'monospace', width: 140 }}
+                                />
+                                <p style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>Authenticator uygulamanızdaki kodu girin. 2FA aktif değilse işlem reddedilir.</p>
+                            </div>
                         </div>
                         <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
-                            <button className="btn btn-secondary" onClick={() => setShowResetModal(null)} disabled={resettingData}>
+                            <button className="btn btn-secondary" onClick={() => { setShowResetModal(null); setResetTotpCode(''); }} disabled={resettingData}>
                                 Vazgeç
                             </button>
-                            <button className="btn btn-danger" 
-                                disabled={resetConfirmText !== 'ONAYLIYORUM' || resettingData}
+                            <button className="btn btn-danger"
+                                disabled={resetConfirmText !== 'ONAYLIYORUM' || resetTotpCode.length !== 6 || resettingData}
                                 onClick={handleResetData}
                             >
                                 {resettingData ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Siliniyor...</> : 'Sil'}
@@ -1254,6 +1299,43 @@ export default function Studios() {
                 danger={confirmState?.danger}
                 requireText={confirmState?.requireText}
             />
+
+            {/* Faz 3 Modals */}
+            {showCloneModal && (
+                <CloneStudioModal
+                    studio={showCloneModal}
+                    organizations={organizations}
+                    onClose={() => setShowCloneModal(null)}
+                    onSuccess={loadData}
+                />
+            )}
+            {showMoveModal && (
+                <MoveStudioModal
+                    studio={showMoveModal}
+                    organizations={organizations}
+                    onClose={() => setShowMoveModal(null)}
+                    onSuccess={loadData}
+                />
+            )}
+            {showExportModal && (
+                <ExportModal
+                    studio={showExportModal}
+                    onClose={() => setShowExportModal(null)}
+                />
+            )}
+            {showBackupPanel && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: '#1a1a2e', border: '1px solid #334155', borderRadius: 14, padding: 24, width: 560, maxWidth: '95vw', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                            <span style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0' }}>{showBackupPanel.info?.name} — Yedekler & Depolama</span>
+                            <button onClick={() => setShowBackupPanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <BackupPanel studio={showBackupPanel} />
+                    </div>
+                </div>
+            )}
 
             {/* Faz 2 Modals */}
             {showPlanModal && (

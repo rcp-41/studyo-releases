@@ -67,6 +67,11 @@ exports.voiceBot = require('./voice-bot');
 exports.botConfig = require('./bot-config');
 exports.dataManagement = require('./data-management');
 
+// Faz 3 scheduled functions (dailyBackup, calcStorageUsage)
+const studioOps = require('./admin/studios-ops');
+exports.studioOpsDailyBackup = studioOps.dailyBackup;
+exports.studioOpsCalcStorage = studioOps.calcStorageUsage;
+
 // Export AppCheck flag + helper for any external tooling that reads from index.
 // Modules inside functions/src should prefer `require('./config')` to avoid cycles.
 exports.APPCHECK_ENABLED = APPCHECK_ENABLED;

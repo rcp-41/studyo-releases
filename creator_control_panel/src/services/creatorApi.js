@@ -566,5 +566,127 @@ export const creatorApi = {
         } catch (error) {
             handleApiError(error, 'Update Versioning');
         }
+    },
+
+    // ============================================
+    // A3 — Stüdyo Klonlama
+    // ============================================
+
+    cloneStudio: async (sourceOrgId, sourceStudioId, newName, targetOrgId, options = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-cloneStudio');
+            const result = await func({ sourceOrgId, sourceStudioId, newName, targetOrgId, options });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Clone Studio');
+        }
+    },
+
+    // ============================================
+    // A4 — Stüdyo Taşıma
+    // ============================================
+
+    moveStudio: async (studioId, fromOrgId, toOrgId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-moveStudio');
+            const result = await func({ studioId, fromOrgId, toOrgId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Move Studio');
+        }
+    },
+
+    // ============================================
+    // D1 — Stüdyo Veri Export
+    // ============================================
+
+    exportStudioData: async (organizationId, studioId, collections, format = 'json') => {
+        try {
+            const func = httpsCallable(functions, 'setup-exportStudioData');
+            const result = await func({ organizationId, studioId, collections, format });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Export Studio Data');
+        }
+    },
+
+    // ============================================
+    // D2 — Backup
+    // ============================================
+
+    createBackup: async (organizationId, studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-createBackup');
+            const result = await func({ organizationId, studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Create Backup');
+        }
+    },
+
+    listBackups: async (studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-listBackups');
+            const result = await func({ studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'List Backups');
+        }
+    },
+
+    // ============================================
+    // D5 — Veri Sıfırlama 2FA Korumalı
+    // ============================================
+
+    resetStudioDataSecure: async (organizationId, studioId, resetOption, totpCode) => {
+        try {
+            const func = httpsCallable(functions, 'setup-resetStudioDataSecure');
+            const result = await func({ organizationId, studioId, resetOption, totpCode });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Reset Studio Data Secure');
+        }
+    },
+
+    // ============================================
+    // E2 — Depolama Kullanımı
+    // ============================================
+
+    getStudioStorageUsage: async (organizationId, studioId) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getStudioStorageUsage');
+            const result = await func({ organizationId, studioId });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Studio Storage Usage');
+        }
+    },
+
+    // ============================================
+    // E3 — AppCheck İstatistikleri
+    // ============================================
+
+    getAppCheckStats: async (studioId, daysBack = 30) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getAppCheckStats');
+            const result = await func({ studioId, daysBack });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get AppCheck Stats');
+        }
+    },
+
+    // ============================================
+    // E4 — Error Logs Geliştirilmiş
+    // ============================================
+
+    getErrorLogsAdvanced: async ({ studioId, severity, dateFrom, dateTo, limit, searchText } = {}) => {
+        try {
+            const func = httpsCallable(functions, 'setup-getErrorLogsAdvanced');
+            const result = await func({ studioId, severity, dateFrom, dateTo, limit, searchText });
+            return result.data;
+        } catch (error) {
+            handleApiError(error, 'Get Error Logs Advanced');
+        }
     }
 };
