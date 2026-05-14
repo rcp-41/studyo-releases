@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { archivesApi, appointmentsApi, customersApi, shootsApi } from '../services/api';
-import { Search, X, Archive, Calendar, UsersRound, Camera, Loader2, Command } from 'lucide-react';
+import { archivesApi, customersApi } from '../services/api';
+import { Search, X, Archive, UsersRound, Loader2, Command } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function GlobalSearch() {

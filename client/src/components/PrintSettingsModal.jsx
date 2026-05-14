@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 import { Printer, Check, X, Loader2, AlertCircle, Eye, Pencil, Sparkles } from 'lucide-react';
 import { getPrintSettings, savePrintSettings } from '../lib/printSettings';
 import { listPrinters, printTemplate, isPrintAvailable } from '../lib/printService';
@@ -67,7 +67,7 @@ export default function PrintSettingsModal({ open, onClose }) {
             .then(setPrinters)
             .catch((e) => {
                 console.error('[PrintSettings] listPrinters:', e);
-                toast.error('Yazıcı listesi alınamadı');
+                notify.error('Yazıcı listesi alınamadı');
             })
             .finally(() => setLoadingPrinters(false));
     }, [open, available]);
@@ -86,7 +86,7 @@ export default function PrintSettingsModal({ open, onClose }) {
 
     const handleSave = () => {
         savePrintSettings(settings);
-        toast.success(t('components.printSettings.saveSuccess'));
+        notify.success(t('components.printSettings.saveSuccess'));
         onClose?.();
     };
 
@@ -99,12 +99,12 @@ export default function PrintSettingsModal({ open, onClose }) {
                 silent: !!settings.printers[type]
             });
             if (res?.success) {
-                toast.success(t('components.printSettings.testSuccess', { template: TEMPLATE_LABELS[type] }));
+                notify.success(t('components.printSettings.testSuccess', { template: TEMPLATE_LABELS[type] }));
             } else {
-                toast.error(t('components.printSettings.testFailed', { reason: res?.failureReason || t('common.error') }));
+                notify.error(t('components.printSettings.testFailed', { reason: res?.failureReason || t('common.error') }));
             }
         } catch (e) {
-            toast.error(t('components.printSettings.testError', { message: e?.message || e }));
+            notify.error(t('components.printSettings.testError', { message: e?.message || e }));
         } finally {
             setTesting(null);
         }

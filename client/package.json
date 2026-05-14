@@ -11,7 +11,7 @@
         "electron:build": "vite build && electron-builder",
         "photo-selector": "cross-env NODE_ENV=development electron . --photo-selector",
         "photo-selector:folder": "cross-env NODE_ENV=development electron . --photo-selector --folder",
-        "lint": "eslint src/ --max-warnings 9999",
+        "lint": "eslint src/ --max-warnings 800",
         "lint:strict": "eslint src/",
         "test": "vitest run",
         "test:watch": "vitest",

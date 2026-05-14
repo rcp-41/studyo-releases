@@ -3,7 +3,7 @@ import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../services/api';
 import { formatDate, getRoleLabel, getInitials, cn } from '../lib/utils';
-import { Plus, Search, Edit, Trash2, Loader2, X, User, Shield, Check, Key, Calendar, CalendarPlus } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Loader2, X, User, Check, Key, Calendar, CalendarPlus } from 'lucide-react';
 
 import ConfirmDialog from '../components/ConfirmDialog';
 import PasswordInput from '../components/PasswordInput';
@@ -91,7 +91,6 @@ function AddUserModal({ isOpen, onClose }) {
 function ResetPasswordModal({ isOpen, onClose, user }) {
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
-    const queryClient = useQueryClient();
 
     const resetMutation = useMutation({
         mutationFn: (data) => usersApi.resetPassword(data),

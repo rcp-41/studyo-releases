@@ -8,7 +8,7 @@ import {
     Globe, Link2, Copy, Check, MessageCircle, ExternalLink,
     Loader2, Search, RefreshCw, ShoppingCart, Package
 } from 'lucide-react';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 import { cn } from '../lib/utils';
 import WooCommerceModal from '../components/WooCommerceModal';
 
@@ -32,7 +32,7 @@ export default function WcClients() {
             setClients(data);
         } catch (error) {
             console.error('Error loading WC clients:', error);
-            toast.error(t('common.failed'));
+            notify.error(t('common.failed'));
         }
         setLoading(false);
     };
@@ -41,7 +41,7 @@ export default function WcClients() {
         navigator.clipboard.writeText(link);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
-        toast.success(t('woocommerce.copySuccess'));
+        notify.success(t('woocommerce.copySuccess'));
     };
 
     const sendWhatsApp = async (client) => {
@@ -53,9 +53,9 @@ export default function WcClients() {
 
         try {
             await whatsappApi.send({ phone: client.phone, message });
-            toast.success(t('woocommerce.sendMessage'));
+            notify.success(t('woocommerce.sendMessage'));
         } catch (error) {
-            toast.error(t('woocommerce.sendError'));
+            notify.error(t('woocommerce.sendError'));
         }
     };
 

@@ -8,7 +8,7 @@
  */
 import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 import useAuthStore from '../store/authStore';
 import { Shield, X } from 'lucide-react';
 
@@ -34,7 +34,7 @@ export default function IpcListeners() {
         if (!window?.electron?.ipcRenderer) return;
 
         const handleForceLogout = () => {
-            toast.error(t('ipc.forceLogout'), { duration: 5000 });
+            notify.error(t('ipc.forceLogout'), { duration: 5000 });
             logout().then(() => {
                 window.location.hash = '#/login';
             });

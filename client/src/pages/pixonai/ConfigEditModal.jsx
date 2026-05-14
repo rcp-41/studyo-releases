@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Camera, Save, X, Settings2, Package, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import notify from '../../lib/notify';
 import OptionRow from './OptionRow';
 import PackageRow from './PackageRow';
 
@@ -82,11 +82,11 @@ export default function ConfigEditModal({ config, shootTypes, schools, onSave, o
 
     const handleSubmit = () => {
         if (!form.shootCategoryId) {
-            toast.error('Lütfen bir çekim türü seçin');
+            notify.error('Lütfen bir çekim türü seçin');
             return;
         }
         if (form.options.length === 0 && form.packages.length === 0) {
-            toast.error('En az bir seçenek veya paket ekleyin');
+            notify.error('En az bir seçenek veya paket ekleyin');
             return;
         }
         onSave({ ...(config?.id ? { id: config.id } : {}), ...form });

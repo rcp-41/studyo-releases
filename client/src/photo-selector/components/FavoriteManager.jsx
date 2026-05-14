@@ -1,5 +1,5 @@
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
-import { Star, RotateCcw, ImageOff } from 'lucide-react';
+import { RotateCcw, ImageOff } from 'lucide-react';
 
 export default function FavoriteManager() {
     const photos = usePhotoSelectorStore(s => s.photos);

@@ -8,7 +8,6 @@ import { formatDate, formatCurrency, getStatusLabel, getShootTypeLabel, cn } fro
 import {
     Plus,
     Search,
-    Filter,
     Camera,
     Calendar,
     DollarSign,

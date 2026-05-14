@@ -1,24 +1,17 @@
 import {
-    collection,
-    getDocs,
-    query,
-    orderBy,
-    doc
-} from 'firebase/firestore';
-import {
     ref,
     uploadBytes,
     getDownloadURL
 } from 'firebase/storage';
-import { db, storage, functions } from '../lib/firebase';
+import { storage, functions } from '../lib/firebase';
 import { httpsCallable } from 'firebase/functions';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 import { getUserFriendlyError } from '../lib/utils';
 
 // Helper for consistent error handling
 const handleApiError = (error, context) => {
     console.error(`API Error (${context}):`, error);
-    toast.error(getUserFriendlyError(error));
+    notify.error(getUserFriendlyError(error));
     throw error;
 };
 
@@ -33,16 +26,6 @@ const callFunction = async (name, data = {}) => {
     }
 };
 
-// Generic Fetch Collection Helper
-const fetchCollection = async (colName) => {
-    try {
-        const q = query(collection(db, colName));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        handleApiError(error, `Fetch ${colName}`);
-    }
-};
 
 // Upload Service
 export const uploadApi = {
@@ -92,7 +75,7 @@ export const settingsApi = {
 
     update: async (data) => callFunction('settings-update', { settings: data }),
 
-    testConnection: async (service) => ({ success: false, message: 'Henüz yapılandırılmadı' }),
+    testConnection: async (_service) => ({ success: false, message: 'Henüz yapılandırılmadı' }),
 };
 
 // Options Service (via Cloud Functions for studio-scoped access)

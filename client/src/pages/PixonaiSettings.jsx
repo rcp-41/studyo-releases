@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pixonaiApi, optionsApi, schoolsApi } from '../services/api';
-import { Camera, Plus, Trash2, Edit3, Package, Gift } from 'lucide-react';
-import { toast } from 'sonner';
+import { Camera, Plus, Trash2, Edit3, Package } from 'lucide-react';
+import notify from '../lib/notify';
 import ConfigEditModal from './pixonai/ConfigEditModal';
 
 const CONFIG_TYPES = [
@@ -37,14 +37,14 @@ export default function PixonaiSettings() {
         mutationFn: (data) => pixonaiApi.saveConfig(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pixonaiConfigs'] });
-            toast.success('Yapılandırma kaydedildi');
+            notify.success('Yapılandırma kaydedildi');
             setEditConfig(null);
         },
         onError: (error) => {
             const msg = error.message?.includes('already-exists')
                 ? 'Bu kategori için zaten bir yapılandırma mevcut'
                 : 'Kaydetme başarısız';
-            toast.error(msg);
+            notify.error(msg);
         }
     });
 
@@ -52,10 +52,10 @@ export default function PixonaiSettings() {
         mutationFn: (id) => pixonaiApi.deleteConfig(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pixonaiConfigs'] });
-            toast.success('Yapılandırma silindi');
+            notify.success('Yapılandırma silindi');
             setDeleteConfirm(null);
         },
-        onError: () => toast.error('Silme başarısız')
+        onError: () => notify.error('Silme başarısız')
     });
 
     const getTypeBadge = (type) => {

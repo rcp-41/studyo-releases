@@ -5,6 +5,7 @@ import { KeyRound, Loader2, CheckCircle2, Clock, XCircle, Monitor } from 'lucide
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
 import { toast } from 'sonner';
+import notify from '../lib/notify';
 
 export default function Setup() {
     const { t } = useTranslation();
@@ -81,13 +82,13 @@ export default function Setup() {
                     }
 
                     if (saveResult.success) {
-                        toast.success(t('pages.setup.connectionSuccess', { studioName: data.studioName }));
+                        notify.success(t('pages.setup.connectionSuccess', { studioName: data.studioName }));
                         setTimeout(() => { navigate('/login'); }, 1500);
                     }
                 } else if (status === 'rejected') {
                     clearInterval(pollingRef.current);
                     pollingRef.current = null;
-                    toast.error(t('pages.setup.approvalRejectionAdmin'));
+                    notify.error(t('pages.setup.approvalRejectionAdmin'));
                 }
             } catch (error) {
                 // Polling error — will retry on next interval
@@ -103,7 +104,7 @@ export default function Setup() {
         e.preventDefault();
 
         if (!serialKey || serialKey.length !== 19) {
-            toast.error(t('pages.setup.invalidSerialError'));
+            notify.error(t('pages.setup.invalidSerialError'));
             return;
         }
 
@@ -124,7 +125,7 @@ export default function Setup() {
             }
 
             if (!sysInfo.hwid) {
-                toast.error(t('pages.setup.hwError'));
+                notify.error(t('pages.setup.hwError'));
                 setIsLoading(false);
                 return;
             }
@@ -164,7 +165,7 @@ export default function Setup() {
                 }
 
                 if (result.success) {
-                    toast.success(t('pages.setup.connectionSuccess', { studioName }));
+                    notify.success(t('pages.setup.connectionSuccess', { studioName }));
                     setTimeout(() => { navigate('/login'); }, 1500);
                 }
             } else {
@@ -184,13 +185,13 @@ export default function Setup() {
         } catch (error) {
             const errorMessage = error.message || '';
             if (errorMessage.includes('not-found') || errorMessage.includes('No studio found')) {
-                toast.error(t('pages.setup.noStudioFound'));
+                notify.error(t('pages.setup.noStudioFound'));
             } else if (errorMessage.includes('invalid-argument') || errorMessage.includes('Invalid serial key')) {
-                toast.error(t('pages.setup.invalidSerialFormat'));
+                notify.error(t('pages.setup.invalidSerialFormat'));
             } else if (errorMessage.includes('does not match')) {
-                toast.error(t('pages.setup.licenseMismatch'));
+                notify.error(t('pages.setup.licenseMismatch'));
             } else {
-                toast.error(t('pages.setup.verificationFailed', { error: errorMessage }));
+                notify.error(t('pages.setup.verificationFailed', { error: errorMessage }));
             }
         } finally {
             setIsLoading(false);

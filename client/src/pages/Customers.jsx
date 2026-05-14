@@ -4,7 +4,7 @@ import notify from '../lib/notify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { customersApi } from '../services/api';
-import { formatDate, formatCurrency, getInitials, cn } from '../lib/utils';
+import { formatDate, getInitials, cn } from '../lib/utils';
 import {
     Search,
     Filter,

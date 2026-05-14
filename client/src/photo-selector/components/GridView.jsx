@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, memo } from 'react';
 import { FixedSizeGrid } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
@@ -22,20 +22,60 @@ import { CSS } from '@dnd-kit/utilities';
 const GRID_GAP = 8;
 const GRID_PADDING = 16;
 
-function SortablePhotoCard({ id, ...props }) {
+// React.memo ile sarıldı — aynı props geldiğinde re-render olmaz
+const SortablePhotoCard = memo(function SortablePhotoCard({
+    id,
+    index,
+    photo,
+    isFavorite,
+    orderNumber,
+    isSelected,
+    onPhotoClick,
+    onPhotoDoubleClick,
+    onToggleFavorite,
+    onContextMenu,
+    nextNumber,
+    onAssignNumber,
+    onRemoveNumber,
+    showOverlay,
+    style,
+}) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-    const style = {
+
+    const handleClick = useCallback(() => onPhotoClick(index), [onPhotoClick, index]);
+    const handleDoubleClick = useCallback(() => onPhotoDoubleClick(index), [onPhotoDoubleClick, index]);
+    const handleToggleFavorite = useCallback(() => onToggleFavorite(photo.id), [onToggleFavorite, photo.id]);
+    const handleAssignNumber = useCallback(() => onAssignNumber(photo.id), [onAssignNumber, photo.id]);
+    const handleRemoveNumber = useCallback(() => onRemoveNumber(photo.id), [onRemoveNumber, photo.id]);
+
+    const dragStyle = {
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 50 : 1,
         position: 'relative',
+        // Virtualized grid'den gelen mutlak konum style'ı ile birleştir
+        ...style,
     };
+
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-            <PhotoCard {...props} />
+        <div ref={setNodeRef} style={dragStyle} {...attributes} {...listeners}>
+            <PhotoCard
+                photo={photo}
+                isFavorite={isFavorite}
+                orderNumber={orderNumber}
+                isSelected={isSelected}
+                onClick={handleClick}
+                onDoubleClick={handleDoubleClick}
+                onToggleFavorite={handleToggleFavorite}
+                onContextMenu={onContextMenu}
+                nextNumber={nextNumber}
+                onAssignNumber={handleAssignNumber}
+                onRemoveNumber={handleRemoveNumber}
+                showOverlay={showOverlay}
+            />
         </div>
     );
-}
+});
 
 export default function GridView() {
     const photos = usePhotoSelectorStore(s => s.getFilteredPhotos());
@@ -122,44 +162,72 @@ export default function GridView() {
         );
     }
 
-    // Favorites mode: flat DnD grid (no virtualisation — order must be preserved)
-    const renderFavoritesGrid = () => {
-        const items = photos.map((photo, index) => (
-            <SortablePhotoCard
-                key={photo.id}
-                id={photo.id}
-                photo={photo}
-                isFavorite={favorites.has(photo.id)}
-                orderNumber={numberedMap[photo.id] || null}
-                isSelected={index === selectedIndex}
-                onClick={() => handlePhotoClick(index)}
-                onDoubleClick={() => handlePhotoDoubleClick(index)}
-                onToggleFavorite={() => handleToggleFavorite(photo.id)}
-                onContextMenu={handleContextMenu}
-                nextNumber={nextOrderNumber}
-                onAssignNumber={handleAssignNumber}
-                onRemoveNumber={handleRemoveNumber}
-                showOverlay={showOverlay}
-            />
-        ));
-        return (
-            <div
-                ref={gridRef}
-                className="h-full overflow-y-auto ps-scrollbar p-4"
-            >
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <div
-                        className="grid gap-2"
-                        style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}
-                    >
-                        <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
-                            {items}
-                        </SortableContext>
-                    </div>
-                </DndContext>
-            </div>
-        );
-    };
+    // Favorites mode: virtualized DnD grid
+    // SortableContext items listesi dışarıda; react-window içindeki her hücre kendi
+    // useSortable hook'unu çağıran SortablePhotoCard'ı render eder.
+    const renderFavoritesGrid = () => (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
+                <div ref={gridRef} className="h-full">
+                    <AutoSizer>
+                        {({ width, height }) => {
+                            const innerWidth = width - GRID_PADDING * 2;
+                            const cellWidth = Math.floor((innerWidth - GRID_GAP * (gridColumns - 1)) / gridColumns);
+                            const cellHeight = Math.floor(cellWidth * 1.15);
+                            const rowCount = Math.ceil(photos.length / gridColumns);
+
+                            const FavCell = ({ columnIndex, rowIndex, style }) => {
+                                const index = rowIndex * gridColumns + columnIndex;
+                                if (index >= photos.length) return null;
+                                const photo = photos[index];
+                                const cellStyle = {
+                                    ...style,
+                                    left: (style.left || 0) + GRID_PADDING + columnIndex * GRID_GAP,
+                                    top: (style.top || 0) + GRID_PADDING + rowIndex * GRID_GAP,
+                                    width: cellWidth,
+                                    height: cellHeight,
+                                };
+                                return (
+                                    <SortablePhotoCard
+                                        key={photo.id}
+                                        id={photo.id}
+                                        index={index}
+                                        photo={photo}
+                                        isFavorite={favorites.has(photo.id)}
+                                        orderNumber={numberedMap[photo.id] || null}
+                                        isSelected={index === selectedIndex}
+                                        onPhotoClick={handlePhotoClick}
+                                        onPhotoDoubleClick={handlePhotoDoubleClick}
+                                        onToggleFavorite={handleToggleFavorite}
+                                        onContextMenu={handleContextMenu}
+                                        nextNumber={nextOrderNumber}
+                                        onAssignNumber={handleAssignNumber}
+                                        onRemoveNumber={handleRemoveNumber}
+                                        showOverlay={showOverlay}
+                                        style={cellStyle}
+                                    />
+                                );
+                            };
+
+                            return (
+                                <FixedSizeGrid
+                                    columnCount={gridColumns}
+                                    columnWidth={cellWidth + GRID_GAP}
+                                    rowCount={rowCount}
+                                    rowHeight={cellHeight + GRID_GAP}
+                                    width={width}
+                                    height={height}
+                                    overscanRowCount={3}
+                                >
+                                    {FavCell}
+                                </FixedSizeGrid>
+                            );
+                        }}
+                    </AutoSizer>
+                </div>
+            </SortableContext>
+        </DndContext>
+    );
 
     // All other modes: virtualised FixedSizeGrid
     const renderVirtualGrid = () => (

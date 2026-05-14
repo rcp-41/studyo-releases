@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { whatsappApi } from '../../services/api';
 import { cn } from '../../lib/utils';
-import { MessageSquare, CheckCircle, Loader2, LogOut, QrCode } from 'lucide-react';
+import { MessageSquare, CheckCircle, Loader2, LogOut } from 'lucide-react';
 import notify from '../../lib/notify';
 import { useTranslation } from 'react-i18next';
 

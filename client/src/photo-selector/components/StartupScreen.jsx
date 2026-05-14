@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderPlus, FileSearch, FolderOpen, Upload, Search, Loader2, ChevronRight, Camera } from 'lucide-react';
-import { archivesApi, settingsApi, optionsApi } from '../../services/api';
-import { toast } from 'sonner';
+import { archivesApi, optionsApi } from '../../services/api';
+import notify from '../../lib/notify';
 
 export default function StartupScreen({ onStartMode1, onStartMode2, onStartMode3 }) {
     const [activeCard, setActiveCard] = useState(null); // 1, 2, or 3
@@ -151,11 +151,11 @@ function Mode1Panel({ onStart, onBack }) {
 
     const handleCreate = async () => {
         if (!selectedFolder) {
-            toast.error(t('photoSelector.mode1.pleaseSelectFolder'));
+            notify.error(t('photoSelector.mode1.pleaseSelectFolder'));
             return;
         }
         if (!selectedShootType) {
-            toast.error(t('photoSelector.mode1.pleaseSelectShootType'));
+            notify.error(t('photoSelector.mode1.pleaseSelectShootType'));
             return;
         }
 
@@ -169,7 +169,7 @@ function Mode1Panel({ onStart, onBack }) {
                 customerName: customerName,
             });
         } catch (err) {
-            toast.error(t('photoSelector.mode1.error', { error: err.message }));
+            notify.error(t('photoSelector.mode1.error', { error: err.message }));
             setLoading(false);
         }
     };
@@ -293,7 +293,7 @@ function Mode2Panel({ onStart, onBack }) {
             });
             setArchives(result?.data || []);
         } catch (err) {
-            toast.error(t('photoSelector.mode2.loadFailed'));
+            notify.error(t('photoSelector.mode2.loadFailed'));
         } finally {
             setLoading(false);
         }

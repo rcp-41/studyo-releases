@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 
 // Firebase stub
 vi.mock('@/lib/firebase', () => ({

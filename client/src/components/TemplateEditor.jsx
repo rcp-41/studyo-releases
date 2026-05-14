@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 import {
     X, Save, RotateCcw, Eye, Download, Upload, Type, Barcode,
     Trash2, AlignLeft, AlignCenter, AlignRight, Bold, Plus
@@ -235,10 +235,10 @@ export default function TemplateEditor({ open, onClose, templateType }) {
         };
         const ok = saveCustomTemplate(templateType, tpl);
         if (ok) {
-            toast.success(t('components.templateEditor.saveSuccess', { template: TEMPLATE_LABELS[templateType] }));
+            notify.success(t('components.templateEditor.saveSuccess', { template: TEMPLATE_LABELS[templateType] }));
             onClose?.();
         } else {
-            toast.error(t('components.templateEditor.saveError'));
+            notify.error(t('components.templateEditor.saveError'));
         }
     };
 
@@ -248,7 +248,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
         setElements([]);
         setSelectedId(null);
         setName(t('components.templateEditor.customTemplateName'));
-        toast.success(t('components.templateEditor.resetSuccess'));
+        notify.success(t('components.templateEditor.resetSuccess'));
     };
 
     const handlePreview = () => {
@@ -264,7 +264,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
             setPreviewHtml(html);
             setPreviewOpen(true);
         } catch (e) {
-            toast.error(t('components.templateEditor.previewError', { message: e?.message || e }));
+            notify.error(t('components.templateEditor.previewError', { message: e?.message || e }));
         }
     };
 
@@ -279,7 +279,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.success(t('components.templateEditor.exportSuccess'));
+        notify.success(t('components.templateEditor.exportSuccess'));
     };
 
     const handleImportClick = () => fileInputRef.current?.click();
@@ -292,7 +292,7 @@ export default function TemplateEditor({ open, onClose, templateType }) {
             const text = await file.text();
             const res = importTemplates(text);
             if (res.success) {
-                toast.success(t('components.templateEditor.importSuccess', { templates: res.imported.join(', ') }));
+                notify.success(t('components.templateEditor.importSuccess', { templates: res.imported.join(', ') }));
                 const reloaded = getCustomTemplate(templateType);
                 if (reloaded) {
                     setName(reloaded.name);
@@ -300,10 +300,10 @@ export default function TemplateEditor({ open, onClose, templateType }) {
                     setSelectedId(null);
                 }
             } else {
-                toast.error(t('components.templateEditor.importError', { errors: res.errors.join('; ') || t('common.error') }));
+                notify.error(t('components.templateEditor.importError', { errors: res.errors.join('; ') || t('common.error') }));
             }
         } catch (err) {
-            toast.error(t('components.templateEditor.fileReadError', { message: err?.message || err }));
+            notify.error(t('components.templateEditor.fileReadError', { message: err?.message || err }));
         }
     };
 

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scan, Upload, X, Loader2, CheckCircle, AlertCircle, FolderSearch } from 'lucide-react';
-import { toast } from 'sonner';
+import notify from '../../lib/notify';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 
 const THRESHOLD = 0.5; // Euclidean distance threshold (lower = stricter)
@@ -39,7 +39,7 @@ export default function FaceRecognition({ onClose }) {
             const res = await faceRecognition.loadModels({});
             if (res.success) {
                 setModelsLoaded(true);
-                toast.success(t('photoSelector.faceRecognition.modelsLoaded'));
+                notify.success(t('photoSelector.faceRecognition.modelsLoaded'));
             } else {
                 setError(res.error || 'Modeller yüklenemedi');
             }
@@ -70,11 +70,11 @@ export default function FaceRecognition({ onClose }) {
     // ── Scan folder ──────────────────────────────────────────────────
     const handleScan = async () => {
         if (!referenceFile) {
-            toast.error(t('photoSelector.faceRecognition.selectReferenceFirst'));
+            notify.error(t('photoSelector.faceRecognition.selectReferenceFirst'));
             return;
         }
         if (!modelsLoaded) {
-            toast.error(t('photoSelector.faceRecognition.loadModelsFirst'));
+            notify.error(t('photoSelector.faceRecognition.loadModelsFirst'));
             return;
         }
         if (!faceRecognition) {
@@ -106,10 +106,10 @@ export default function FaceRecognition({ onClose }) {
                 totalScanned: allPaths.length,
             });
 
-            toast.success(t('photoSelector.faceRecognition.matchesFound', { count: matchRes.matches.length }));
+            notify.success(t('photoSelector.faceRecognition.matchesFound', { count: matchRes.matches.length }));
         } catch (err) {
             setError(err.message);
-            toast.error(t('photoSelector.faceRecognition.scanError', { error: err.message }));
+            notify.error(t('photoSelector.faceRecognition.scanError', { error: err.message }));
         } finally {
             setScanning(false);
         }
@@ -123,7 +123,7 @@ export default function FaceRecognition({ onClose }) {
         if (typeof setFilter === 'function') {
             setFilter(p => matchPaths.has(p.path || p.filePath));
         }
-        toast.success(t('photoSelector.faceRecognition.showing'));
+        notify.success(t('photoSelector.faceRecognition.showing'));
         onClose?.();
     };
 

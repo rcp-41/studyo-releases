@@ -13,8 +13,8 @@ import useAutoSave from './hooks/useAutoSave';
 import useKeyboardNav from './hooks/useKeyboardNav';
 import usePhotoLoader from './hooks/usePhotoLoader';
 import { archivesApi, settingsApi, pixonaiApi } from '../services/api';
-import { toast } from 'sonner';
-import { Loader2, FolderOpen, Copy, AlertTriangle } from 'lucide-react';
+import notify from '../lib/notify';
+import { Loader2, Copy, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export default function PhotoSelectorApp() {
@@ -30,7 +30,6 @@ export default function PhotoSelectorApp() {
 
     const currentView = usePhotoSelectorStore(s => s.currentView);
     const photosLoading = usePhotoSelectorStore(s => s.photosLoading);
-    const photos = usePhotoSelectorStore(s => s.photos);
     const favorites = usePhotoSelectorStore(s => s.favorites);
     const numberedPhotos = usePhotoSelectorStore(s => s.numberedPhotos);
     const operationMode = usePhotoSelectorStore(s => s.operationMode);
@@ -39,8 +38,6 @@ export default function PhotoSelectorApp() {
     const setPixonaiConfig = usePhotoSelectorStore(s => s.setPixonaiConfig);
     const shootCategoryType = usePhotoSelectorStore(s => s.shootCategoryType);
     const pixonaiConfig = usePhotoSelectorStore(s => s.pixonaiConfig);
-    const filterMode = usePhotoSelectorStore(s => s.filterMode);
-
     const { performSave } = useAutoSave();
     useKeyboardNav({ onOpenSelection: () => setSelectionOpen(true) });
     const { loadPhotos } = usePhotoLoader();
@@ -98,7 +95,7 @@ export default function PhotoSelectorApp() {
             const settings = settingsResult?.data;
             const basePath = settings?.general?.archive_base_path;
             if (!basePath) {
-                toast.error(t('photoSelector.app.archiveBasePathNotSet'));
+                notify.error(t('photoSelector.app.archiveBasePathNotSet'));
                 setStartupComplete(false);
                 setInitializing(false);
                 return;
@@ -116,7 +113,7 @@ export default function PhotoSelectorApp() {
             if (!archive) throw new Error('Arşiv kaydı oluşturulamadı');
 
             const archiveNumber = archive.archiveId || archive.archiveNumber;
-            toast.success(t('photoSelector.app.archiveCreated', { number: archiveNumber }));
+            notify.success(t('photoSelector.app.archiveCreated', { number: archiveNumber }));
 
             // 3. Create archive folder
             const destPath = `${basePath}\\${archiveNumber}`;
@@ -138,14 +135,14 @@ export default function PhotoSelectorApp() {
             });
 
             if (!copyResult?.success) {
-                toast.error(t('photoSelector.app.photoCopyError', { error: copyResult?.error || 'Bilinmeyen hata' }));
+                notify.error(t('photoSelector.app.photoCopyError', { error: copyResult?.error || 'Bilinmeyen hata' }));
                 setStartupComplete(false);
                 setInitializing(false);
                 setCopyProgress(null);
                 return;
             }
 
-            toast.success(t('photoSelector.app.photosCopied', { count: copyResult.data.copied }));
+            notify.success(t('photoSelector.app.photosCopied', { count: copyResult.data.copied }));
             setCopyProgress(null);
 
             // 5. Update archive with folderPath
@@ -172,7 +169,7 @@ export default function PhotoSelectorApp() {
             await loadPhotos(destPath);
         } catch (err) {
             console.error('Mode 1 error:', err);
-            toast.error(t('photoSelector.mode1.error', { error: err.message }));
+            notify.error(t('photoSelector.mode1.error', { error: err.message }));
             setStartupComplete(false);
         } finally {
             setInitializing(false);
@@ -194,7 +191,7 @@ export default function PhotoSelectorApp() {
             const folderPath = archive.folderPath || (basePath ? `${basePath}\\${archiveNumber}` : null);
 
             if (!folderPath) {
-                toast.error(t('photoSelector.app.archivePathNotFound'));
+                notify.error(t('photoSelector.app.archivePathNotFound'));
                 setStartupComplete(false);
                 setInitializing(false);
                 return;
@@ -219,7 +216,7 @@ export default function PhotoSelectorApp() {
             await loadPhotos(folderPath);
         } catch (err) {
             console.error('Mode 2 error:', err);
-            toast.error(t('photoSelector.mode1.error', { error: err.message }));
+            notify.error(t('photoSelector.mode1.error', { error: err.message }));
             setStartupComplete(false);
         } finally {
             setInitializing(false);
@@ -247,7 +244,7 @@ export default function PhotoSelectorApp() {
             await loadPhotos(folderPath);
         } catch (err) {
             console.error('Mode 3 error:', err);
-            toast.error(t('photoSelector.mode1.error', { error: err.message }));
+            notify.error(t('photoSelector.mode1.error', { error: err.message }));
             setStartupComplete(false);
         } finally {
             setInitializing(false);
@@ -334,7 +331,7 @@ export default function PhotoSelectorApp() {
             try {
                 const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
                 if (!renameResult.success) {
-                    toast.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
+                    notify.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
                 } else {
                     // Update BOTH originalName and currentName so INI keys match disk filenames
                     const updatedPhotos = state.photos.map(p => {
@@ -353,13 +350,13 @@ export default function PhotoSelectorApp() {
                     usePhotoSelectorStore.setState({ photos: updatedPhotos, isDirty: true });
                     // Re-save INI with updated originalNames so it matches files on disk
                     await performSave();
-                    toast.success(t('photoSelector.app.numberingSaved'));
+                    notify.success(t('photoSelector.app.numberingSaved'));
                 }
             } catch (err) {
-                toast.error(t('photoSelector.app.renameFailed', { error: err.message }));
+                notify.error(t('photoSelector.app.renameFailed', { error: err.message }));
             }
         } else {
-            toast.success(t('photoSelector.app.saved'));
+            notify.success(t('photoSelector.app.saved'));
         }
 
         // Save note text file if there's a note
@@ -421,7 +418,7 @@ export default function PhotoSelectorApp() {
             try {
                 const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
                 if (!renameResult.success) {
-                    toast.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
+                    notify.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
                 } else {
                     // Update photos in store with new currentName/fullPath so INI re-save is accurate
                     const updatedPhotos = state.photos.map(p => {
@@ -437,7 +434,7 @@ export default function PhotoSelectorApp() {
                     await performSave();
                 }
             } catch (err) {
-                toast.error(t('photoSelector.app.renameFailed', { error: err.message }));
+                notify.error(t('photoSelector.app.renameFailed', { error: err.message }));
             }
         }
 
@@ -521,10 +518,10 @@ export default function PhotoSelectorApp() {
                     ...(newNotes !== undefined ? { notes: newNotes } : {}),
                 });
 
-                toast.success(t('photoSelector.app.archiveUpdated'));
+                notify.success(t('photoSelector.app.archiveUpdated'));
             } catch (err) {
                 console.error('Archive update error:', err);
-                toast.error(t('photoSelector.app.archiveUpdateError', { error: err.message }));
+                notify.error(t('photoSelector.app.archiveUpdateError', { error: err.message }));
             }
         }
 

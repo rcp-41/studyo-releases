@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
     collection, query, where, onSnapshot,
-    doc, updateDoc, serverTimestamp
+    updateDoc, serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import useAuthStore from '../store/authStore';

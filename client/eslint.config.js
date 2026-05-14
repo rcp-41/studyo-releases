@@ -22,6 +22,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.node,
+                __APP_VERSION__: 'readonly',
             },
         },
         settings: {
@@ -32,7 +33,7 @@ export default [
             ...reactHooksPlugin.configs.recommended.rules,
             'react/react-in-jsx-scope': 'off',
             'react/prop-types': 'warn',
-            'no-unused-vars': 'warn',
+            'no-unused-vars': ['warn', { varsIgnorePattern: '^_', argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
             'no-console': 'off',
             'import/no-duplicates': 'warn',
         },

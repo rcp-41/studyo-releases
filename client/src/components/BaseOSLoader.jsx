@@ -4,7 +4,6 @@
  */
 export default function BaseOSLoader({ size = 48, className = '' }) {
     const s = size;
-    const half = s / 2;
 
     return (
         <div className={className} style={{ width: s, height: s, position: 'relative' }}>

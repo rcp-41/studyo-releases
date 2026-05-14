@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 
 /**
  * useUndoable — wrap a destructive mutation in an undo-grace-period toast.
@@ -82,7 +82,7 @@ export default function useUndoable({
                 // Swallow — undo should never crash callers.
                 console.error('[useUndoable] onUndo threw:', err);
             }
-            toast.dismiss(tid);
+            notify.dismiss(tid);
             finalize(tid);
         };
 
@@ -106,20 +106,19 @@ export default function useUndoable({
             const resultMaybePromise = onConfirmRef.current?.(payload);
             if (resultMaybePromise && typeof resultMaybePromise.then === 'function') {
                 // Flip the toast into a loading/success chain.
-                toast.promise(resultMaybePromise, {
-                    id,
+                notify.promise(resultMaybePromise, {
                     loading: effectiveMessage || 'İşleniyor...',
                     success: effectiveMessage || 'Tamamlandı',
                     error: 'İşlem başarısız'
-                });
+                }, { id });
                 await resultMaybePromise;
             } else {
                 // Synchronous confirm — just show success.
-                toast.success(effectiveMessage || 'Tamamlandı', { id });
+                notify.success(effectiveMessage || 'Tamamlandı', { id });
             }
         } catch (err) {
             console.error('[useUndoable] onConfirm threw:', err);
-            toast.error('İşlem başarısız', { id });
+            notify.error('İşlem başarısız', { id });
         } finally {
             finalize(id);
         }
@@ -145,7 +144,7 @@ export default function useUndoable({
         pendingRef.current.set(id, { timerId, payload, cancelled: false, message: effectiveMessage });
         updatePendingFlag();
 
-        toast.loading(effectiveMessage || 'Siliniyor...', {
+        notify.loading(effectiveMessage || 'Siliniyor...', {
             id,
             // Keep the toast visible for the full grace window so the user sees the
             // countdown progress bar. Sonner auto-dismisses on `duration` expiry, so
@@ -175,7 +174,7 @@ export default function useUndoable({
                 } catch (err) {
                     console.error('[useUndoable] onConfirm during unmount threw:', err);
                 }
-                toast.dismiss(id);
+                notify.dismiss(id);
             }
             pendingRef.current.clear();
         };

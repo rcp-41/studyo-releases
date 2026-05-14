@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '../lib/utils';
-import { X, CreditCard, ExternalLink, Shield, CheckCircle, AlertCircle, Loader2, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { CreditCard, ExternalLink, Shield, Loader2, Copy } from 'lucide-react';
+import notify from '../lib/notify';
 import PasswordInput from './PasswordInput';
 
 /**
@@ -28,7 +28,7 @@ export default function OnlinePaymentSettings({ settings, onUpdate }) {
         setTesting(provider);
         // Simulate a test connection
         await new Promise(r => setTimeout(r, 1500));
-        toast.success(`${provider === 'iyzico' ? 'iyzico' : 'PayTR'} bağlantısı başarılı (test modu)`);
+        notify.success(`${provider === 'iyzico' ? 'iyzico' : 'PayTR'} bağlantısı başarılı (test modu)`);
         setTesting(null);
     };
 
@@ -165,7 +165,7 @@ export default function OnlinePaymentSettings({ settings, onUpdate }) {
                                 </code>
                                 <button onClick={() => {
                                     navigator.clipboard.writeText(`https://us-central1-projeniz.cloudfunctions.net/payment-callback`);
-                                    toast.success('Kopyalandı');
+                                    notify.success('Kopyalandı');
                                 }} className="p-1 hover:bg-muted rounded">
                                     <Copy className="w-3.5 h-3.5" />
                                 </button>

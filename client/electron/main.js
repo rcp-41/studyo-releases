@@ -44,6 +44,10 @@ function isAllowedUrl(url) {
 // Single-fire flag for encryption unavailability warning
 let _encryptionWarnSent = false;
 
+// Public IP cache (5 min TTL) — avoids hitting ipify on every getSystemInfo call
+let _publicIpCache = { ip: null, ts: 0 };
+const PUBLIC_IP_TTL_MS = 5 * 60 * 1000;
+
 // SECURITY: Allowed base paths for file operations (populated after app.ready)
 const ALLOWED_BASE_PATHS = [];
 
@@ -52,16 +56,14 @@ const LICENSE_ENC_FILE = 'license.enc';
 const LICENSE_LEGACY_FILE = 'license.json';
 
 function saveLicenseEncrypted(config) {
+    if (!safeStorage.isEncryptionAvailable()) {
+        // SECURITY: Refuse plaintext fallback — license must be encrypted at rest
+        throw new Error('OS encryption unavailable — license cannot be saved securely on this machine.');
+    }
     const jsonStr = JSON.stringify(config, null, 2);
     const encPath = path.join(app.getPath('userData'), LICENSE_ENC_FILE);
-    if (safeStorage.isEncryptionAvailable()) {
-        const encrypted = safeStorage.encryptString(jsonStr);
-        fs.writeFileSync(encPath, encrypted);
-    } else {
-        // Fallback to plain JSON if OS encryption unavailable
-        const legacyPath = path.join(app.getPath('userData'), LICENSE_LEGACY_FILE);
-        fs.writeFileSync(legacyPath, jsonStr);
-    }
+    const encrypted = safeStorage.encryptString(jsonStr);
+    fs.writeFileSync(encPath, encrypted);
 }
 
 function loadLicenseConfig() {
@@ -75,12 +77,12 @@ function loadLicenseConfig() {
             return JSON.parse(safeStorage.decryptString(encrypted));
         } catch { /* fall through to legacy */ }
     }
-    // Fallback to legacy plaintext
-    if (fs.existsSync(legacyPath)) {
+    // One-time migration from legacy plaintext (only if encryption is now available)
+    if (fs.existsSync(legacyPath) && safeStorage.isEncryptionAvailable()) {
         try {
             const config = JSON.parse(fs.readFileSync(legacyPath, 'utf8'));
-            // Migrate to encrypted storage
             saveLicenseEncrypted(config);
+            try { fs.unlinkSync(legacyPath); } catch { /* best effort */ }
             return config;
         } catch { return null; }
     }
@@ -127,8 +129,8 @@ function createWindow() {
     // SECURITY: Block or redirect new-window requests
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         if (isAllowedUrl(url)) return { action: 'allow' };
-        // Open external http(s) links in the OS browser
-        if (/^https?:\/\//.test(url)) shell.openExternal(url).catch(() => {});
+        // Open external https links in the OS browser (http rejected for security)
+        if (/^https:\/\//.test(url)) shell.openExternal(url).catch(() => {});
         return { action: 'deny' };
     });
 
@@ -626,7 +628,7 @@ ipcMain.handle('app:getEncryptionStatus', () => {
 ipcMain.handle('shell:openExternal', async (_event, url) => {
     try {
         const parsed = new URL(url);
-        const allowedProtocols = ['https:', 'http:', 'mailto:', 'whatsapp:'];
+        const allowedProtocols = ['https:', 'mailto:', 'whatsapp:'];
         if (!allowedProtocols.includes(parsed.protocol)) {
             throw new Error('Disallowed protocol: ' + parsed.protocol);
         }
@@ -1019,25 +1021,30 @@ ipcMain.handle('app:getSystemInfo', async () => {
             }
         }
 
-        // Get public/network IP via external service
+        // Get public/network IP via external service (cached 5 min)
         let publicIp = null;
-        try {
-            const https = require('https');
-            publicIp = await new Promise((resolve, reject) => {
-                const req = https.get('https://api.ipify.org?format=json', { timeout: 5000 }, (res) => {
-                    let data = '';
-                    res.on('data', chunk => data += chunk);
-                    res.on('end', () => {
-                        try {
-                            resolve(JSON.parse(data).ip);
-                        } catch { resolve(null); }
+        if (_publicIpCache.ip && Date.now() - _publicIpCache.ts < PUBLIC_IP_TTL_MS) {
+            publicIp = _publicIpCache.ip;
+        } else {
+            try {
+                const https = require('https');
+                publicIp = await new Promise((resolve) => {
+                    const req = https.get('https://api.ipify.org?format=json', { timeout: 5000 }, (res) => {
+                        let data = '';
+                        res.on('data', chunk => data += chunk);
+                        res.on('end', () => {
+                            try {
+                                resolve(JSON.parse(data).ip);
+                            } catch { resolve(null); }
+                        });
                     });
+                    req.on('error', () => resolve(null));
+                    req.on('timeout', () => { req.destroy(); resolve(null); });
                 });
-                req.on('error', () => resolve(null));
-                req.on('timeout', () => { req.destroy(); resolve(null); });
-            });
-        } catch {
-            publicIp = null;
+                if (publicIp) _publicIpCache = { ip: publicIp, ts: Date.now() };
+            } catch {
+                publicIp = null;
+            }
         }
 
         return {

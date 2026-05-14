@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import {
     Grid3X3, Image, Columns2, Star, ListOrdered, Undo2, Redo2,
-    Save, Minus, Plus, Filter, ArrowLeft
+    Save, Minus, Plus, ArrowLeft
 } from 'lucide-react';
 
-export default function Toolbar({ onOpenSelection, onSaveAndClose, onSaveNumbering, onBack }) {
+export default function Toolbar({ onOpenSelection: _onOpenSelection, onSaveAndClose, onSaveNumbering, onBack }) {
     const { t } = useTranslation();
     const currentView = usePhotoSelectorStore(s => s.currentView);
     const setView = usePhotoSelectorStore(s => s.setView);

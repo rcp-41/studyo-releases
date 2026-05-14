@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { Check, XCircle, Edit, Calendar, Archive, X } from 'lucide-react';
 
-export default function AppointmentContextMenu({ x, y, appointment, onClose, onAction }) {
+export default function AppointmentContextMenu({ x, y, appointment: _appointment, onClose, onAction }) {
     const ref = useRef(null);
 
     useEffect(() => {

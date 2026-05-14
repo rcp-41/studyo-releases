@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, RefreshCw, CheckCircle, X, AlertCircle } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle, X } from 'lucide-react';
 
 /**
  * Premium Auto-Update Dialog

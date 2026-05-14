@@ -13,13 +13,11 @@ export default function SelectionPanel({ onClose }) {
     const assignNumber = usePhotoSelectorStore(s => s.assignNumber);
     const updateNumberOptions = usePhotoSelectorStore(s => s.updateNumberOptions);
     const removeNumber = usePhotoSelectorStore(s => s.removeNumber);
-    const priceList = usePhotoSelectorStore(s => s.priceList);
     const updatePricing = usePhotoSelectorStore(s => s.updatePricing);
     const archiveInfo = usePhotoSelectorStore(s => s.archiveInfo);
     const operationMode = usePhotoSelectorStore(s => s.operationMode);
 
     const [editOrderOpen, setEditOrderOpen] = useState(false);
-    const [selectedPhotoId, setSelectedPhotoId] = useState(null);
 
     const shootCategory = archiveInfo?.shootCategory || '';
     const isFolderOnly = operationMode === 'folder_only';

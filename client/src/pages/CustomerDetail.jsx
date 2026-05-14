@@ -7,7 +7,7 @@ import { formatDate, formatCurrency, getStatusLabel, getShootTypeLabel, getIniti
 import {
     ArrowLeft, Phone, Mail, MapPin, Star, Camera, DollarSign,
     Calendar, Edit, Loader2, MessageCircle, X, Clock,
-    CreditCard, Banknote, ArrowRightLeft, FileText, RefreshCw
+    CreditCard, FileText, RefreshCw
 } from 'lucide-react';
 
 import { format } from 'date-fns';

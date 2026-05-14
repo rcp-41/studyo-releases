@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef } from 'react';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
-import { Gift, Hash, Minus, Star, Copy, Settings2 } from 'lucide-react';
+import { Gift, Hash, Minus, Star, Settings2 } from 'lucide-react';
 
 export default function PhotoContextMenu({ x, y, photoId, onClose }) {
     const menuRef = useRef(null);

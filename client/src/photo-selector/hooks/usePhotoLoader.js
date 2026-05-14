@@ -1,8 +1,8 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import { deserializeFromIni } from '../utils/iniManager';
-import { toast } from 'sonner';
+import notify from '../../lib/notify';
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'tiff', 'tif', 'webp', 'bmp', 'cr2', 'nef', 'arw', 'dng'];
 
@@ -30,7 +30,7 @@ export default function usePhotoLoader() {
             console.log('[PhotoLoader] files result:', files);
 
             if (!files || files.length === 0) {
-                toast(t('photoSelector.photoLoader.noPhotosFound'), { icon: '📂' });
+                notify.info(t('photoSelector.photoLoader.noPhotosFound'), { icon: '📂' });
                 setPhotos([]);
                 return;
             }
@@ -73,7 +73,7 @@ export default function usePhotoLoader() {
 
         } catch (err) {
             console.error('Photo loading error:', err);
-            toast.error(t('photoSelector.photoLoader.loadError', { error: err.message }));
+            notify.error(t('photoSelector.photoLoader.loadError', { error: err.message }));
             setPhotos([]);
         }
     }, [setPhotos, setPhotosLoading, restoreFromIni, t]);
@@ -96,8 +96,7 @@ export default function usePhotoLoader() {
                 setAllThumbnails(normalizedDir);
 
                 if (result.data.failed.length > 0) {
-                    toast(t('photoSelector.photoLoader.thumbnailsFailed', { count: result.data.failed.length }), {
-                        icon: '⚠️',
+                    notify.warning(t('photoSelector.photoLoader.thumbnailsFailed', { count: result.data.failed.length }), {
                         duration: 5000,
                     });
                 }

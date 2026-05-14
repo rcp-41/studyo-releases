@@ -1,13 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { archivesApi, whatsappApi } from '../services/api';
-import { cn } from '../lib/utils';
 import {
     X, Search, Plus, Trash2, ChevronRight, MessageCircle,
-    Loader2, Send, CheckCircle, AlertCircle, Users
+    Loader2, Send, AlertCircle, Users
 } from 'lucide-react';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 
 export default function BulkMessageModal({ onClose }) {
     const { t } = useTranslation();
@@ -40,7 +39,7 @@ export default function BulkMessageModal({ onClose }) {
 
     const addCustomer = (archive) => {
         if (selectedCustomers.find(c => c.phone === archive.phone)) {
-            toast.error(t('components.bulkMessage.customerAlreadyAdded'));
+            notify.error(t('components.bulkMessage.customerAlreadyAdded'));
             return;
         }
         setSelectedCustomers(prev => [...prev, {
@@ -62,8 +61,8 @@ export default function BulkMessageModal({ onClose }) {
     };
 
     const handleSend = async () => {
-        if (!message.trim()) { toast.error(t('components.bulkMessage.messageCannotBeEmpty')); return; }
-        if (!selectedCustomers.length) { toast.error(t('components.bulkMessage.selectCustomers')); return; }
+        if (!message.trim()) { notify.error(t('components.bulkMessage.messageCannotBeEmpty')); return; }
+        if (!selectedCustomers.length) { notify.error(t('components.bulkMessage.selectCustomers')); return; }
 
         setSending(true);
         setSendProgress({ sent: 0, total: selectedCustomers.length, errors: 0 });
@@ -91,7 +90,7 @@ export default function BulkMessageModal({ onClose }) {
         }
 
         setSending(false);
-        toast.success(`${selectedCustomers.length - errors} mesaj gönderildi${errors > 0 ? `, ${errors} hata` : ''}`);
+        notify.success(`${selectedCustomers.length - errors} mesaj gönderildi${errors > 0 ? `, ${errors} hata` : ''}`);
     };
 
     return (

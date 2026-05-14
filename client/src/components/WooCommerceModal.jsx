@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
@@ -9,9 +9,9 @@ import { tr } from 'date-fns/locale';
 import {
     X, Loader2, Link2, Copy, Check, Plus, Trash2,
     Upload, Globe, MessageCircle, ShoppingCart, Package,
-    FolderOpen, AlertCircle, FolderInput, Image
+    FolderOpen, FolderInput, Image
 } from 'lucide-react';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 import { cn } from '../lib/utils';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -58,10 +58,6 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percent: 0 });
     const [confirmReset, setConfirmReset] = useState(false);
-
-    // BUG FIX: Changed from useState to useRef for file input reference
-    // useState causes re-render issues with file inputs
-    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (isOpen && archive) {
@@ -147,13 +143,13 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
      */
     const handleUpload = async () => {
         if (selectedFiles.length === 0) {
-            return toast.error(t('components.woocommerce.selectFile'));
+            return notify.error(t('components.woocommerce.selectFile'));
         }
         if (priceList.length === 0 || priceList.some(p => !p.size || !p.price)) {
-            return toast.error(t('components.woocommerce.fillPriceList'));
+            return notify.error(t('components.woocommerce.fillPriceList'));
         }
         if (!password) {
-            return toast.error(t('components.woocommerce.enterPassword'));
+            return notify.error(t('components.woocommerce.enterPassword'));
         }
 
         setUploading(true);
@@ -220,7 +216,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
             setUploadProgress(prev => ({ ...prev, percent: 100, currentFile: t('components.woocommerce.creatingProducts') }));
 
             // Step 2: Create WooCommerce products with Firebase URLs
-            const { data } = await woocommerceApi.uploadSingle({
+            await woocommerceApi.uploadSingle({
                 archiveId: archive.id,
                 categoryName: archive.fullName || `Galeri-${archive.id}`,
                 password: password,
@@ -228,12 +224,12 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                 priceList: priceList
             });
 
-            toast.success(t('components.woocommerce.uploadSuccess', { count: uploadedImages.length }));
+            notify.success(t('components.woocommerce.uploadSuccess', { count: uploadedImages.length }));
             loadStats();
 
         } catch (error) {
             console.error('Upload error:', error);
-            toast.error(error.message || t('components.woocommerce.uploadError'));
+            notify.error(error.message || t('components.woocommerce.uploadError'));
         }
 
         setUploading(false);
@@ -248,10 +244,10 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
         setLoading(true);
         try {
             await woocommerceApi.reset(archive.id);
-            toast.success(t('components.woocommerce.resetSuccess'));
+            notify.success(t('components.woocommerce.resetSuccess'));
             loadStats();
         } catch (error) {
-            toast.error(t('components.woocommerce.resetError'));
+            notify.error(t('components.woocommerce.resetError'));
         }
         setLoading(false);
         setConfirmReset(false);
@@ -261,7 +257,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
         navigator.clipboard.writeText(stats.wcLink);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-        toast.success(t('components.woocommerce.copySuccess'));
+        notify.success(t('components.woocommerce.copySuccess'));
     };
 
     const sendWhatsApp = async (type) => {
@@ -276,14 +272,14 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
 
         try {
             await whatsappApi.send({ phone: archive.phone, message });
-            toast.success(t('components.woocommerce.messageSent'));
+            notify.success(t('components.woocommerce.messageSent'));
         } catch (error) {
-            toast.error(t('components.woocommerce.messageFailed'));
+            notify.error(t('components.woocommerce.messageFailed'));
         }
     };
 
     const handleCopyPhotos = async () => {
-        const toastId = toast.loading(t('components.woocommerce.processingStart'));
+        const toastId = notify.loading(t('components.woocommerce.processingStart'));
 
         try {
             const { data } = await woocommerceApi.copyPhotos({
@@ -291,15 +287,15 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
             });
 
             if (data.success) {
-                toast.success(data.message, { id: toastId });
+                notify.success(data.message, { id: toastId });
                 return;
             }
         } catch (err) {
             if (err.response?.data?.needPath) {
-                toast.dismiss(toastId);
+                notify.dismiss(toastId);
 
                 if (!window.electron) {
-                    toast.error(t('components.woocommerce.desktopOnly'));
+                    notify.error(t('components.woocommerce.desktopOnly'));
                     return;
                 }
 
@@ -312,7 +308,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
 
                     if (!result.canceled && result.filePaths.length > 0) {
                         const sourcePath = result.filePaths[0];
-                        const loadingId = toast.loading(t('components.woocommerce.copyingPhotos'));
+                        const loadingId = notify.loading(t('components.woocommerce.copyingPhotos'));
 
                         try {
                             const { data } = await woocommerceApi.copyPhotos({
@@ -321,13 +317,13 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
                             });
 
                             if (data.success) {
-                                toast.success(data.message, { id: loadingId });
+                                notify.success(data.message, { id: loadingId });
                             } else {
-                                toast.error(data.message || t('components.woocommerce.copyFailed'), { id: loadingId });
+                                notify.error(data.message || t('components.woocommerce.copyFailed'), { id: loadingId });
                             }
                         } catch (retryErr) {
                             console.error('Retry error:', retryErr);
-                            toast.error(t('components.woocommerce.processFailed'), { id: loadingId });
+                            notify.error(t('components.woocommerce.processFailed'), { id: loadingId });
                         }
                     }
                 } catch (dialogErr) {
@@ -337,7 +333,7 @@ export default function WooCommerceModal({ isOpen, onClose, archive }) {
             }
 
             console.error('Copy error:', err);
-            toast.error(err.response?.data?.error || t('components.woocommerce.processFailed'), { id: toastId });
+            notify.error(err.response?.data?.error || t('components.woocommerce.processFailed'), { id: toastId });
         }
     };
 

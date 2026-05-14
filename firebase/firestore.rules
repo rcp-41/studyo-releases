@@ -258,7 +258,9 @@ service cloud.firestore {
     
     match /studios/{studioId} {
       allow read: if isStudioMember(studioId) || isCreator();
-      allow write: if isStudioAdmin(studioId) || isCreator();
+      // Root-doc writes locked to creator only (legacy migration path).
+      // Operational writes happen in subcollections below.
+      allow write: if isCreator();
 
       // Legacy studio sub-collections (explicit whitelist — no catch-all)
       match /archives/{docId} {

@@ -18,7 +18,7 @@
  *   - run() sonucu döner (hata durumunda undefined).
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import notify from '../lib/notify';
 
 /**
@@ -42,11 +42,6 @@ export function useAsync({ notify: shouldNotify = true, errorMessage, onError, o
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [data, setData] = useState(undefined);
-
-    // Bileşen unmount olduktan sonra state güncellemesini önle
-    const mountedRef = useRef(true);
-    // useEffect cleanup yerine her render'da güncellenen ref
-    // (hook kendisi unmount'u izleyemez, sadece iç run'ı iptal eder)
 
     const reset = useCallback(() => {
         setLoading(false);

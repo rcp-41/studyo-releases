@@ -5,12 +5,12 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
 import useAuthStore from '../store/authStore';
 import { cn } from '../lib/utils';
 import { Send, ChevronLeft, Plus, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 
 const PRIORITY_OPTIONS = ['low', 'medium', 'high'];
 
@@ -50,7 +50,6 @@ export default function SupportTicket() {
     const [view, setView] = useState('list'); // 'list' | 'new' | 'detail'
     const [tickets, setTickets] = useState([]);
     const [selectedTicket, setSelectedTicket] = useState(null);
-    const [loading, setLoading] = useState(false);
     const [listLoading, setListLoading] = useState(true);
     const [replyText, setReplyText] = useState('');
     const [replySending, setReplySending] = useState(false);
@@ -67,7 +66,7 @@ export default function SupportTicket() {
             setTickets(result.data?.tickets || []);
         } catch (err) {
             console.error('[SupportTicket] listTickets error:', err);
-            toast.error(t('support.listError'));
+            notify.error(t('support.listError'));
         } finally {
             setListLoading(false);
         }
@@ -103,14 +102,14 @@ export default function SupportTicket() {
                 priority: form.priority,
                 body: form.body.trim(),
             });
-            toast.success(t('support.createSuccess'));
+            notify.success(t('support.createSuccess'));
             setForm({ subject: '', priority: 'medium', body: '' });
             setFormErrors({});
             setView('list');
             await listTickets();
         } catch (err) {
             console.error('[SupportTicket] createTicket error:', err);
-            toast.error(t('support.createError'));
+            notify.error(t('support.createError'));
         } finally {
             setSubmitting(false);
         }
@@ -143,7 +142,7 @@ export default function SupportTicket() {
             setSelectedTicket(updatedTicket);
         } catch (err) {
             console.error('[SupportTicket] replyTicket error:', err);
-            toast.error(t('support.replyError'));
+            notify.error(t('support.replyError'));
         } finally {
             setReplySending(false);
         }

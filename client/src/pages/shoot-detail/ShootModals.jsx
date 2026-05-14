@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { shootsApi } from '../../services/api';
 import notify from '../../lib/notify';
 import { formatCurrency } from '../../lib/utils';
-import { X, Loader2, DollarSign } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 // ==================== EDIT SHOOT MODAL ====================
 export function EditShootModal({ shoot, onClose, onSave }) {

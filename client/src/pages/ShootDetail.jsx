@@ -5,8 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { shootsApi } from '../services/api';
 import { formatDate, formatDateTime, formatCurrency, getStatusLabel, getShootTypeLabel } from '../lib/utils';
 import {
-    ArrowLeft, Camera, DollarSign, User, Package, Clock,
-    Edit, CheckCircle, Loader2, Play, Undo2
+    ArrowLeft, Camera, DollarSign, User, Package,
+    Edit, CheckCircle, Play, Undo2
 } from 'lucide-react';
 import { Printer } from 'lucide-react';
 

@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { customersApi } from '../services/api';
 import { cn } from '../lib/utils';
 import { X, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import notify from '../lib/notify';
 
 const TEMPLATE_COLUMNS = ['İsim', 'Telefon', 'Email', 'Tür', 'Kaynak', 'Not'];
 const FIELD_MAP = {
@@ -81,7 +81,7 @@ export default function CustomerImportModal({ isOpen, onClose }) {
         if (f && (f.name.endsWith('.csv') || f.name.endsWith('.txt'))) {
             handleFile(f);
         } else {
-            toast.error(t('components.customerImport.csvError'));
+            notify.error(t('components.customerImport.csvError'));
         }
     };
 
@@ -108,9 +108,9 @@ export default function CustomerImportModal({ isOpen, onClose }) {
             }
             setResult({ success, failed, total: preview.rows.length });
             queryClient.invalidateQueries({ queryKey: ['customers'] });
-            toast.success(t('components.customerImport.importSuccess', { count: success }));
+            notify.success(t('components.customerImport.importSuccess', { count: success }));
         } catch (err) {
-            toast.error(t('components.customerImport.importError'));
+            notify.error(t('components.customerImport.importError'));
         } finally {
             setImporting(false);
         }

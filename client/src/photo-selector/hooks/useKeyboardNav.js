@@ -4,7 +4,6 @@ import usePhotoSelectorStore from '../stores/photoSelectorStore';
 export default function useKeyboardNav({ onOpenSelection }) {
     const currentView = usePhotoSelectorStore(s => s.currentView);
     const setView = usePhotoSelectorStore(s => s.setView);
-    const selectedIndex = usePhotoSelectorStore(s => s.selectedIndex);
     const setSelectedIndex = usePhotoSelectorStore(s => s.setSelectedIndex);
     const toggleFavorite = usePhotoSelectorStore(s => s.toggleFavorite);
     const undo = usePhotoSelectorStore(s => s.undo);

@@ -5,10 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { archivesApi, optionsApi, schoolsApi } from '../services/api';
 import { formatCurrency } from '../lib/utils';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
 import {
     Search, ArrowLeft, ArrowUpDown, ArrowUp, ArrowDown,
-    X, Loader2, LayoutList, LayoutGrid, ChevronLeft, ChevronRight
+    LayoutList, LayoutGrid, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';

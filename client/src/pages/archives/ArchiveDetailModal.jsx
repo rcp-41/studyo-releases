@@ -10,7 +10,7 @@ import { X, Loader2 } from 'lucide-react';
 import PhoneInput from '../../components/PhoneInput';
 import useF2Print from '../../hooks/useF2Print';
 import useUndoable from '../../hooks/useUndoable';
-import { autoPrintArchive, printTemplate } from '../../lib/printService';
+import { autoPrintArchive } from '../../lib/printService';
 import { getPrintSettings } from '../../lib/printSettings';
 import notify from '../../lib/notify';
 

@@ -104,7 +104,7 @@ export default function CompareView() {
     const toggleFavorite = usePhotoSelectorStore(s => s.toggleFavorite);
 
     // Shared zoom state for synchronized zoom
-    const { zoom, isDragging, style, handlers, resetZoom } = useZoom();
+    const { isDragging, style, handlers } = useZoom();
 
     const leftPhoto = photos[compareIndices[0]] || null;
     const rightPhoto = photos[compareIndices[1]] || null;

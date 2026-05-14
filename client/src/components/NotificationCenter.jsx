@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, X, Calendar, DollarSign, Camera, Check, CheckCheck, Trash2 } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
