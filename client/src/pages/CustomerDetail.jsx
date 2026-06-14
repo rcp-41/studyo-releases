@@ -259,7 +259,7 @@ export default function CustomerDetail() {
         return (
             <div className="text-center py-12 space-y-4">
                 <p className="text-lg">Müşteri bulunamadı</p>
-                {lookupName && <p className="text-muted-foreground">"{decodeURIComponent(lookupName)}" için kayıt yok</p>}
+                {lookupName && <p className="text-muted-foreground">&quot;{decodeURIComponent(lookupName)}&quot; için kayıt yok</p>}
                 <Link to="/customers" className="text-primary hover:underline">Müşterilere dön</Link>
             </div>
         );

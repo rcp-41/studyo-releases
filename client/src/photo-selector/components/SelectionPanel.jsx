@@ -305,7 +305,7 @@ export default function SelectionPanel({ onClose }) {
                                             Bu çekim türü için Pixonai seçenekleri tanımlanmamış.
                                         </p>
                                         <p className="text-[10px] text-neutral-600">
-                                            Ayarlar → Pixonai Ayarları'ndan yapılandırın
+                                            Ayarlar → Pixonai Ayarları&apos;ndan yapılandırın
                                         </p>
                                     </div>
                                 ) : (

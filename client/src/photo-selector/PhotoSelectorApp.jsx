@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import usePhotoSelectorStore from './stores/photoSelectorStore';
 import GridView from './components/GridView';
@@ -16,6 +16,90 @@ import { archivesApi, settingsApi, pixonaiApi } from '../services/api';
 import notify from '../lib/notify';
 import { Loader2, Copy, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+
+// ==================== Shared save helpers ====================
+// Build batch-rename operations from the current selection. Filenames become
+// `NN - CODE - CODE.ext`: NN is the zero-padded order number, codes are the gift
+// + option abbreviations assigned to that photo. Both save paths use this so the
+// produced filename is identical regardless of which button the user pressed.
+function buildRenameOps(state) {
+    const renameMapping = {};
+    const renameOps = state.numberedPhotos
+        .filter(np => !np.isCancelled && np.orderNumber)
+        .map(np => {
+            const photo = state.photos.find(p => p.id === np.photoId);
+            if (!photo) return null;
+
+            const ext = photo.name?.split('.').pop() || photo.originalName?.split('.').pop() || 'jpg';
+            const paddedNum = String(np.orderNumber).padStart(2, '0');
+            const dir = (photo.fullPath || photo.path)?.replace(/[\\/][^\\/]+$/, '') || '';
+
+            const suffixCodes = [];
+            Object.entries(state.giftAssignments || {}).forEach(([abbr, ids]) => {
+                if (ids.includes(np.photoId)) suffixCodes.push(abbr);
+            });
+            Object.entries(state.optionAssignments || {}).forEach(([abbr, ids]) => {
+                if (ids.includes(np.photoId) && !suffixCodes.includes(abbr)) suffixCodes.push(abbr);
+            });
+
+            const suffix = suffixCodes.length ? ' - ' + suffixCodes.join(' - ') : '';
+            const newName = `${paddedNum}${suffix}.${ext}`;
+            const newPath = dir ? `${dir}\\${newName}` : newName;
+
+            // Skip if the file on disk already has the target name.
+            if (photo.currentName === newName) return null;
+
+            renameMapping[np.photoId] = { newName, newPath };
+            return { oldPath: photo.fullPath || photo.path, newPath };
+        })
+        .filter(Boolean);
+    return { renameOps, renameMapping };
+}
+
+// Apply renames on disk, sync the store, and re-save the INI so its keys match
+// the new filenames. Returns true on success (or when there is nothing to do).
+async function commitRenames(performSave, t) {
+    const state = usePhotoSelectorStore.getState();
+    const { renameOps, renameMapping } = buildRenameOps(state);
+    if (renameOps.length === 0 || !window.electron?.photoSelector?.batchRename) return true;
+
+    try {
+        const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
+        if (!renameResult.success) {
+            notify.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
+            return false;
+        }
+        // Update BOTH originalName and currentName so INI keys match disk filenames.
+        const updatedPhotos = state.photos.map(p => {
+            const mapping = renameMapping[p.id];
+            return mapping
+                ? { ...p, originalName: mapping.newName, currentName: mapping.newName, name: mapping.newName, fullPath: mapping.newPath }
+                : p;
+        });
+        usePhotoSelectorStore.setState({ photos: updatedPhotos, isDirty: true });
+        await performSave();
+        return true;
+    } catch (err) {
+        notify.error(t('photoSelector.app.renameFailed', { error: err.message }));
+        return false;
+    }
+}
+
+// Persist the freeform note as not.txt next to the photos.
+async function saveNoteFile() {
+    const state = usePhotoSelectorStore.getState();
+    if (!state.noteText?.trim() || !window.electron?.photoSelector?.writeFile) return;
+    try {
+        const firstPhoto = state.photos[0];
+        const dir = (firstPhoto?.fullPath || firstPhoto?.path)?.replace(/[\\/][^\\/]+$/, '') || '';
+        if (dir) {
+            const notePath = `${dir}\\not.txt`;
+            await window.electron.photoSelector.writeFile({ path: notePath, content: state.noteText.trim() });
+        }
+    } catch (err) {
+        console.error('Note save error:', err);
+    }
+}
 
 export default function PhotoSelectorApp() {
     const { t } = useTranslation();
@@ -38,6 +122,16 @@ export default function PhotoSelectorApp() {
     const setPixonaiConfig = usePhotoSelectorStore(s => s.setPixonaiConfig);
     const shootCategoryType = usePhotoSelectorStore(s => s.shootCategoryType);
     const pixonaiConfig = usePhotoSelectorStore(s => s.pixonaiConfig);
+    // Subscribed so the status-bar photo count below stays reactive to filter
+    // changes (getFilteredPhotos() via getState() alone would not re-render).
+    const filterMode = usePhotoSelectorStore(s => s.filterMode);
+    const photoCount = usePhotoSelectorStore(s => s.photos.length);
+    // Status-bar count. Declared here (before any early return) so the hook order
+    // stays stable; recomputed whenever any filter input changes.
+    const filteredCount = useMemo(
+        () => usePhotoSelectorStore.getState().getFilteredPhotos().length,
+        [filterMode, photoCount, favorites, numberedPhotos]
+    );
     const { performSave } = useAutoSave();
     useKeyboardNav({ onOpenSelection: () => setSelectionOpen(true) });
     const { loadPhotos } = usePhotoLoader();
@@ -65,6 +159,15 @@ export default function PhotoSelectorApp() {
             loadPhotos(folderPath).finally(() => setInitializing(false));
             loadPixonaiConfig(config.shootCategory);
         }
+    }, []);
+
+    // Copy progress: register the IPC listener once for the window's lifetime
+    // so repeated Mode 1 runs don't stack duplicate listeners.
+    useEffect(() => {
+        const unsub = window.electron?.photoSelector?.onCopyProgress?.(
+            (progress) => setCopyProgress(progress)
+        );
+        return () => { if (typeof unsub === 'function') unsub(); };
     }, []);
 
     // Helper: load pixonai config for a given shoot category
@@ -121,13 +224,8 @@ export default function PhotoSelectorApp() {
                 await window.electron.createFolder(destPath);
             }
 
-            // 4. Copy photos with progress
+            // 4. Copy photos with progress (listener registered once on mount)
             setCopyProgress({ current: 0, total: 0, fileName: '', percent: 0 });
-
-            // Listen for progress events
-            window.electron?.photoSelector?.onCopyProgress?.((progress) => {
-                setCopyProgress(progress);
-            });
 
             const copyResult = await window.electron?.photoSelector?.copyFiles({
                 sourcePath,
@@ -279,178 +377,29 @@ export default function PhotoSelectorApp() {
         doBack();
     };
 
-    // ==================== Save Numbering (no close) ====================
+    // ==================== Save (keeps window open) ====================
+    // Persists the INI, renames files to their numbered names, and writes the
+    // note — without updating the archive record or closing the window. The
+    // photographer can keep working and save progress repeatedly.
     const handleSaveNumbering = async () => {
         await performSave();
-
-        const state = usePhotoSelectorStore.getState();
-
-        // Build rename mapping
-        const renameMapping = {};
-        const renameOps = state.numberedPhotos
-            .filter(np => !np.isCancelled && np.orderNumber)
-            .map(np => {
-                const photo = state.photos.find(p => p.id === np.photoId);
-                if (!photo) return null;
-
-                const ext = photo.name?.split('.').pop() || photo.originalName?.split('.').pop() || 'jpg';
-                const paddedNum = String(np.orderNumber).padStart(2, '0');
-                const dir = (photo.fullPath || photo.path)?.replace(/[\\/][^\\/]+$/, '') || '';
-
-                // Collect gift codes assigned to this photo
-                const suffixCodes = [];
-                if (state.giftAssignments) {
-                    Object.entries(state.giftAssignments).forEach(([abbr, photoIds]) => {
-                        if (photoIds.includes(np.photoId)) {
-                            suffixCodes.push(abbr);
-                        }
-                    });
-                }
-
-                // Collect option codes assigned to this photo
-                if (state.optionAssignments) {
-                    Object.entries(state.optionAssignments).forEach(([abbr, photoIds]) => {
-                        if (photoIds.includes(np.photoId) && !suffixCodes.includes(abbr)) {
-                            suffixCodes.push(abbr);
-                        }
-                    });
-                }
-
-                const suffix = suffixCodes.length ? ' - ' + suffixCodes.join(' - ') : '';
-                const newName = `${paddedNum}${suffix}.${ext}`;
-                const newPath = dir ? `${dir}\\${newName}` : newName;
-
-                if (photo.currentName === newName && photo.originalName === newName) return null;
-
-                renameMapping[np.photoId] = { newName, newPath };
-                return { oldPath: photo.fullPath || photo.path, newPath };
-            })
-            .filter(Boolean);
-
-        if (renameOps.length > 0 && window.electron?.photoSelector?.batchRename) {
-            try {
-                const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
-                if (!renameResult.success) {
-                    notify.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
-                } else {
-                    // Update BOTH originalName and currentName so INI keys match disk filenames
-                    const updatedPhotos = state.photos.map(p => {
-                        const mapping = renameMapping[p.id];
-                        if (mapping) {
-                            return {
-                                ...p,
-                                originalName: mapping.newName,
-                                currentName: mapping.newName,
-                                name: mapping.newName,
-                                fullPath: mapping.newPath,
-                            };
-                        }
-                        return p;
-                    });
-                    usePhotoSelectorStore.setState({ photos: updatedPhotos, isDirty: true });
-                    // Re-save INI with updated originalNames so it matches files on disk
-                    await performSave();
-                    notify.success(t('photoSelector.app.numberingSaved'));
-                }
-            } catch (err) {
-                notify.error(t('photoSelector.app.renameFailed', { error: err.message }));
-            }
-        } else {
-            notify.success(t('photoSelector.app.saved'));
-        }
-
-        // Save note text file if there's a note
-        if (state.noteText?.trim() && window.electron?.photoSelector?.writeFile) {
-            try {
-                const firstPhoto = state.photos[0];
-                const dir = (firstPhoto?.fullPath || firstPhoto?.path)?.replace(/[\\/][^\\/]+$/, '') || '';
-                if (dir) {
-                    const notePath = `${dir}\\not.txt`;
-                    await window.electron.photoSelector.writeFile({ path: notePath, content: state.noteText.trim() });
-                }
-            } catch (err) {
-                console.error('Note save error:', err);
-            }
-        }
+        const ok = await commitRenames(performSave, t);
+        await saveNoteFile();
+        if (ok) notify.success(t('photoSelector.app.numberingSaved'));
     };
 
-    // ==================== Save & Close ====================
+    // ==================== Complete & Close ====================
+    // Save + rename + note, THEN update the archive record (status / price /
+    // selection data), notify the main window, and close. If the archive update
+    // fails, the window stays open so the user can retry instead of silently
+    // losing the result.
     const handleSaveAndClose = async () => {
         await performSave();
+        const ok = await commitRenames(performSave, t);
+        if (!ok) return;
+        await saveNoteFile();
 
         const state = usePhotoSelectorStore.getState();
-
-        // Build rename mapping: photoId -> { newName, newPath }
-        const renameMapping = {};
-        const renameOps = state.numberedPhotos
-            .filter(np => !np.isCancelled && np.orderNumber)
-            .map(np => {
-                const photo = state.photos.find(p => p.id === np.photoId);
-                if (!photo) return null;
-
-                const ext = photo.name?.split('.').pop() || photo.originalName?.split('.').pop() || 'jpg';
-                const paddedNum = String(np.orderNumber).padStart(2, '0');
-                const dir = (photo.fullPath || photo.path)?.replace(/[\\/][^\\/]+$/, '') || '';
-
-                // Build gift shortcodes
-                const giftCodes = [];
-                if (state.activePackage?.gifts) {
-                    state.activePackage.gifts.forEach(gift => {
-                        const assigned = state.giftAssignments[gift.abbr] || [];
-                        if (assigned.includes(np.photoId)) {
-                            giftCodes.push(gift.abbr);
-                        }
-                    });
-                }
-
-                const giftSuffix = giftCodes.length ? ' - ' + giftCodes.join(' - ') : '';
-                const newName = `${paddedNum}${giftSuffix}.${ext}`;
-                const newPath = dir ? `${dir}\\${newName}` : newName;
-
-                if (photo.originalName === newName || photo.currentName === newName) return null;
-
-                renameMapping[np.photoId] = { newName, newPath };
-                return { oldPath: photo.fullPath || photo.path, newPath };
-            })
-            .filter(Boolean);
-
-        if (renameOps.length > 0 && window.electron?.photoSelector?.batchRename) {
-            try {
-                const renameResult = await window.electron.photoSelector.batchRename({ operations: renameOps });
-                if (!renameResult.success) {
-                    notify.error(t('photoSelector.app.renameError', { error: renameResult.error || 'Bilinmeyen hata' }));
-                } else {
-                    // Update photos in store with new currentName/fullPath so INI re-save is accurate
-                    const updatedPhotos = state.photos.map(p => {
-                        const mapping = renameMapping[p.id];
-                        if (mapping) {
-                            return { ...p, currentName: mapping.newName, fullPath: mapping.newPath };
-                        }
-                        return p;
-                    });
-                    usePhotoSelectorStore.setState({ photos: updatedPhotos, isDirty: true });
-
-                    // Re-save INI with updated file names so next load matches correctly
-                    await performSave();
-                }
-            } catch (err) {
-                notify.error(t('photoSelector.app.renameFailed', { error: err.message }));
-            }
-        }
-
-        // Save note text file if there's a note
-        if (state.noteText?.trim() && window.electron?.photoSelector?.writeFile) {
-            try {
-                const firstPhoto = state.photos[0];
-                const dir = (firstPhoto?.fullPath || firstPhoto?.path)?.replace(/[\\/][^\\/]+$/, '') || '';
-                if (dir) {
-                    const notePath = `${dir}\\not.txt`;
-                    await window.electron.photoSelector.writeFile({ path: notePath, content: state.noteText.trim() });
-                }
-            } catch (err) {
-                console.error('Note save error:', err);
-            }
-        }
 
         // If archive mode, update the archive record
         if ((state.operationMode === 'archive_new' || state.operationMode === 'archive_existing')
@@ -522,6 +471,9 @@ export default function PhotoSelectorApp() {
             } catch (err) {
                 console.error('Archive update error:', err);
                 notify.error(t('photoSelector.app.archiveUpdateError', { error: err.message }));
+                // Keep the window open so the user can retry; don't close and
+                // report an unsaved result back to the main app.
+                return;
             }
         }
 
@@ -591,8 +543,6 @@ export default function PhotoSelectorApp() {
         );
     }
 
-    const filteredPhotos = usePhotoSelectorStore.getState().getFilteredPhotos();
-
     return (
         <div className="h-screen flex flex-col bg-neutral-900 text-neutral-100 overflow-hidden select-none">
             <Toolbar
@@ -618,7 +568,7 @@ export default function PhotoSelectorApp() {
 
             {/* Status bar */}
             <div className="ps-statusbar">
-                <span>{filteredPhotos.length} {t('photoSelector.app.photos')}</span>
+                <span>{filteredCount} {t('photoSelector.app.photos')}</span>
                 <span>{favorites.size} {t('photoSelector.app.favorites')}</span>
                 <span>{numberedPhotos.filter(np => !np.isCancelled).length} {t('photoSelector.app.numbered')}</span>
                 {operationMode && (

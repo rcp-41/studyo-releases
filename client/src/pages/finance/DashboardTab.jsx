@@ -46,8 +46,6 @@ export default function DashboardTab({ range }) {
         queryFn: () => financeApi.getDailyCash({ date: today })
     });
 
-    if (payLoading || expLoading || cashLoading) return <SkeletonDashboard />;
-
     const cash = cashData || {};
     const kasaBalance = (cash.openingBalance || 0) + (cash.cashIncome || 0) + (cash.cardIncome || 0) + (cash.transferIncome || 0) - (cash.totalExpenses || 0);
 
@@ -84,6 +82,10 @@ export default function DashboardTab({ range }) {
         { name: t('pages.finance.expense'), value: -totalExpense, fill: '#ef4444' },
         { name: t('pages.finance.netIncome'), value: profit, fill: profit >= 0 ? '#22c55e' : '#ef4444' }
     ], [totalIncome, totalExpense, profit, t]);
+
+    // All hooks are called unconditionally above this line; the loading
+    // early-return must stay below them to satisfy the Rules of Hooks.
+    if (payLoading || expLoading || cashLoading) return <SkeletonDashboard />;
 
     return (
         <div className="space-y-6">

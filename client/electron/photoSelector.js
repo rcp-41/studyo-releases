@@ -272,6 +272,10 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
 
         try {
             const metadata = await sharp(filePath).metadata();
+            // sharp's metadata.size is only populated for Stream/Buffer input, not
+            // file paths — read the real file size from disk instead.
+            let fileSize;
+            try { fileSize = fs.statSync(filePath).size; } catch { fileSize = metadata.size; }
             return {
                 success: true,
                 data: {
@@ -281,7 +285,7 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
                     format: metadata.format,
                     space: metadata.space,
                     density: metadata.density,
-                    size: metadata.size,
+                    size: fileSize,
                 }
             };
         } catch (error) {
@@ -685,7 +689,7 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
     });
 
     // Get image as base64 (for preview loading)
-    ipcMain.handle('photos:getImageAsBase64', async (_event, { filePath, maxWidth }) => {
+    ipcMain.handle('photos:getImageAsBase64', async (_event, { filePath, maxWidth, rotate }) => {
         if (!isPathAllowed(filePath)) return { success: false, error: 'Path not allowed' };
 
         let sharp;
@@ -710,7 +714,12 @@ function registerPhotoSelectorIPC(mainWindow, isPathAllowed, isDev, allowedBaseP
         }
 
         try {
-            let pipeline = sharp(filePath).rotate();
+            let pipeline = sharp(filePath).rotate(); // EXIF auto-orient
+            // User-applied rotation (multiples of 90). Done before resize so the
+            // output dimensions match the final orientation and fit object-contain.
+            if (rotate) {
+                pipeline = pipeline.rotate(rotate);
+            }
             if (maxWidth) {
                 pipeline = pipeline.resize(maxWidth, null, { withoutEnlargement: true });
             }

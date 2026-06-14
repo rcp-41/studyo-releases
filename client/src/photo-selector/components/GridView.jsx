@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FixedSizeGrid } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
@@ -78,6 +79,7 @@ const SortablePhotoCard = memo(function SortablePhotoCard({
 });
 
 export default function GridView() {
+    const { t } = useTranslation();
     const photos = usePhotoSelectorStore(s => s.getFilteredPhotos());
     const favorites = usePhotoSelectorStore(s => s.favorites);
     const numberedPhotos = usePhotoSelectorStore(s => s.numberedPhotos);
@@ -157,7 +159,7 @@ export default function GridView() {
         return (
             <div className="h-full flex flex-col items-center justify-center gap-3">
                 <ImageOff className="w-16 h-16 text-neutral-700" />
-                <p className="text-neutral-500">Bu filtrede fotoğraf bulunamadı</p>
+                <p className="text-neutral-500">{t('photoSelector.grid.noPhotosInFilter')}</p>
             </div>
         );
     }

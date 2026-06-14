@@ -1,7 +1,8 @@
 const { onCall } = require('firebase-functions/v2/https');
 const { DatabaseHandler } = require('./handlers/DatabaseHandler');
+const { APPCHECK_ENABLED } = require('./config');
 
-exports.createActivityLog = onCall({ enforceAppCheck: false }, async (request) => {
+exports.createActivityLog = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) throw new Error('Yetkilendirme gerekli');
     const db = new DatabaseHandler(request);
     const { action, details, computerName, ipAddress, sessionId, timestamp } = request.data;
@@ -20,7 +21,7 @@ exports.createActivityLog = onCall({ enforceAppCheck: false }, async (request) =
     return { success: true };
 });
 
-exports.createErrorLog = onCall({ enforceAppCheck: false }, async (request) => {
+exports.createErrorLog = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) throw new Error('Yetkilendirme gerekli');
     const db = new DatabaseHandler(request);
 

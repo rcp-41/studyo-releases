@@ -33,7 +33,7 @@ export default function BotConversations() {
         try {
             const result = await botApi.getConversations(filter === 'all' ? undefined : filter, 50);
             setConversations(result?.data || []);
-        } catch { }
+        } catch { /* getConversations failed — keep existing list */ }
         setLoading(false);
     }
 
@@ -43,7 +43,7 @@ export default function BotConversations() {
         try {
             const result = await botApi.getMessages(conv.id, 100);
             setMessages(result?.data || []);
-        } catch { }
+        } catch { /* getMessages failed — keep current messages */ }
         setMsgLoading(false);
     }
 

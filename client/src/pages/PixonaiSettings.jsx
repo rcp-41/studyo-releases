@@ -99,7 +99,7 @@ export default function PixonaiSettings() {
                 <div className="text-center py-16 bg-neutral-800/30 rounded-xl border border-neutral-700/50">
                     <Camera className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                     <p className="text-neutral-400 text-sm">Henüz yapılandırma eklenmemiş</p>
-                    <p className="text-neutral-500 text-xs mt-1">"Yapılandırma Ekle" butonuna basarak başlayın</p>
+                    <p className="text-neutral-500 text-xs mt-1">&quot;Yapılandırma Ekle&quot; butonuna basarak başlayın</p>
                 </div>
             ) : (
                 <div className="grid gap-3">

@@ -151,17 +151,17 @@ export default function Settings() {
                                 <div className="py-3">
                                     <label className="block font-medium mb-1">Stüdyo Adı</label>
                                     <input type="text" value={general.studio_name || ''} disabled className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-input text-muted-foreground cursor-not-allowed" />
-                                    <p className="text-xs text-muted-foreground mt-1">Bu alan Creator Panel'den güncellenir</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Bu alan Creator Panel&apos;den güncellenir</p>
                                 </div>
                                 <div className="py-3">
                                     <label className="block font-medium mb-1">Telefon</label>
                                     <input type="text" value={general.studio_phone || ''} disabled className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-input text-muted-foreground cursor-not-allowed" />
-                                    <p className="text-xs text-muted-foreground mt-1">Bu alan Creator Panel'den güncellenir</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Bu alan Creator Panel&apos;den güncellenir</p>
                                 </div>
                                 <div className="py-3">
                                     <label className="block font-medium mb-1">E-posta</label>
                                     <input type="text" value={general.studio_email || ''} disabled className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-input text-muted-foreground cursor-not-allowed" />
-                                    <p className="text-xs text-muted-foreground mt-1">Bu alan Creator Panel'den güncellenir</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Bu alan Creator Panel&apos;den güncellenir</p>
                                 </div>
                                 <div className="py-3">
                                     <label className="block font-medium mb-1">Arşiv Klasör Yolu</label>

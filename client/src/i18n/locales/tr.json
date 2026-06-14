@@ -889,7 +889,18 @@
       "redo": "İleri Al",
       "completeRecord": "Kaydı Tamamla",
       "updateArchive": "Arşivi Güncelle",
-      "saveAndClose": "Kaydet & Kapat"
+      "saveAndClose": "Kaydet & Kapat",
+      "save": "Kaydet"
+    },
+    "grid": {
+      "noPhotosInFilter": "Bu filtrede fotoğraf bulunamadı"
+    },
+    "single": {
+      "noPhotoSelected": "Fotoğraf seçilmedi",
+      "imageLoadFailed": "Görüntü yüklenemedi",
+      "rotateLeft": "Sola döndür (Shift+R)",
+      "rotateRight": "Sağa döndür (R)",
+      "loupe": "Büyüteç — netlik kontrolü (Z)"
     },
     "app": {
       "sessionChecking": "Oturum kontrol ediliyor...",

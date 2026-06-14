@@ -7,13 +7,9 @@
 
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { APPCHECK_ENABLED } = require('./config');
 
 const db = admin.firestore();
-
-// --- Firebase AppCheck ---
-// When APPCHECK_ENABLED=true, onCall functions will reject requests without a valid AppCheck token.
-// See index.js for full documentation on enabling AppCheck.
-const APPCHECK_ENFORCED = process.env.APPCHECK_ENABLED === 'true';
 
 // --- SECURITY: In-memory Rate Limiter ---
 // Uses a Map with IP-based tracking and automatic TTL cleanup.
@@ -74,7 +70,7 @@ function getClientIp(request) {
  * Multi-Tenant: reads from organizations/{orgId}/studios/{studioId}/users/{uid}
  * Fallback to top-level users for creator accounts
  */
-exports.getProfile = onCall({ enforceAppCheck: APPCHECK_ENFORCED }, async (request) => {
+exports.getProfile = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     // SECURITY: Rate limit profile fetches by IP — 30 requests per minute
     const clientIp = getClientIp(request);
     checkInMemoryRateLimit(`getProfile_${clientIp}`, 30, 60000);

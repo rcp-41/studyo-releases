@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import usePhotoSelectorStore from '../stores/photoSelectorStore';
 import {
     Grid3X3, Image, Columns2, Star, ListOrdered, Undo2, Redo2,
-    Save, Minus, Plus, ArrowLeft
+    Save, Minus, Plus, ArrowLeft, Check
 } from 'lucide-react';
 
 export default function Toolbar({ onOpenSelection: _onOpenSelection, onSaveAndClose, onSaveNumbering, onBack }) {
@@ -157,13 +157,25 @@ export default function Toolbar({ onOpenSelection: _onOpenSelection, onSaveAndCl
                 />
 
 
+                {/* Save (keeps window open) */}
                 <button
-                    onClick={onSaveNumbering || onSaveAndClose}
+                    onClick={onSaveNumbering}
+                    title={t('photoSelector.toolbar.save')}
+                    className="px-3 py-1.5 text-xs bg-neutral-700 text-neutral-200
+                               hover:bg-neutral-600 rounded-lg transition-colors font-medium
+                               flex items-center gap-1.5"
+                >
+                    <Save className="w-3.5 h-3.5" />
+                    {t('photoSelector.toolbar.save')}
+                </button>
+                {/* Finalize: update archive + send result + close */}
+                <button
+                    onClick={onSaveAndClose}
                     className="px-3 py-1.5 text-xs bg-amber-500 text-neutral-900
                                hover:bg-amber-400 rounded-lg transition-colors font-medium
                                flex items-center gap-1.5"
                 >
-                    <Save className="w-3.5 h-3.5" />
+                    <Check className="w-3.5 h-3.5" />
                     {saveButtonLabel}
                 </button>
             </div>

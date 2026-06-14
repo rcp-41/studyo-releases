@@ -888,7 +888,18 @@
       "redo": "Redo",
       "completeRecord": "Complete Record",
       "updateArchive": "Update Archive",
-      "saveAndClose": "Save & Close"
+      "saveAndClose": "Save & Close",
+      "save": "Save"
+    },
+    "grid": {
+      "noPhotosInFilter": "No photos in this filter"
+    },
+    "single": {
+      "noPhotoSelected": "No photo selected",
+      "imageLoadFailed": "Failed to load image",
+      "rotateLeft": "Rotate left (Shift+R)",
+      "rotateRight": "Rotate right (R)",
+      "loupe": "Loupe — sharpness check (Z)"
     },
     "app": {
       "sessionChecking": "Checking session...",

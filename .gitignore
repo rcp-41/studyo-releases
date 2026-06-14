@@ -25,6 +25,13 @@ firebase/functions/.env.*.local
 gen-lang-client*.json
 serviceAccountKey.json
 
+# User/credential dumps (contain password hashes + PII — never commit)
+# NOTE: these are still tracked in history; run `git rm --cached` + history rewrite to fully purge.
+firebase/auth_users.json
+firebase/creator_import.json
+_kaynak_kod_yedek/firebase/auth_users.json
+_kaynak_kod_yedek/firebase/creator_import.json
+
 # Firebase emulator data & cache
 firebase/emulator-data/
 .firebase/

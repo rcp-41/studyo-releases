@@ -319,6 +319,7 @@ app.whenReady().then(() => {
         let pendingVersion = '';
         let videoEnded = false;
         let updatePending = false;
+        let splashDismissed = false; // splash→main transition runs only once
 
         // Create the frameless splash window
         splashWindow = new BrowserWindow({
@@ -377,6 +378,11 @@ app.whenReady().then(() => {
         }, 15000);
 
         function closeSplashShowMain() {
+            // One-shot: only the initial splash→main transition may force the main
+            // window to the foreground. Periodic update checks (update-not-available
+            // / error every 5 min) must NOT re-show or focus a minimized window.
+            if (splashDismissed) return;
+            splashDismissed = true;
             if (splashWindow && !splashWindow.isDestroyed()) {
                 splashWindow.close();
                 splashWindow = null;

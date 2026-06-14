@@ -30,7 +30,7 @@ export default function WhatsAppSettings({ enabled, onToggle }) {
                     const qrR = await whatsappApi.getQr();
                     setQr(qrR?.qr || null);
                 } else if (s === 'connected') setQr(null);
-            } catch (_) { }
+            } catch (_) { /* polling error — retry next tick */ }
         }, 3000);
 
         return () => { clearInterval(interval); whatsapp.removeListeners?.(); };

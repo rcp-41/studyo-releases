@@ -12,6 +12,7 @@
 const admin = require('firebase-admin');
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const DatabaseHandler = require('./handlers/DatabaseHandler');
+const { APPCHECK_ENABLED } = require('./config');
 const crypto = require('crypto');
 
 const FieldValue = admin.firestore.FieldValue;
@@ -19,7 +20,7 @@ const FieldValue = admin.firestore.FieldValue;
 /**
  * Initialize an iyzico payment
  */
-exports.iyzicoCreatePayment = onCall({ enforceAppCheck: false }, async (request) => {
+exports.iyzicoCreatePayment = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -118,7 +119,7 @@ exports.iyzicoCreatePayment = onCall({ enforceAppCheck: false }, async (request)
 /**
  * Initialize a PayTR payment (iFrame token)
  */
-exports.paytrCreateToken = onCall({ enforceAppCheck: false }, async (request) => {
+exports.paytrCreateToken = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -321,7 +322,7 @@ exports.callback = onRequest(async (req, res) => {
  *
  * SECURITY: Creator or Admin only
  */
-exports.reconcilePayments = onCall({ enforceAppCheck: false }, async (request) => {
+exports.reconcilePayments = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -418,7 +419,7 @@ exports.reconcilePayments = onCall({ enforceAppCheck: false }, async (request) =
 /**
  * Get payment status
  */
-exports.getPaymentStatus = onCall({ enforceAppCheck: false }, async (request) => {
+exports.getPaymentStatus = onCall({ enforceAppCheck: APPCHECK_ENABLED }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in');
     }

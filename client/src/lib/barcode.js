@@ -52,5 +52,5 @@ export function generateCode39SVG(text, options = {}) {
 }
 
 export function isValidCode39Char(ch) {
-    return CODE39.hasOwnProperty(String(ch).toUpperCase());
+    return Object.prototype.hasOwnProperty.call(CODE39, String(ch).toUpperCase());
 }

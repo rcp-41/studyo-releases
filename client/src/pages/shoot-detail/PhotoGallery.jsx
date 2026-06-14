@@ -99,7 +99,7 @@ export default function PhotoGallery({ archiveNumber, photoSelectionData }) {
                 </div>
             ) : (
                 <p className="text-center py-6 text-muted-foreground text-sm">
-                    "Fotoğrafları Yükle" butonuna tıklayarak klasördeki fotoğrafları görüntüleyin
+                    &quot;Fotoğrafları Yükle&quot; butonuna tıklayarak klasördeki fotoğrafları görüntüleyin
                 </p>
             )}
 

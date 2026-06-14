@@ -33,7 +33,7 @@ export function getPrintSettings() {
         };
     } catch (e) {
         console.error('[PrintSettings] parse failed:', e);
-        try { localStorage.removeItem(STORAGE_KEY); } catch {}
+        try { localStorage.removeItem(STORAGE_KEY); } catch { /* storage unavailable — ignore */ }
         return structuredClone(defaults);
     }
 }

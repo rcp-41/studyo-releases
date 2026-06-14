@@ -11,7 +11,24 @@ export default function useKeyboardNav({ onOpenSelection }) {
     const setFilterMode = usePhotoSelectorStore(s => s.setFilterMode);
     const filterMode = usePhotoSelectorStore(s => s.filterMode);
 
+    // Toggle numbering on a photo (assign if not numbered, remove if it is).
+    const toggleNumber = useCallback((photo) => {
+        if (!photo) return;
+        const st = usePhotoSelectorStore.getState();
+        const isNumbered = st.numberedPhotos.some(np => np.photoId === photo.id && !np.isCancelled);
+        if (isNumbered) st.removeNumber(photo.id);
+        else st.assignNumber(photo.id);
+    }, []);
+
     const handleKeyDown = useCallback((e) => {
+        // Ignore shortcuts while the user is typing in a field, otherwise keys like
+        // Space (favorite), arrows, f/c would hijack text entry — and preventDefault
+        // on Space would even block typing spaces into notes/inputs.
+        const el = e.target;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) {
+            return;
+        }
+
         // Global shortcuts
         if (e.ctrlKey && e.key === 'z') {
             e.preventDefault();
@@ -76,6 +93,12 @@ export default function useKeyboardNav({ onOpenSelection }) {
                         setFilterMode(modes[(currentIdx + 1) % modes.length]);
                     }
                 }
+                if (e.key === 'n' || e.key === 'N') {
+                    if (!e.ctrlKey) {
+                        e.preventDefault();
+                        toggleNumber(filteredPhotos[currentIndex]);
+                    }
+                }
                 if (e.key === 'Delete') {
                     e.preventDefault();
                     const photo = filteredPhotos[currentIndex];
@@ -118,6 +141,12 @@ export default function useKeyboardNav({ onOpenSelection }) {
                         setView('compare');
                     }
                 }
+                if (e.key === 'n' || e.key === 'N') {
+                    if (!e.ctrlKey) {
+                        e.preventDefault();
+                        toggleNumber(filteredPhotos[currentIndex]);
+                    }
+                }
                 if (e.key === 'Delete') {
                     e.preventDefault();
                     const photo = filteredPhotos[currentIndex];
@@ -153,7 +182,7 @@ export default function useKeyboardNav({ onOpenSelection }) {
             }
         }
     }, [currentView, filterMode, onOpenSelection, undo, redo, toggleFavorite, setView,
-        setSelectedIndex, setFilterMode]);
+        setSelectedIndex, setFilterMode, toggleNumber]);
 
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);

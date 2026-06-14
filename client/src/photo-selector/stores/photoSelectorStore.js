@@ -1,6 +1,32 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// ============ UNDO/REDO INFRASTRUCTURE ============
+// Snapshot-based history: every mutating selection action captures the mutable
+// slice before changing it, so a single undo() restores it wholesale. This keeps
+// undo consistent across ALL actions (favorites, numbering, cancel, gifts,
+// options, reorders) instead of hand-coding an inverse per action type.
+const MAX_UNDO = 100;
+
+const snapshot = (s) => ({
+    favorites: new Set(s.favorites),
+    removedFavorites: new Set(s.removedFavorites),
+    numberedPhotos: s.numberedPhotos.map(np => ({ ...np })),
+    nextOrderNumber: s.nextOrderNumber,
+    giftAssignments: { ...s.giftAssignments },
+    optionAssignments: { ...s.optionAssignments },
+});
+
+// Merge `changes` into state while pushing the pre-mutation snapshot onto the
+// undo stack and clearing the redo stack. `get()` here still returns the
+// pre-mutation state because set() has not run yet.
+const commit = (get, changes) => ({
+    ...changes,
+    undoStack: [...get().undoStack.slice(-(MAX_UNDO - 1)), snapshot(get())],
+    redoStack: [],
+    isDirty: true,
+});
+
 const usePhotoSelectorStore = create(
     persist(
         (set, get) => ({
@@ -21,6 +47,7 @@ const usePhotoSelectorStore = create(
             panOffset: { x: 0, y: 0 },
             filterMode: 'all',
             gridColumns: 5,
+            rotations: {},             // { photoId: degrees } — view-only manual rotation
 
             // ============ FAVORITES ============
             favorites: new Set(),
@@ -75,6 +102,7 @@ const usePhotoSelectorStore = create(
                 optionAssignments: {},
                 shootCategoryType: config.shootCategoryType || null,
                 noteText: '',
+                rotations: {},
             }),
 
             setOperationMode: (mode) => set({ operationMode: mode }),
@@ -88,6 +116,10 @@ const usePhotoSelectorStore = create(
                 nextOrderNumber: 1,
                 favorites: new Set(),
                 removedFavorites: new Set(),
+                // History is photo-set specific — drop it so undo can't restore a
+                // selection that belonged to a previously loaded folder.
+                undoStack: [],
+                redoStack: [],
             }),
             setPhotosLoading: (loading) => set({ photosLoading: loading }),
             setThumbnailProgress: (progress) => set({ thumbnailProgress: progress }),
@@ -127,9 +159,16 @@ const usePhotoSelectorStore = create(
             setFilterMode: (mode) => set({ filterMode: mode, selectedIndex: 0 }),
             setGridColumns: (cols) => set({ gridColumns: cols }),
 
+            // Rotate a photo by delta degrees (view-only, normalized to 0/90/180/270).
+            rotatePhoto: (photoId, delta) => {
+                const { rotations } = get();
+                const next = (((rotations[photoId] || 0) + delta) % 360 + 360) % 360;
+                set({ rotations: { ...rotations, [photoId]: next } });
+            },
+
             // --- Favorites ---
             toggleFavorite: (photoId) => {
-                const { favorites, removedFavorites, undoStack } = get();
+                const { favorites, removedFavorites } = get();
                 const newFavs = new Set(favorites);
                 const newRemoved = new Set(removedFavorites);
                 const wasFavorite = newFavs.has(photoId);
@@ -142,17 +181,7 @@ const usePhotoSelectorStore = create(
                     newRemoved.delete(photoId);
                 }
 
-                set({
-                    favorites: newFavs,
-                    removedFavorites: newRemoved,
-                    undoStack: [...undoStack, {
-                        type: 'toggleFavorite',
-                        payload: { photoId, wasFavorite },
-                        timestamp: Date.now()
-                    }],
-                    redoStack: [],
-                    isDirty: true,
-                });
+                set(commit(get, { favorites: newFavs, removedFavorites: newRemoved }));
             },
 
             restoreFavorite: (photoId) => {
@@ -161,7 +190,7 @@ const usePhotoSelectorStore = create(
                 const newRemoved = new Set(removedFavorites);
                 newFavs.add(photoId);
                 newRemoved.delete(photoId);
-                set({ favorites: newFavs, removedFavorites: newRemoved, isDirty: true });
+                set(commit(get, { favorites: newFavs, removedFavorites: newRemoved }));
             },
 
             reorderFavorites: (oldIndex, newIndex) => {
@@ -169,87 +198,72 @@ const usePhotoSelectorStore = create(
                 const favsArray = Array.from(favorites);
                 const [movedItem] = favsArray.splice(oldIndex, 1);
                 favsArray.splice(newIndex, 0, movedItem);
-                set({ favorites: new Set(favsArray), isDirty: true });
+                set(commit(get, { favorites: new Set(favsArray) }));
             },
 
             // --- Numbering ---
             assignNumber: (photoId, options = [], optionDetails = {}) => {
-                const { numberedPhotos, nextOrderNumber, undoStack } = get();
+                const { numberedPhotos, nextOrderNumber } = get();
                 if (numberedPhotos.find(np => np.photoId === photoId)) return;
 
-                set({
+                set(commit(get, {
                     numberedPhotos: [...numberedPhotos, {
                         photoId, orderNumber: nextOrderNumber, options, optionDetails, isCancelled: false
                     }],
                     nextOrderNumber: nextOrderNumber + 1,
-                    undoStack: [...undoStack, {
-                        type: 'assignNumber',
-                        payload: { photoId, orderNumber: nextOrderNumber },
-                        timestamp: Date.now()
-                    }],
-                    redoStack: [],
-                    isDirty: true,
-                });
+                }));
             },
 
             updateNumberOptions: (photoId, options, optionDetails) => {
-                const { numberedPhotos, undoStack } = get();
+                const { numberedPhotos } = get();
                 const existing = numberedPhotos.find(np => np.photoId === photoId);
                 if (!existing) return;
 
-                set({
+                set(commit(get, {
                     numberedPhotos: numberedPhotos.map(np =>
                         np.photoId === photoId ? { ...np, options, optionDetails } : np
                     ),
-                    undoStack: [...undoStack, {
-                        type: 'updateNumberOptions',
-                        payload: {
-                            photoId,
-                            oldOptions: existing.options,
-                            oldDetails: existing.optionDetails,
-                            newOptions: options,
-                            newDetails: optionDetails
-                        },
-                        timestamp: Date.now()
-                    }],
-                    redoStack: [],
-                    isDirty: true,
-                });
+                }));
             },
 
             removeNumber: (photoId) => {
                 const { numberedPhotos } = get();
-                set({
+                if (!numberedPhotos.find(np => np.photoId === photoId)) return;
+                set(commit(get, {
                     numberedPhotos: numberedPhotos.filter(np => np.photoId !== photoId),
-                    isDirty: true,
-                });
+                }));
             },
 
-            reorderNumbered: (newOrder) => set({
-                numberedPhotos: newOrder.map((item, i) => ({
-                    ...item, orderNumber: i + 1
-                })),
-                isDirty: true,
-            }),
+            reorderNumbered: (newOrder) => {
+                const { numberedPhotos } = get();
+                if (newOrder.length === 0 && numberedPhotos.length === 0) return;
+                set(commit(get, {
+                    numberedPhotos: newOrder.map((item, i) => ({
+                        ...item, orderNumber: i + 1
+                    })),
+                }));
+            },
 
             cancelPhoto: (photoId) => {
                 const { numberedPhotos } = get();
-                set({
+                const target = numberedPhotos.find(np => np.photoId === photoId);
+                if (!target || target.isCancelled) return;
+                set(commit(get, {
                     numberedPhotos: numberedPhotos.map(np =>
                         np.photoId === photoId ? { ...np, isCancelled: true } : np
                     ),
-                    isDirty: true,
-                });
+                }));
             },
 
             uncancelPhoto: (photoId) => {
                 const { numberedPhotos } = get();
-                set({
+                const target = numberedPhotos.find(np => np.photoId === photoId);
+                if (!target || !target.isCancelled) return;
+                set(commit(get, {
                     numberedPhotos: numberedPhotos.map(np =>
                         np.photoId === photoId ? { ...np, isCancelled: false } : np
                     ),
-                    isDirty: true,
-                });
+                }));
             },
 
             // --- Pricing ---
@@ -291,19 +305,18 @@ const usePhotoSelectorStore = create(
                 }
                 current.push(photoId);
 
-                set({
+                set(commit(get, {
                     giftAssignments: { ...giftAssignments, [giftAbbr]: current },
-                    isDirty: true,
-                });
+                }));
             },
 
             removeGift: (photoId, giftAbbr) => {
                 const { giftAssignments } = get();
+                if (!(giftAssignments[giftAbbr] || []).includes(photoId)) return;
                 const current = (giftAssignments[giftAbbr] || []).filter(id => id !== photoId);
-                set({
+                set(commit(get, {
                     giftAssignments: { ...giftAssignments, [giftAbbr]: current },
-                    isDirty: true,
-                });
+                }));
             },
 
             clearGifts: () => set({ giftAssignments: {} }),
@@ -325,19 +338,18 @@ const usePhotoSelectorStore = create(
                 }
                 current.push(photoId);
 
-                set({
+                set(commit(get, {
                     optionAssignments: { ...optionAssignments, [optionAbbr]: current },
-                    isDirty: true,
-                });
+                }));
             },
 
             removeOption: (photoId, optionAbbr) => {
                 const { optionAssignments } = get();
+                if (!(optionAssignments[optionAbbr] || []).includes(photoId)) return;
                 const current = (optionAssignments[optionAbbr] || []).filter(id => id !== photoId);
-                set({
+                set(commit(get, {
                     optionAssignments: { ...optionAssignments, [optionAbbr]: current },
-                    isDirty: true,
-                });
+                }));
             },
 
             clearOptions: () => set({ optionAssignments: {} }),
@@ -353,90 +365,27 @@ const usePhotoSelectorStore = create(
 
             // --- Undo/Redo ---
             undo: () => {
-                const { undoStack, redoStack, favorites, removedFavorites, numberedPhotos } = get();
-                if (undoStack.length === 0) return;
-
-                const action = undoStack[undoStack.length - 1];
-                const newUndo = undoStack.slice(0, -1);
-                const newRedo = [...redoStack, action];
-
-                if (action.type === 'toggleFavorite') {
-                    const { photoId, wasFavorite } = action.payload;
-                    const newFavs = new Set(favorites);
-                    const newRemoved = new Set(removedFavorites);
-                    if (wasFavorite) {
-                        newFavs.add(photoId);
-                        newRemoved.delete(photoId);
-                    } else {
-                        newFavs.delete(photoId);
-                    }
-                    set({
-                        favorites: newFavs, removedFavorites: newRemoved,
-                        undoStack: newUndo, redoStack: newRedo, isDirty: true
-                    });
-                } else if (action.type === 'assignNumber') {
-                    set({
-                        numberedPhotos: numberedPhotos.filter(
-                            np => np.photoId !== action.payload.photoId
-                        ),
-                        nextOrderNumber: get().nextOrderNumber - 1,
-                        undoStack: newUndo, redoStack: newRedo, isDirty: true,
-                    });
-                } else if (action.type === 'updateNumberOptions') {
-                    set({
-                        numberedPhotos: numberedPhotos.map(np =>
-                            np.photoId === action.payload.photoId
-                                ? { ...np, options: action.payload.oldOptions, optionDetails: action.payload.oldDetails }
-                                : np
-                        ),
-                        undoStack: newUndo, redoStack: newRedo, isDirty: true,
-                    });
-                }
+                const s = get();
+                if (s.undoStack.length === 0) return;
+                const prev = s.undoStack[s.undoStack.length - 1];
+                set({
+                    ...prev,
+                    undoStack: s.undoStack.slice(0, -1),
+                    redoStack: [...s.redoStack, snapshot(s)],
+                    isDirty: true,
+                });
             },
 
             redo: () => {
-                const { undoStack, redoStack, favorites, removedFavorites, numberedPhotos, nextOrderNumber } = get();
-                if (redoStack.length === 0) return;
-
-                const action = redoStack[redoStack.length - 1];
-                const newRedo = redoStack.slice(0, -1);
-                const newUndo = [...undoStack, action];
-
-                if (action.type === 'toggleFavorite') {
-                    const { photoId, wasFavorite } = action.payload;
-                    const newFavs = new Set(favorites);
-                    const newRemoved = new Set(removedFavorites);
-                    if (wasFavorite) {
-                        newFavs.delete(photoId);
-                        newRemoved.add(photoId);
-                    } else {
-                        newFavs.add(photoId);
-                        newRemoved.delete(photoId);
-                    }
-                    set({
-                        favorites: newFavs, removedFavorites: newRemoved,
-                        undoStack: newUndo, redoStack: newRedo, isDirty: true
-                    });
-                } else if (action.type === 'assignNumber') {
-                    set({
-                        numberedPhotos: [...numberedPhotos, {
-                            photoId: action.payload.photoId,
-                            orderNumber: action.payload.orderNumber,
-                            options: [], optionDetails: {}, isCancelled: false
-                        }],
-                        nextOrderNumber: nextOrderNumber + 1,
-                        undoStack: newUndo, redoStack: newRedo, isDirty: true,
-                    });
-                } else if (action.type === 'updateNumberOptions') {
-                    set({
-                        numberedPhotos: numberedPhotos.map(np =>
-                            np.photoId === action.payload.photoId
-                                ? { ...np, options: action.payload.newOptions, optionDetails: action.payload.newDetails }
-                                : np
-                        ),
-                        undoStack: newUndo, redoStack: newRedo, isDirty: true,
-                    });
-                }
+                const s = get();
+                if (s.redoStack.length === 0) return;
+                const next = s.redoStack[s.redoStack.length - 1];
+                set({
+                    ...next,
+                    redoStack: s.redoStack.slice(0, -1),
+                    undoStack: [...s.undoStack, snapshot(s)],
+                    isDirty: true,
+                });
             },
 
             // --- Save ---
@@ -481,6 +430,9 @@ const usePhotoSelectorStore = create(
                     numberedPhotos,
                     nextOrderNumber: nextOrderNumber || 1,
                     photos: updatedPhotos,
+                    // Restored selection is the new baseline — clear history.
+                    undoStack: [],
+                    redoStack: [],
                 });
             },
 
@@ -488,8 +440,15 @@ const usePhotoSelectorStore = create(
             getFilteredPhotos: () => {
                 const { photos, favorites, removedFavorites, numberedPhotos, filterMode } = get();
                 switch (filterMode) {
-                    case 'favorites':
-                        return photos.filter(p => favorites.has(p.id));
+                    case 'favorites': {
+                        // Preserve the user's manual favorite order (Set insertion /
+                        // drag-reorder order), not the original disk order. This is what
+                        // makes drag-to-reorder in the favorites grid actually visible.
+                        const byId = new Map(photos.map(p => [p.id, p]));
+                        return Array.from(favorites)
+                            .map(id => byId.get(id))
+                            .filter(Boolean);
+                    }
                     case 'unfavorited':
                         return photos.filter(p => removedFavorites.has(p.id));
                     case 'numbered': {
@@ -525,6 +484,7 @@ const usePhotoSelectorStore = create(
                 nextOrderNumber: state.nextOrderNumber,
                 filterMode: state.filterMode,
                 gridColumns: state.gridColumns,
+                rotations: state.rotations,
                 giftAssignments: state.giftAssignments,
                 optionAssignments: state.optionAssignments,
                 shootCategoryType: state.shootCategoryType,

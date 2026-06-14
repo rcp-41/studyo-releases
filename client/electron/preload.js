@@ -78,7 +78,10 @@ contextBridge.exposeInMainWorld('electron', {
         selectFolder: () => ipcRenderer.invoke('photos:selectFolder'),
         copyFiles: (params) => ipcRenderer.invoke('photos:copyFiles', params),
         onCopyProgress: (callback) => {
-            ipcRenderer.on('photos:copy-progress', (_event, data) => callback(data));
+            const handler = (_event, data) => callback(data);
+            ipcRenderer.on('photos:copy-progress', handler);
+            // Return an unsubscribe so the renderer can avoid stacking listeners.
+            return () => ipcRenderer.removeListener('photos:copy-progress', handler);
         },
     },
 
